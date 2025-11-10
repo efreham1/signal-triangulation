@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">TestApp</string>
+    <string name="ssid_prompt">Choose Wi‑Fi network</string>
 </resources>

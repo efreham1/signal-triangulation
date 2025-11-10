@@ -10,8 +10,11 @@ import android.location.Location
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.os.Looper
+import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.Spinner
 import android.widget.TextView
+import android.widget.AdapterView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -66,15 +69,35 @@ class MainActivity : AppCompatActivity() {
     private lateinit var cleanRecordsBtn: Button
     private lateinit var allRecordsText: TextView
 
+    private lateinit var ssidSpinner: Spinner
+    private lateinit var ssidAdapter: ArrayAdapter<String>
+    private val ssidList = mutableListOf<String>()
+    private var selectedSSID: String? = null
+
     private val locationPermissionRequestCode = 1001
-    private val targetSSID = "Forslund_5G"
 
     private val wifiScanReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val success = intent?.getBooleanExtra(WifiManager.EXTRA_RESULTS_UPDATED, false) ?: false
             if (success) {
-                // Scan results updated, display Wi-Fi info
-                showWifiSignalStrength()
+                // Update spinner with latest SSIDs
+                val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+                val scanResults = wifiManager.scanResults
+                ssidList.clear()
+                // keep unique SSIDs, ignore empty SSIDs
+                scanResults.mapNotNull { it.SSID.takeIf { ss -> ss.isNotBlank() } }
+                    .distinct()
+                    .sorted()
+                    .forEach { ssidList.add(it) }
+                runOnUiThread {
+                    ssidAdapter.notifyDataSetChanged()
+                    // if nothing selected yet, pick first
+                    if (selectedSSID == null && ssidList.isNotEmpty()) {
+                        ssidSpinner.setSelection(0)
+                    }
+                    // optionally refresh displayed RSSI for currently selected SSID
+                    showWifiSignalStrength()
+                }
             }
         }
     }
@@ -94,11 +117,11 @@ class MainActivity : AppCompatActivity() {
         viewAllBtn = findViewById(R.id.viewAllBtn)
         cleanRecordsBtn = findViewById(R.id.cleanRecordsBtn)
         allRecordsText = findViewById(R.id.allRecordsText)
+        ssidSpinner = findViewById(R.id.ssidSpinner)
 
         // Location client
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 2000)
-            .setMaxUpdates(1)
             .build()
 
         locationCallback = object : LocationCallback() {
@@ -121,6 +144,25 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+
+        // Spinner adapter
+        ssidAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, ssidList)
+        ssidAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        ssidSpinner.adapter = ssidAdapter
+        ssidSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>, view: android.view.View?, position: Int, id: Long) {
+                selectedSSID = if (position >= 0 && position < ssidList.size) ssidList[position] else null
+                // update display to show currently selected SSID and its current RSSI (if available)
+                showWifiSignalStrength()
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>) {
+                selectedSSID = null
+            }
+        }
+        // request an initial wifi scan to populate spinner
+        val wifiManagerInit = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        wifiManagerInit.startScan()
 
         // Get location button
         getLocationBtn.setOnClickListener { getLocationUpdate() }
@@ -153,6 +195,9 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         registerReceiver(wifiScanReceiver, IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION))
+        // trigger a scan when resuming so spinner is updated quickly
+        val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        wifiManager.startScan()
     }
 
     override fun onPause() {
@@ -179,18 +224,19 @@ class MainActivity : AppCompatActivity() {
     private fun showWifiSignalStrength(): Int? {
         val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
 
-        // Start scan
+        // Start scan (optional - receiver will update list when scan completes)
         wifiManager.startScan()
 
         val scanResults = wifiManager.scanResults
-        val targetNetwork = scanResults.firstOrNull { it.SSID == targetSSID }
+        val targetNetwork = selectedSSID?.let { ssid -> scanResults.firstOrNull { it.SSID == ssid } }
 
         return if (targetNetwork != null) {
             val rssi = targetNetwork.level
-            wifiText.text = "SSID: $targetSSID\nRSSI: $rssi dBm"
+            wifiText.text = "SSID: ${targetNetwork.SSID}\nRSSI: $rssi dBm"
             rssi
         } else {
-            wifiText.text = "SSID $targetSSID not found nearby"
+            val display = selectedSSID?.let { "SSID $it not found nearby" } ?: "No SSID selected"
+            wifiText.text = display
             null
         }
     }
@@ -201,6 +247,9 @@ class MainActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == locationPermissionRequestCode) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // start a wifi scan to populate spinner now that permission is granted
+                val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+                wifiManager.startScan()
                 getLocationUpdate()
             } else {
                 coordinatesText.text = "Permission denied"
