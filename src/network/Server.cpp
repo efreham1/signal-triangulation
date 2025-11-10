@@ -40,7 +40,7 @@ bool Server::start() {
     }
     
     // Implementation to be provided by specific platform
-    return false;
+    return true;
 }
 
 void Server::stop() {
