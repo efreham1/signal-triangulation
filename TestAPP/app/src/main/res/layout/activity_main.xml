@@ -1,36 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:gravity="center"
     android:orientation="vertical"
-    android:padding="24dp">
+    android:padding="16dp"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
 
+    <!-- Coordinates and Wi-Fi display -->
     <TextView
         android:id="@+id/coordinatesText"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Fetching location..."
-        android:textSize="18sp" />
+        android:text="Coordinates will appear here"
+        android:textSize="16sp"
+        android:padding="8dp" />
 
     <TextView
         android:id="@+id/wifiText"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Wi-Fi info will appear here"
-        android:layout_marginTop="8dp"
         android:textSize="16sp"
-        app:layout_constraintTop_toBottomOf="@id/coordinatesText"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        android:padding="8dp" />
 
-
+    <!-- Get Location button -->
     <Button
         android:id="@+id/getLocationBtn"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:text="Get Current Location" />
+        android:text="Get Location" />
+
+    <!-- View All Records button -->
+    <Button
+        android:id="@+id/viewAllBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="View All Records"
+        android:layout_marginTop="8dp" />
+
+    <!-- Clean Records button -->
+    <Button
+        android:id="@+id/cleanRecordsBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Clean Records"
+        android:layout_marginTop="8dp" />
+
+
+    <!-- TextView to display all database entries -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="8dp">
+
+        <TextView
+            android:id="@+id/allRecordsText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Database entries will appear here"
+            android:textSize="14sp"
+            android:padding="8dp" />
+    </ScrollView>
 
 </LinearLayout>
