@@ -21,8 +21,6 @@ signal-triangulation/
 │   │   ├── Server.h
 │   │   └── Server.cpp
 │   └── main.cpp        # Application entry point
-├── include/           # Public headers
-├── tests/            # Test files
 └── docs/             # Documentation
 ```
 
