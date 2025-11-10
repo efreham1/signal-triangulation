@@ -28,7 +28,15 @@ void Server::setTriangulationService(std::shared_ptr<core::TriangulationService>
 
 bool Server::start() {
     if (!m_connectionHandler || !m_messageParser || !m_triangulationService) {
-        throw std::runtime_error("Server not properly configured");
+        std::string missing;
+        if (!m_connectionHandler) missing += "connection handler, ";
+        if (!m_messageParser) missing += "message parser, ";
+        if (!m_triangulationService) missing += "triangulation service, ";
+        if (!missing.empty()) {
+            // Remove trailing comma and space
+            missing = missing.substr(0, missing.size() - 2);
+        }
+        throw std::runtime_error("Server not properly configured: missing " + missing);
     }
     
     // Implementation to be provided by specific platform
