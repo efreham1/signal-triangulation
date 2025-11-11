@@ -11,12 +11,12 @@
         android:layout_height="wrap_content"
         android:text="@string/ssid_prompt" />
 
-    <Spinner
-        android:id="@+id/ssidSpinner"
+    <Button
+        android:id="@+id/selectSsidBtn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:prompt="@string/ssid_prompt" />
+        android:text="@string/choose_ssid" />
 
     <TextView
         android:id="@+id/coordinatesText"

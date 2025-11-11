@@ -1,3 +1,5 @@
+@file:Suppress("AndroidUnresolvedRoomSqlReference")
+
 package com.example.polaris
 
 import android.Manifest
@@ -9,11 +11,8 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.net.wifi.WifiManager
 import android.os.Bundle
-import android.widget.ArrayAdapter
 import android.widget.Button
-import android.widget.Spinner
 import android.widget.TextView
-import android.widget.AdapterView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
@@ -73,20 +72,23 @@ class MainActivity : AppCompatActivity() {
     private lateinit var getLocationBtn: Button
     private lateinit var cleanRecordsBtn: Button
     private lateinit var exportBtn: Button
+    private lateinit var selectSsidBtn: Button
     private lateinit var allRecordsText: TextView
 
-    private lateinit var ssidSpinner: Spinner
-    private lateinit var ssidAdapter: ArrayAdapter<String>
     private val ssidList = mutableListOf<String>()
     private var selectedSSID: String? = null
 
     private val locationPermissionRequestCode = 1001
+    private val requiredPermissions = arrayOf(
+        Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.ACCESS_COARSE_LOCATION,
+        Manifest.permission.ACCESS_WIFI_STATE
+    )
 
     private val wifiScanReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val success = intent?.getBooleanExtra(WifiManager.EXTRA_RESULTS_UPDATED, false) ?: false
             if (success) {
-                // Update spinner entries, Ensure we have the location permissions required to get Wi‑Fi scan results
                 val wifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
                 if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                     ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -99,26 +101,42 @@ class MainActivity : AppCompatActivity() {
                     return
                 }
                 val scanResults = wifiManager.scanResults
+                // preserve currently selected SSID so we don't auto-replace it
                 val previouslySelectedSSID = selectedSSID
-                ssidList.clear()
-                // keep unique SSIDs, ignore empty SSIDs
-                scanResults.mapNotNull { it.SSID.takeIf { ss -> ss.isNotBlank() } }
+
+                // Build a new list from scan results (unique, non-empty, sorted)
+                val scannedSsids = scanResults.mapNotNull { it.SSID.takeIf { ss -> ss.isNotBlank() } }
                     .distinct()
                     .sorted()
-                    .forEach { ssidList.add(it) }
+
+                // Merge: keep chosen SSID if missing from scan results by adding it to the list
+                val mergedList = mutableListOf<String>().apply {
+                    addAll(scannedSsids)
+                    if (previouslySelectedSSID != null && previouslySelectedSSID !in this) {
+                        // add at top so user sees their chosen SSID even if currently not scanned
+                        add(0, previouslySelectedSSID)
+                    }
+                }
+
+                ssidList.clear()
+                ssidList.addAll(mergedList)
+
                 runOnUiThread {
-                    ssidAdapter.notifyDataSetChanged()
-                    // if nothing selected yet, pick first or restore previous
-                    val newPosition = if (previouslySelectedSSID != null) {
-                        ssidList.indexOf(previouslySelectedSSID)
+                    // If the previously chosen SSID has disappeared from the current scan, alert the user
+                    if (previouslySelectedSSID != null && previouslySelectedSSID !in scannedSsids) {
+                        AlertDialog.Builder(this@MainActivity)
+                            .setTitle(getString(R.string.network_unavailable_title))
+                            .setMessage(getString(R.string.network_unavailable_message, previouslySelectedSSID))
+                            .setPositiveButton(android.R.string.ok, null)
+                            .show()
+                        // Do NOT clear the selection — keep it so the user can retry reconnecting later.
                     } else {
-                        -1
+                        // Restore a previously chosen SSID (if still available), but do NOT auto-select the first scanned SSID.
+                        if (previouslySelectedSSID != null) {
+                            selectedSSID = previouslySelectedSSID
+                        }
                     }
-                    if (newPosition >= 0) {
-                        ssidSpinner.setSelection(newPosition)
-                    } else if (ssidList.isNotEmpty()) {
-                        ssidSpinner.setSelection(0)
-                    }
+                    updateSelectedSsidButton()
                 }
             }
         }
@@ -139,7 +157,7 @@ class MainActivity : AppCompatActivity() {
         getLocationBtn = findViewById(R.id.getLocationBtn)
         cleanRecordsBtn = findViewById(R.id.cleanRecordsBtn)
         allRecordsText = findViewById(R.id.allRecordsText)
-        ssidSpinner = findViewById(R.id.ssidSpinner)
+        selectSsidBtn = findViewById(R.id.selectSsidBtn)
         exportBtn = findViewById(R.id.exportBtn)
 
         // Location client
@@ -154,21 +172,10 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Spinner adapter
-        ssidAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, ssidList)
-        ssidAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        ssidSpinner.adapter = ssidAdapter
-        ssidSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>, view: android.view.View?, position: Int, id: Long) {
-                selectedSSID = if (position >= 0 && position < ssidList.size) ssidList[position] else null
-            }
-            override fun onNothingSelected(parent: AdapterView<*>) {
-                selectedSSID = null
-            }
-        }
-        // request an initial wifi scan to populate spinner
-        val wifiManagerInit = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
-        wifiManagerInit.startScan()
+        // selectSsidBtn will call the class-level showSsidChoiceDialog() which updates the button text
+
+        // ensure permissions at startup so the app is ready to use immediately
+        checkAndRequestPermissions()
 
         refreshRecordsView()
 
@@ -197,12 +204,13 @@ class MainActivity : AppCompatActivity() {
         exportBtn.setOnClickListener {
             exportDatabaseToJson()
         }
+
+        selectSsidBtn.setOnClickListener { showSsidChoiceDialog() }
     }
 
     override fun onResume() {
         super.onResume()
         registerReceiver(wifiScanReceiver, IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION))
-        // trigger a scan when resuming so spinner is updated quickly
         val wifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
         wifiManager.startScan()
     }
@@ -294,12 +302,18 @@ class MainActivity : AppCompatActivity() {
         val scanResults = wifiDeferred.await()
         val location = locDeferred.await()
 
-        val rssi = scanResults?.firstOrNull { it.SSID == selectedSSID }?.level
+        val currentSsid = selectedSSID
+        if (currentSsid.isNullOrEmpty()) {
+            coordinatesText.text = getString(R.string.prompt_select_ssid_first)
+            return
+        }
 
-        if (location != null && rssi != null && selectedSSID != null) {
+        val rssi = scanResults?.firstOrNull { it.SSID == currentSsid }?.level
+
+        if (location != null && rssi != null) {
             val lat = location.latitude
             val lon = location.longitude
-            val record = SignalRecord(latitude = lat, longitude = lon, ssid = selectedSSID!!, rssi = rssi)
+            val record = SignalRecord(latitude = lat, longitude = lon, ssid = currentSsid, rssi = rssi)
             lifecycleScope.launch {
                 signalDao.insert(record)
                 // Show coordinates + RSSI together
@@ -325,7 +339,8 @@ class MainActivity : AppCompatActivity() {
                     allRecordsText.text = getString(R.string.placeholder_db)
                 } else {
                     allRecordsText.text = all.joinToString("\n") {
-                        "SSID: ${it.ssid}, Lat: ${it.latitude}, Lon: ${it.longitude}, RSSI: ${it.rssi}, Time: ${it.timestamp}"
+                        // Use string resource for consistent localization/formatting
+                        getString(R.string.record_item, it.ssid, it.latitude, it.longitude, it.rssi, it.timestamp)
                     }
                 }
             }
@@ -358,6 +373,60 @@ class MainActivity : AppCompatActivity() {
 
             runOnUiThread {
                 allRecordsText.text = getString(R.string.exported_to, file.absolutePath)
+            }
+        }
+    }
+
+    private fun updateSelectedSsidButton() {
+        selectSsidBtn.text = selectedSSID ?: getString(R.string.choose_ssid)
+    }
+
+    private fun showSsidChoiceDialog() {
+        if (ssidList.isEmpty()) {
+            AlertDialog.Builder(this)
+                .setTitle(getString(R.string.choose_ssid))
+                .setMessage(getString(R.string.no_ssids_found))
+                .setPositiveButton(android.R.string.ok, null)
+                .show()
+            return
+        }
+
+        val items = ssidList.toTypedArray()
+        val checkedIndex = selectedSSID?.let { ssidList.indexOf(it) } ?: -1
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.choose_ssid))
+            .setSingleChoiceItems(items, checkedIndex) { dialog, which ->
+                selectedSSID = ssidList.getOrNull(which)
+                updateSelectedSsidButton()
+                dialog.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun checkAndRequestPermissions() {
+        val missing = requiredPermissions.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }.toTypedArray()
+
+        if (missing.isNotEmpty()) {
+            ActivityCompat.requestPermissions(this, missing, locationPermissionRequestCode)
+        } else {
+            // Permissions already granted — start an initial Wi‑Fi scan
+            val wifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
+            wifiManager.startScan()
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == locationPermissionRequestCode) {
+            // If any relevant permission was granted, trigger a scan so UI becomes usable immediately.
+            if (grantResults.isNotEmpty() && grantResults.any { it == PackageManager.PERMISSION_GRANTED }) {
+                try {
+                    val wifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
+                    wifiManager.startScan()
+                } catch (_: Exception) { }
             }
         }
     }

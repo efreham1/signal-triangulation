@@ -12,9 +12,19 @@
     <string name="get_location">Record Location and RSSI</string>
     <string name="clean_records">Delete Recordings</string>
     <string name="export_json">Export to JSON</string>
+    <string name="choose_ssid">Choose SSID</string>
 
     <string name="confirm_delete_title">Are you sure?</string>
     <string name="confirm_delete_message">This will DELETE all your measurements.</string>
     <string name="confirm_delete_positive">Delete</string>
     <string name="confirm_delete_negative">Cancel</string>
+    <string name="no_ssids_found">No Wi-Fi networks found right now.</string>
+    <string name="prompt_select_ssid_first">Please choose an SSID first.</string>
+
+    <!-- Added resources -->
+    <string name="network_unavailable_title">Network unavailable</string>
+    <string name="network_unavailable_message">The previously selected network "%1$s" is not available right now. The selection is retained and the app will retry on subsequent scans.</string>
+
+    <!-- Format for listing records in the UI -->
+    <string name="record_item">SSID: %1$s, Lat: %2$.6f, Lon: %3$.6f, RSSI: %4$d, Time: %5$d</string>
 </resources>
