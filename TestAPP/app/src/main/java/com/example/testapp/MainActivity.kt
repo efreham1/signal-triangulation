@@ -9,7 +9,6 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.net.wifi.WifiManager
 import android.os.Bundle
-import android.os.Looper
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.Spinner
@@ -22,6 +21,11 @@ import androidx.lifecycle.lifecycleScope
 import androidx.room.*
 import com.google.android.gms.location.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 // --- DATABASE SETUP ---
 
@@ -30,6 +34,7 @@ data class SignalRecord(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val latitude: Double,
     val longitude: Double,
+    val ssid: String,
     val rssi: Int,
     val timestamp: Long = System.currentTimeMillis()
 )
@@ -46,13 +51,14 @@ interface SignalDao {
     suspend fun deleteAll()
 }
 
-@Database(entities = [SignalRecord::class], version = 1, exportSchema = false)
+@Database(entities = [SignalRecord::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun signalDao(): SignalDao
 }
 
 // --- MAIN ACTIVITY ---
 
+@Suppress("DEPRECATION")
 class MainActivity : AppCompatActivity() {
 
     private lateinit var db: AppDatabase
@@ -63,10 +69,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var locationCallback: LocationCallback
 
     private lateinit var coordinatesText: TextView
-    private lateinit var wifiText: TextView
     private lateinit var getLocationBtn: Button
-    private lateinit var viewAllBtn: Button
     private lateinit var cleanRecordsBtn: Button
+    private lateinit var exportBtn: Button
     private lateinit var allRecordsText: TextView
 
     private lateinit var ssidSpinner: Spinner
@@ -80,9 +85,20 @@ class MainActivity : AppCompatActivity() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val success = intent?.getBooleanExtra(WifiManager.EXTRA_RESULTS_UPDATED, false) ?: false
             if (success) {
-                // Update spinner with latest SSIDs
-                val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+                // Update spinner entries, Ensure we have the location permissions required to get Wi‑Fi scan results
+                val wifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
+                if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                    ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    // Request required permissions and skip processing scan results for now
+                    ActivityCompat.requestPermissions(
+                        this@MainActivity,
+                        arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_WIFI_STATE),
+                        locationPermissionRequestCode
+                    )
+                    return
+                }
                 val scanResults = wifiManager.scanResults
+                val previouslySelectedSSID = selectedSSID
                 ssidList.clear()
                 // keep unique SSIDs, ignore empty SSIDs
                 scanResults.mapNotNull { it.SSID.takeIf { ss -> ss.isNotBlank() } }
@@ -91,12 +107,17 @@ class MainActivity : AppCompatActivity() {
                     .forEach { ssidList.add(it) }
                 runOnUiThread {
                     ssidAdapter.notifyDataSetChanged()
-                    // if nothing selected yet, pick first
-                    if (selectedSSID == null && ssidList.isNotEmpty()) {
+                    // if nothing selected yet, pick first or restore previous
+                    val newPosition = if (previouslySelectedSSID != null) {
+                        ssidList.indexOf(previouslySelectedSSID)
+                    } else {
+                        -1
+                    }
+                    if (newPosition >= 0) {
+                        ssidSpinner.setSelection(newPosition)
+                    } else if (ssidList.isNotEmpty()) {
                         ssidSpinner.setSelection(0)
                     }
-                    // optionally refresh displayed RSSI for currently selected SSID
-                    showWifiSignalStrength()
                 }
             }
         }
@@ -107,41 +128,28 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         // Initialize Room
-        db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "signal-db").build()
+        db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "signal-db")
+            .fallbackToDestructiveMigration() // handle schema change during development
+            .build()
         signalDao = db.signalDao()
 
         // Initialize UI
         coordinatesText = findViewById(R.id.coordinatesText)
-        wifiText = findViewById(R.id.wifiText)
         getLocationBtn = findViewById(R.id.getLocationBtn)
-        viewAllBtn = findViewById(R.id.viewAllBtn)
         cleanRecordsBtn = findViewById(R.id.cleanRecordsBtn)
         allRecordsText = findViewById(R.id.allRecordsText)
         ssidSpinner = findViewById(R.id.ssidSpinner)
+        exportBtn = findViewById(R.id.exportBtn)
 
         // Location client
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 2000)
+        // TODO: Adjust location request interval for more frequent updates if you use continuous updates
+        locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
             .build()
 
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
-                val location: Location? = result.lastLocation
-                if (location != null) {
-                    val lat = location.latitude
-                    val lon = location.longitude
-                    coordinatesText.text = "Latitude: $lat\nLongitude: $lon"
-
-                    val rssi = showWifiSignalStrength()
-                    if (rssi != null) {
-                        val record = SignalRecord(latitude = lat, longitude = lon, rssi = rssi)
-                        lifecycleScope.launch {
-                            signalDao.insert(record)
-                        }
-                    }
-                } else {
-                    coordinatesText.text = "Unable to get new location"
-                }
+                // kept for compatibility if you later use continuous updates; no DB insert here
             }
         }
 
@@ -152,34 +160,21 @@ class MainActivity : AppCompatActivity() {
         ssidSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>, view: android.view.View?, position: Int, id: Long) {
                 selectedSSID = if (position >= 0 && position < ssidList.size) ssidList[position] else null
-                // update display to show currently selected SSID and its current RSSI (if available)
-                showWifiSignalStrength()
             }
-
             override fun onNothingSelected(parent: AdapterView<*>) {
                 selectedSSID = null
             }
         }
         // request an initial wifi scan to populate spinner
-        val wifiManagerInit = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        val wifiManagerInit = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
         wifiManagerInit.startScan()
 
-        // Get location button
-        getLocationBtn.setOnClickListener { getLocationUpdate() }
+        refreshRecordsView()
 
-        // View all records button
-        viewAllBtn.setOnClickListener {
+        // Get location button — start coordinated single-shot measurement
+        getLocationBtn.setOnClickListener {
             lifecycleScope.launch {
-                val allRecords = signalDao.getAll()
-                if (allRecords.isEmpty()) {
-                    allRecordsText.text = "No records found"
-                } else {
-                    val builder = StringBuilder()
-                    allRecords.forEach {
-                        builder.append("Lat: ${it.latitude}, Lon: ${it.longitude}, RSSI: ${it.rssi}, Time: ${it.timestamp}\n")
-                    }
-                    allRecordsText.text = builder.toString()
-                }
+                performMeasurement()
             }
         }
 
@@ -187,8 +182,13 @@ class MainActivity : AppCompatActivity() {
         cleanRecordsBtn.setOnClickListener {
             lifecycleScope.launch {
                 signalDao.deleteAll()
-                allRecordsText.text = "All records cleared"
+
+                refreshRecordsView()
             }
+        }
+
+        exportBtn.setOnClickListener {
+            exportDatabaseToJson()
         }
     }
 
@@ -196,17 +196,78 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         registerReceiver(wifiScanReceiver, IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION))
         // trigger a scan when resuming so spinner is updated quickly
-        val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        val wifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
         wifiManager.startScan()
     }
 
     override fun onPause() {
         super.onPause()
-        unregisterReceiver(wifiScanReceiver)
+        try { unregisterReceiver(wifiScanReceiver) } catch (_: Exception) { }
         fusedLocationClient.removeLocationUpdates(locationCallback)
     }
 
-    private fun getLocationUpdate() {
+    // Suspend until a Wi-Fi scan result is available (one-shot). Returns the scanResults or null on timeout.
+    private suspend fun awaitWifiScan(timeoutMs: Long = 10_000L): List<android.net.wifi.ScanResult>? {
+        return withTimeoutOrNull(timeoutMs) {
+            suspendCancellableCoroutine<List<android.net.wifi.ScanResult>> { cont ->
+                val wifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
+                val receiver = object : BroadcastReceiver() {
+                    override fun onReceive(ctx: Context?, intent: Intent?) {
+                        if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                            ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                            ActivityCompat.requestPermissions(
+                                this@MainActivity,
+                                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_WIFI_STATE),
+                                locationPermissionRequestCode
+                            )
+                            if (!cont.isCompleted) cont.resume(emptyList())
+                            try { unregisterReceiver(this) } catch (_: Exception) { }
+                            return
+                        }
+                        val results = wifiManager.scanResults
+                        if (!cont.isCompleted) cont.resume(results)
+                        try { unregisterReceiver(this) } catch (_: Exception) { }
+                    }
+                }
+
+                // Register the receiver and start an async scan. We intentionally register a one-shot receiver here.
+                registerReceiver(receiver, IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION))
+                wifiManager.startScan()
+
+                cont.invokeOnCancellation {
+                    try { unregisterReceiver(receiver) } catch (_: Exception) { }
+                }
+            }
+        }
+    }
+
+    // Suspend wrapper for getCurrentLocation with timeout
+    private suspend fun getCurrentLocationSuspend(timeoutMs: Long = 10_000L): Location? {
+        return withTimeoutOrNull(timeoutMs) {
+            suspendCancellableCoroutine { cont ->
+                // Ensure we have runtime location permission before requesting current location.
+                if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                    ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    // Request required permissions; resume null for this call — caller should retry after grant.
+                    ActivityCompat.requestPermissions(
+                        this@MainActivity,
+                        arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_WIFI_STATE),
+                        locationPermissionRequestCode
+                    )
+                    if (!cont.isCompleted) cont.resume(null)
+                    return@suspendCancellableCoroutine
+                }
+
+                val task = fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                task.addOnSuccessListener { loc -> if (!cont.isCompleted) cont.resume(loc) }
+                task.addOnFailureListener { ex -> if (!cont.isCompleted) cont.resumeWithException(ex) }
+                cont.invokeOnCancellation { /* nothing to cancel explicitly */ }
+            }
+        }
+    }
+
+    // Coordinated measurement: start a scan and a single-shot location concurrently and commit one record when both arrive
+    private suspend fun performMeasurement() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
             != PackageManager.PERMISSION_GRANTED
         ) {
@@ -215,44 +276,81 @@ class MainActivity : AppCompatActivity() {
                 arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_WIFI_STATE),
                 locationPermissionRequestCode
             )
-        } else {
-            coordinatesText.text = "Fetching new location..."
-            fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper())
+            return
         }
-    }
 
-    private fun showWifiSignalStrength(): Int? {
-        val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        coordinatesText.text = getString(R.string.measuring)
 
-        // Start scan (optional - receiver will update list when scan completes)
-        wifiManager.startScan()
+        val wifiDeferred = lifecycleScope.async { awaitWifiScan(10_000L) }
+        val locDeferred = lifecycleScope.async { getCurrentLocationSuspend(10_000L) }
 
-        val scanResults = wifiManager.scanResults
-        val targetNetwork = selectedSSID?.let { ssid -> scanResults.firstOrNull { it.SSID == ssid } }
+        val scanResults = wifiDeferred.await()
+        val location = locDeferred.await()
 
-        return if (targetNetwork != null) {
-            val rssi = targetNetwork.level
-            wifiText.text = "SSID: ${targetNetwork.SSID}\nRSSI: $rssi dBm"
-            rssi
+        val rssi = scanResults?.firstOrNull { it.SSID == selectedSSID }?.level
+
+        if (location != null && rssi != null && selectedSSID != null) {
+            val lat = location.latitude
+            val lon = location.longitude
+            val record = SignalRecord(latitude = lat, longitude = lon, ssid = selectedSSID!!, rssi = rssi)
+            lifecycleScope.launch {
+                signalDao.insert(record)
+                // Show coordinates + RSSI together
+                coordinatesText.text = getString(R.string.coords_rssi, lat, lon, rssi)
+                refreshRecordsView()
+            }
         } else {
-            val display = selectedSSID?.let { "SSID $it not found nearby" } ?: "No SSID selected"
-            wifiText.text = display
-            null
-        }
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == locationPermissionRequestCode) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // start a wifi scan to populate spinner now that permission is granted
-                val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-                wifiManager.startScan()
-                getLocationUpdate()
+            if (location == null && scanResults == null) {
+                coordinatesText.text = getString(R.string.measurement_failed_loc_or_to)
+            } else if (location == null) {
+                coordinatesText.text = getString(R.string.measurement_failed_or_unavail)
             } else {
-                coordinatesText.text = "Permission denied"
+                coordinatesText.text = getString(R.string.measurement_failed_no_ssid)
+            }
+        }
+    }
+
+    private fun refreshRecordsView() {
+        lifecycleScope.launch {
+            val all = signalDao.getAll()
+            runOnUiThread {
+                if (all.isEmpty()) {
+                    allRecordsText.text = getString(R.string.placeholder_db)
+                } else {
+                    allRecordsText.text = all.joinToString("\n") {
+                        "SSID: ${it.ssid}, Lat: ${it.latitude}, Lon: ${it.longitude}, RSSI: ${it.rssi}, Time: ${it.timestamp}"
+                    }
+                }
+            }
+        }
+    }
+
+    private fun exportDatabaseToJson() {
+        lifecycleScope.launch {
+            val allRecords = signalDao.getAll()
+
+            if (allRecords.isEmpty()) {
+                runOnUiThread {
+                    allRecordsText.text = getString(R.string.no_data_export)
+                }
+                return@launch
+            }
+
+            // Convert list to JSON
+            val gson = com.google.gson.GsonBuilder().setPrettyPrinting().create()
+            val jsonString = gson.toJson(allRecords)
+
+            // Save to Downloads folder
+            val fileName = "signal_records_${System.currentTimeMillis()}.json"
+            val file = java.io.File(
+                getExternalFilesDir(null)?.absolutePath ?: filesDir.absolutePath,
+                fileName
+            )
+
+            file.writeText(jsonString)
+
+            runOnUiThread {
+                allRecordsText.text = getString(R.string.exported_to, file.absolutePath)
             }
         }
     }
