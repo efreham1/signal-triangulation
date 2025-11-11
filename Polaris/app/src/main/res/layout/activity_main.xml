@@ -9,7 +9,7 @@
         android:id="@+id/ssidLabel"
         android:layout_width="100dp"
         android:layout_height="wrap_content"
-        android:text="Select SSID:" />
+        android:text="@string/ssid_prompt" />
 
     <Spinner
         android:id="@+id/ssidSpinner"
@@ -22,7 +22,7 @@
         android:id="@+id/coordinatesText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Coordinates will appear here"
+        android:text="@string/measuring_location"
         android:textSize="16sp"
         android:padding="8dp"/>
 
@@ -30,22 +30,21 @@
         android:id="@+id/getLocationBtn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Get Location and Measure RSSI" />
+        android:text="@string/get_location" />
 
     <Button
         android:id="@+id/cleanRecordsBtn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Clean Records"
+        android:text="@string/clean_records"
         android:layout_marginTop="8dp" />
-    
+
     <Button
         android:id="@+id/exportBtn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Export as JSON"
+        android:text="@string/export_json"
         android:layout_marginTop="8dp" />
-
 
     <ScrollView
         android:layout_width="match_parent"
@@ -57,7 +56,7 @@
             android:id="@+id/allRecordsText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Database entries will appear here"
+            android:text="@string/placeholder_db"
             android:textSize="14sp"
             android:padding="8dp"/>
     </ScrollView>

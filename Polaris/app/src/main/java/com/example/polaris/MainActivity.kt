@@ -15,6 +15,7 @@ import android.widget.Spinner
 import android.widget.TextView
 import android.widget.AdapterView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -180,11 +181,17 @@ class MainActivity : AppCompatActivity() {
 
         // Clean records button
         cleanRecordsBtn.setOnClickListener {
-            lifecycleScope.launch {
-                signalDao.deleteAll()
-
-                refreshRecordsView()
-            }
+            AlertDialog.Builder(this)
+                .setTitle(getString(R.string.confirm_delete_title))
+                .setMessage(getString(R.string.confirm_delete_message))
+                .setPositiveButton(getString(R.string.confirm_delete_positive)) { _, _ ->
+                    lifecycleScope.launch {
+                        signalDao.deleteAll()
+                        refreshRecordsView()
+                    }
+                }
+                .setNegativeButton(getString(R.string.confirm_delete_negative), null)
+                .show()
         }
 
         exportBtn.setOnClickListener {
@@ -279,7 +286,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        coordinatesText.text = getString(R.string.measuring)
+        coordinatesText.text = getString(R.string.measuring_location)
 
         val wifiDeferred = lifecycleScope.async { awaitWifiScan(10_000L) }
         val locDeferred = lifecycleScope.async { getCurrentLocationSuspend(10_000L) }

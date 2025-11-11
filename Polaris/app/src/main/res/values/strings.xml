@@ -1,12 +1,20 @@
 <resources>
     <string name="app_name">Polaris</string>
-    <string name="ssid_prompt">Choose Wi‑Fi network</string>
-    <string name="measuring">Measuring location and RSSI…</string>
+    <string name="ssid_prompt">Select SSID:</string>
+    <string name="measuring_location">Measuring location and RSSI…</string>
     <string name="coords_rssi">Latitude: %1$.6f\nLongitude: %2$.6f\nRSSI: %3$d dBm</string>
     <string name="placeholder_db">Database entries will appear here</string>
     <string name="exported_to">Exported to:\n%1$s</string>
-    <string name="measurement_failed_loc_or_to">Measurement failed or timed out (location + Wi‑Fi)</string>
+    <string name="measurement_failed_loc_or_to">Measurement failed or timed out (location + Wi-Fi)</string>
     <string name="measurement_failed_no_ssid">Measurement failed: selected SSID not found</string>
     <string name="measurement_failed_or_unavail">Measurement failed: location timed out or unavailable</string>
     <string name="no_data_export">No data to export</string>
+    <string name="get_location">Record Location and RSSI</string>
+    <string name="clean_records">Delete Recordings</string>
+    <string name="export_json">Export to JSON</string>
+
+    <string name="confirm_delete_title">Are you sure?</string>
+    <string name="confirm_delete_message">This will DELETE all your measurements.</string>
+    <string name="confirm_delete_positive">Delete</string>
+    <string name="confirm_delete_negative">Cancel</string>
 </resources>
