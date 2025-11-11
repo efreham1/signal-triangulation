@@ -93,7 +93,7 @@ Outlier detection and robustness:
 Optimization:
 
 - Minimize C(x) with respect to x using gradient descent starting at multiple initial points to avoid local minima.
-- Initialize the optimizer using the intersections of two cluster rays. Next inital point should be chosen from a different pair of cluster rays to ensure diverse starting locations.
+- Initialize the optimizer using the intersections of two cluster rays. Next initial point should be chosen from a different pair of cluster rays to ensure diverse starting locations.
 
 ## Edge cases and considerations
 - Collinear or nearly collinear GPS samples produce ill-conditioned plane fits; detect and handle via regularization or re-clustering.
