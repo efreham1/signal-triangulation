@@ -1,5 +1,6 @@
 #include "network/Server.h"
 #include "core/TriangulationService.h"
+#include "core/DatabaseHandler.h"
 #include <iostream>
 #include <memory>
 
@@ -20,6 +21,9 @@ int main(int argc, char* argv[]) {
         server.setConnectionHandler(nullptr);  // TODO: Implement connection handler
         server.setMessageParser(nullptr);      // TODO: Implement message parser
         server.setTriangulationService(triangulationService);
+        
+        // Initialize database handler 
+        core::DatabaseHandler dbHandler("signals.db");
 
         // Start server
         if (!server.start()) {

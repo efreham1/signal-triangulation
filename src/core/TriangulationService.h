@@ -2,6 +2,7 @@
 #define TRIANGULATION_SERVICE_H
 
 #include "DataPoint.h"
+#include "DatabaseHandler.h"
 #include <vector>
 #include <memory>
 #include <functional>
@@ -63,6 +64,7 @@ public:
 private:
     std::unique_ptr<ITriangulationAlgorithm> m_algorithm;
     PositionCallback m_positionCallback;
+    std::unique_ptr<DatabaseHandler> m_db;
 };
 
 } // namespace core
