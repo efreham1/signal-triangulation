@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include <iostream>
+#include <cmath>
 
 
 
@@ -19,14 +20,7 @@ bool ClusteredTriangulationAlgorithm::processDataPoint(const DataPoint& point)
 	    point.getLongitude() < -180.0 || point.getLongitude() > 180.0)) {
 		throw std::invalid_argument("ClusteredTriangulationAlgorithm: invalid coordinates");
 	}
-	
-	std::cout << "Received DataPoint: Lat=" << point.getLatitude()
-	          << ", Lon=" << point.getLongitude()
-	          << ", X=" << point.getX()
-	          << ", Y=" << point.getY()
-	          << ", RSSI=" << point.rssi
-	          << ", Timestamp=" << point.timestamp_ms
-	          << ", SSID=\"" << point.ssid << "\"" << std::endl;
+
 	// insert point into m_points keeping the vector sorted by timestamp_ms (ascending)
 	auto it = std::lower_bound(
 		m_points.begin(), m_points.end(), point.timestamp_ms,
@@ -48,6 +42,26 @@ bool ClusteredTriangulationAlgorithm::calculatePosition(double& out_latitude, do
 	std::cout << "y = [";
 	for (const auto& point : m_points) {
 		std::cout << point.getY() << ", ";
+	}
+	std::cout << "]" << std::endl;
+	std::cout << "rssi = [";
+	for (const auto& point : m_points) {
+		std::cout << point.rssi << ", ";
+	}
+	std::cout << "]" << std::endl;
+	std::cout << "Clusterx = [";
+	for (const auto& cluster : m_clusters) {
+		std::cout << cluster.centroid_x << ", ";
+	}
+	std::cout << "]" << std::endl;
+	std::cout << "Clustery = [";
+	for (const auto& cluster : m_clusters) {
+		std::cout << cluster.centroid_y << ", ";
+	}
+	std::cout << "]" << std::endl;
+	std::cout << "AoAs = [";
+	for (const auto& cluster : m_clusters) {
+		std::cout << cluster.estimated_aoa << ", ";
 	}
 	std::cout << "]" << std::endl;
 	// TODO: implement the cluster-based AoA triangulation algorithm.
@@ -79,7 +93,32 @@ void ClusteredTriangulationAlgorithm::clusterData()
 
 void ClusteredTriangulationAlgorithm::estimateAoAForClusters()
 {
-	// Stub: AoA estimation logic to be implemented
+	double xs[3] = {0.0, 0.0, 0.0};
+	double ys[3] = {0.0, 0.0, 0.0};
+	double rssis[3] = {0, 0, 0};
+	for (auto& cluster : m_clusters) {
+		if (cluster.points.size() < 3) {
+			continue; // Need at least 3 points to estimate AoA
+		}
+		for (size_t i = 0; i < 3; ++i) {
+			xs[i] = cluster.points[i].getX();
+			ys[i] = cluster.points[i].getY();
+			rssis[i] = cluster.points[i].rssi;
+		}
+		// Calculate the gradient (slope) of the plane formed by the three points
+		double vec1[3] = {xs[1] - xs[0], ys[1] - ys[0], rssis[1] - rssis[0]};
+		double vec2[3] = {xs[2] - xs[0], ys[2] - ys[0], rssis[2] - rssis[0]};
+		double normal[3] = {
+			vec1[1] * vec2[2] - vec1[2] * vec2[1],
+			vec1[2] * vec2[0] - vec1[0] * vec2[2],
+			vec1[0] * vec2[1] - vec1[1] * vec2[0]
+		};
+		// The gradient components
+		double grad_x = -normal[0] / normal[2];
+		double grad_y = -normal[1] / normal[2];
+		cluster.estimated_aoa = atan2(grad_y, grad_x) * (180.0 / M_PI); // in degrees
+	}
+		// Estimate AoA as the arctangent of the gradient
 }
 
 void ClusteredTriangulationAlgorithm::buildCostFunction()

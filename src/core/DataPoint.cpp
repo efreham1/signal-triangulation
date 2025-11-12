@@ -31,8 +31,8 @@ namespace core {
         , y(0.0)
         , x_computed(false)
         , y_computed(false)
-        , lat_computed(false)
-        , lon_computed(false)
+        , lat_computed(true)
+        , lon_computed(true)
     {
         // compute x/y from provided latitude/longitude
         computeCoordinates();
@@ -95,7 +95,12 @@ namespace core {
 
             lat_computed = true;
             lon_computed = true;
+        } else if (lat_computed && lon_computed && x_computed && y_computed)
+        {           
+            // all values are already computed; nothing to do
+            // pass
         }
+        
         else
         {
             throw std::runtime_error("DataPoint: insufficient data to compute coordinates");

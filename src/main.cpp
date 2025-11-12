@@ -22,8 +22,7 @@ int main(int argc, char* argv[]) {
             std::make_unique<core::ClusteredTriangulationAlgorithm>()
         );
         
-        std::vector<core::DataPoint> dps = core::JsonSignalParser::parseFileToVector("signal_records_1762941239151.json");
-        std::cout << "Parsed " << dps.size() << " data points from JSON file." << std::endl;
+        std::vector<core::DataPoint> dps = core::JsonSignalParser::parseFileToVector("signals_field.json");
         for (auto& dp : dps) {
             dp.computeCoordinates();
             triangulationService->addDataPoint(dp);

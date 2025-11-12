@@ -132,7 +132,8 @@ std::vector<DataPoint> JsonSignalParser::parseFileToVector(const std::string& pa
 
                 DataPoint dp(lat, lon, zero_lat, zero_lon, rssi, timestamp, ssid);
                 out.push_back(dp);
-            } catch (const std::exception&) {
+            } catch (const std::exception& e) {
+                std::cout << e.what() << std::endl;
                 // skip malformed record
             }
         }

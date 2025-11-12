@@ -33,12 +33,16 @@ private:
         std::vector<DataPoint> points;
         double estimated_aoa;
         double avg_rssi;
+        double centroid_x;
+        double centroid_y;
 
 
         PointCluster()
         {
             avg_rssi = 0.0;
             estimated_aoa = 0.0;
+            centroid_x = 0.0;
+            centroid_y = 0.0;
         }
         ~PointCluster() = default;
 
@@ -49,6 +53,12 @@ private:
             // Update average RSSI
             double previous_total = avg_rssi * static_cast<double>(points.size() - 1);
             avg_rssi = (previous_total + point.rssi) / static_cast<double>(points.size());
+
+            // Update centroid
+            double previous_total_x = centroid_x * static_cast<double>(points.size() - 1);
+            double previous_total_y = centroid_y * static_cast<double>(points.size() - 1);
+            centroid_x = (previous_total_x + point.getX()) / static_cast<double>(points.size());
+            centroid_y = (previous_total_y + point.getY()) / static_cast<double>(points.size());
         }
     };
 
