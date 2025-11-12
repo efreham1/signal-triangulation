@@ -4,27 +4,34 @@
     <string name="measuring_location">Measuring location and RSSI…</string>
     <string name="coords_rssi">Latitude: %1$.6f\nLongitude: %2$.6f\nRSSI: %3$d dBm</string>
     <string name="placeholder_db">Database entries will appear here</string>
+    <string name="placeholder_loc"></string>
     <string name="exported_to">Exported to:\n%1$s</string>
     <string name="measurement_failed_loc_or_to">Measurement failed or timed out (location + Wi-Fi)</string>
     <string name="measurement_failed_no_ssid">Measurement failed: selected SSID not found</string>
     <string name="measurement_failed_or_unavail">Measurement failed: location timed out or unavailable</string>
-    <string name="no_data_export">No data to export</string>
+    <string name="no_data_export">No data to export.</string>
     <string name="get_location">Record Location and RSSI</string>
     <string name="clean_records">Delete Recordings</string>
     <string name="export_json">Export to JSON</string>
     <string name="choose_ssid">Choose SSID</string>
 
+    <string name="no_location">RSSI update but no location to match it.</string>
     <string name="confirm_delete_title">Are you sure?</string>
     <string name="confirm_delete_message">This will DELETE all your measurements.</string>
     <string name="confirm_delete_positive">Delete</string>
     <string name="confirm_delete_negative">Cancel</string>
     <string name="no_ssids_found">No Wi-Fi networks found right now.</string>
-    <string name="prompt_select_ssid_first">Please choose an SSID first.</string>
+    <string name="prompt_select_ssid_first">Please choose an SSID first</string>
+    <string name="permission_required">Permission required</string>
+    <string name="rssi_updated">RSSI updated: %1$d dBm @ %2$s</string>
 
-    <!-- Added resources -->
     <string name="network_unavailable_title">Network unavailable</string>
-    <string name="network_unavailable_message">The previously selected network "%1$s" is not available right now. The selection is retained and the app will retry on subsequent scans.</string>
+    <string name="network_unavailable_message">The selected network "%1$s" is not available right now, retrying...</string>
 
-    <!-- Format for listing records in the UI -->
     <string name="record_item">SSID: %1$s, Lat: %2$.6f, Lon: %3$.6f, RSSI: %4$d, Time: %5$d</string>
+    <string name="start_recording">Start Recording</string>
+    <string name="stop_recording">Stop Recording</string>
+    <string name="recording_started">Recording started</string>
+    <string name="recording_stopped">Recording stopped</string>
+
 </resources>

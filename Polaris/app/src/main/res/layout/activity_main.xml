@@ -18,19 +18,29 @@
         android:layout_marginTop="8dp"
         android:text="@string/choose_ssid" />
 
-    <TextView
-        android:id="@+id/coordinatesText"
+    <!-- start/stop automatic measurements -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/measuring_location"
-        android:textSize="16sp"
-        android:padding="8dp"/>
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp"
+        android:weightSum="2">
 
-    <Button
-        android:id="@+id/getLocationBtn"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/get_location" />
+        <Button
+            android:id="@+id/startAutoBtn"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/start_recording" />
+
+        <Button
+            android:id="@+id/stopAutoBtn"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="@string/stop_recording" />
+    </LinearLayout>
 
     <Button
         android:id="@+id/cleanRecordsBtn"
