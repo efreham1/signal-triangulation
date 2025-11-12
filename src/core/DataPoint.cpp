@@ -72,55 +72,33 @@ namespace core {
         return y;
     }
 
-    void DataPoint::setLatitude(double lat)
-    {
-        latitude = lat;
-        lat_computed = true;
-        // setting latitude invalidates x/y
-        x_computed = false;
-        y_computed = false;
-    }
-
-    void DataPoint::setLongitude(double lon)
-    {
-        longitude = lon;
-        lon_computed = true;
-        // setting longitude invalidates x/y
-        x_computed = false;
-        y_computed = false;
-    }
-    
-
     void DataPoint::computeCoordinates()
     {
-        switch ((x_computed && y_computed), (lat_computed && lon_computed))
+        double lat_rad;
+        double lon_rad;
+        if (lat_computed && lon_computed && !x_computed && !y_computed)
         {
-        case (true,  false):
-            const double lat_rad = (latitude - zero_latitude) * (M_PI / 180.0);
-            const double lon_rad = (longitude - zero_longitude) * (M_PI / 180.0);
-            const double R = EARTH_RADIUS_METERS;
+            lat_rad = (latitude - zero_latitude) * (M_PI / 180.0);
+            lon_rad = (longitude - zero_longitude) * (M_PI / 180.0);
 
-            x = R * lon_rad * cos(zero_latitude * (M_PI / 180.0));
-            y = R * lat_rad;
+            x = EARTH_RADIUS_METERS * lon_rad * cos(zero_latitude * (M_PI / 180.0));
+            y = EARTH_RADIUS_METERS * lat_rad;
             x_computed = true;
             y_computed = true;
-            break;
-            
-        case (false, true):
-            const double R = EARTH_RADIUS_METERS;
-            const double lat_rad = y / R;
-            const double lon_rad = x / (R * cos(zero_latitude * (M_PI / 180.0)));
+        } else if (!lat_computed && !lon_computed && x_computed && y_computed)
+        {
+            lat_rad = y / EARTH_RADIUS_METERS;
+            lon_rad = x / (EARTH_RADIUS_METERS * cos(zero_latitude * (M_PI / 180.0)));
 
             latitude = zero_latitude + (lat_rad * 180.0 / M_PI);
             longitude = zero_longitude + (lon_rad * 180.0 / M_PI);
 
             lat_computed = true;
             lon_computed = true;
-            break;
-
-        default:
+        }
+        else
+        {
             throw std::runtime_error("DataPoint: insufficient data to compute coordinates");
-            break;
         }
     }
 

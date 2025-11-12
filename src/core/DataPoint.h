@@ -13,6 +13,15 @@ namespace core {
  * @brief Represents a signal measurement data point.
  */
 class DataPoint {
+private:
+    double latitude;            ///< Geographical latitude
+    double longitude;           ///< Geographical longitude
+    double x;                   ///< X coordinate in euclidean space
+    double y;                   ///< Y coordinate in euclidean space
+    bool x_computed;            ///< Flag: x coordinate computed
+    bool y_computed;            ///< Flag: y coordinate computed
+    bool lat_computed;          ///< Flag: latitude value is valid/available
+    bool lon_computed;          ///< Flag: longitude value is valid/available
 public:
     double zero_latitude;     ///< Latitude that represents zero point in the euclidean space
     double zero_longitude;    ///< Longitude that represents zero point in the euclidean space
@@ -40,15 +49,9 @@ public:
 
     void computeCoordinates();
 
-private:
-    double latitude;            ///< Geographical latitude
-    double longitude;           ///< Geographical longitude
-    double x;                   ///< X coordinate in euclidean space
-    double y;                   ///< Y coordinate in euclidean space
-    bool x_computed;            ///< Flag: x coordinate computed
-    bool y_computed;            ///< Flag: y coordinate computed
-    bool lat_computed;          ///< Flag: latitude value is valid/available
-    bool lon_computed;          ///< Flag: longitude value is valid/available
+    bool validCoordinates() const {
+        return lat_computed && lon_computed && x_computed && y_computed;
+    }
 };
 
 } // namespace core

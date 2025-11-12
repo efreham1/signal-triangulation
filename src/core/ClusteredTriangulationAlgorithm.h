@@ -26,13 +26,41 @@ public:
     void reset() override;
 
 private:
+
+    class PointCluster
+    {
+    public:
+        std::vector<DataPoint> points;
+        double estimated_aoa;
+        double avg_rssi;
+
+
+        PointCluster()
+        {
+            avg_rssi = 0.0;
+            estimated_aoa = 0.0;
+        }
+        ~PointCluster() = default;
+
+        void addPoint(const DataPoint& point)
+        {
+            points.push_back(point);
+
+            // Update average RSSI
+            double previous_total = avg_rssi * static_cast<double>(points.size() - 1);
+            avg_rssi = (previous_total + point.rssi) / static_cast<double>(points.size());
+        }
+    };
+
     // Storage for received measurements. Implement clustering and additional
     // state in later iterations.
     std::vector<DataPoint> m_points;
 
+    std::vector<PointCluster> m_clusters;
+
     // Internal helpers (stubs)
     void clusterData();
-    void estimateAoAForCluster();
+    void estimateAoAForClusters();
     void buildCostFunction();
 };
 
