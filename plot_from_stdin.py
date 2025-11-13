@@ -135,10 +135,6 @@ def plot_3d(x, y, rssi, result_point=None, out_path="plots_3d.png", show=True, c
 
     fig.colorbar(p, ax=ax, label='RSSI (dBm)')
 
-    if out_path:
-        fig.savefig(out_path, dpi=200)
-        print(f"Saved 3D plot to {out_path}")
-    # vertical line at resulting point (if provided)
     if result_point is not None:
         rx, ry = result_point
         # draw a vertical line at (rx, ry) from min(zs) to max(zs)
@@ -153,6 +149,10 @@ def plot_3d(x, y, rssi, result_point=None, out_path="plots_3d.png", show=True, c
         except Exception:
             # It is safe to ignore legend errors; legend is optional and plot remains usable.
             pass
+    if out_path:
+        fig.savefig(out_path, dpi=200)
+        print(f"Saved 3D plot to {out_path}")
+    # vertical line at resulting point (if provided)
     if show:
         plt.show()
 
