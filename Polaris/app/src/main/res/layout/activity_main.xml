@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/ssidLabel"
+        android:layout_width="100dp"
+        android:layout_height="wrap_content"
+        android:text="@string/ssid_prompt" />
+
+    <Button
+        android:id="@+id/selectSsidBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/choose_ssid" />
+
+    <!-- start/stop automatic measurements -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp"
+        android:weightSum="2">
+
+        <Button
+            android:id="@+id/startAutoBtn"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/start_recording" />
+
+        <Button
+            android:id="@+id/stopAutoBtn"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="@string/stop_recording" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/cleanRecordsBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/clean_records"
+        android:layout_marginTop="8dp" />
+
+    <Button
+        android:id="@+id/exportBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/export_json"
+        android:layout_marginTop="8dp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="8dp" >
+
+        <TextView
+            android:id="@+id/allRecordsText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/placeholder_db"
+            android:textSize="14sp"
+            android:padding="8dp"/>
+    </ScrollView>
+
+</LinearLayout>
