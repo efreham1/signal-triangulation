@@ -35,6 +35,8 @@ private:
         double avg_rssi;
         double centroid_x;
         double centroid_y;
+        double aoa_x;
+        double aoa_y;
 
 
         PointCluster()
@@ -43,6 +45,8 @@ private:
             estimated_aoa = 0.0;
             centroid_x = 0.0;
             centroid_y = 0.0;
+            aoa_x = 0.0;
+            aoa_y = 0.0;
         }
         ~PointCluster() = default;
 
@@ -62,6 +66,14 @@ private:
         }
     };
 
+    class Point
+    {
+    public:
+        double x;
+        double y;
+        Point(double x_in, double y_in) : x(x_in), y(y_in) {}
+    };
+
     // Storage for received measurements. Implement clustering and additional
     // state in later iterations.
     std::vector<DataPoint> m_points;
@@ -71,7 +83,8 @@ private:
     // Internal helpers (stubs)
     void clusterData();
     void estimateAoAForClusters();
-    void buildCostFunction();
+    double getCost(double x, double y);
+    std::vector<ClusteredTriangulationAlgorithm::Point> findIntersections();
 };
 
 } // namespace core

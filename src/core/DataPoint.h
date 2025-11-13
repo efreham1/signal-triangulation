@@ -50,7 +50,10 @@ public:
     void computeCoordinates();
 
     bool validCoordinates() const {
-        return lat_computed && lon_computed && x_computed && y_computed;
+        bool values_computed = lat_computed && lon_computed && x_computed && y_computed;
+        bool lat_valid = (latitude >= -90.0 && latitude <= 90.0);
+        bool lon_valid = (longitude >= -180.0 && longitude <= 180.0);
+        return values_computed && lat_valid && lon_valid;
     }
 };
 
