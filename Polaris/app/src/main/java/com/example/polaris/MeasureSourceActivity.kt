@@ -1,0 +1,161 @@
+package com.example.polaris
+
+import android.Manifest
+import android.content.pm.PackageManager
+import android.location.Location
+import android.os.Bundle
+import android.widget.Button
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import androidx.lifecycle.lifecycleScope
+import androidx.room.Room
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import kotlin.math.sqrt
+
+@Suppress("DEPRECATION")
+class MeasureSourceActivity : AppCompatActivity() {
+
+    private lateinit var startBtn: Button
+    private lateinit var cancelBtn: Button
+    private lateinit var progressTv: TextView
+    private lateinit var resultTv: TextView
+
+    private val fusedLocationClient by lazy { LocationServices.getFusedLocationProviderClient(this) }
+
+    private val locationPermissionRequestCode = 1001
+    private val requiredPermissions = arrayOf(
+        Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.ACCESS_COARSE_LOCATION,
+        Manifest.permission.ACCESS_WIFI_STATE
+    )
+
+    // Sample count
+    private val sampleCount = 10
+
+    // Delay between samples in ms
+    private val sampleDelayMs = 1500L
+    private val singleTimeoutMs = 3000L
+
+    // DB
+    private lateinit var db: AppDatabase
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_measure_source)
+
+        startBtn = findViewById(R.id.startMeasureBtn)
+        cancelBtn = findViewById(R.id.cancelMeasureBtn)
+        progressTv = findViewById(R.id.measureProgress)
+        resultTv = findViewById(R.id.measureResult)
+
+        startBtn.setOnClickListener { startMeasurements() }
+        cancelBtn.setOnClickListener { finish() }
+
+        db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "signal-db")
+            .fallbackToDestructiveMigration()
+            .build()
+    }
+
+    private fun startMeasurements() {
+        if (!hasLocationPermission()) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
+                locationPermissionRequestCode
+            )
+            return
+        }
+
+        startBtn.isEnabled = false
+        resultTv.text = ""
+        progressTv.text = getString(R.string.measuring)
+
+        lifecycleScope.launchWhenStarted {
+            val samples = mutableListOf<Location>()
+            for (i in 1..sampleCount) {
+                progressTv.text = getString(R.string.measuring_progress, i, sampleCount)
+                val loc = getCurrentLocationSuspend(singleTimeoutMs)
+                if (loc != null) {
+                    samples.add(loc)
+                } else {
+                    progressTv.text = getString(R.string.sample_timed_out, i)
+                }
+                delay(sampleDelayMs)
+            }
+
+            if (samples.isEmpty()) {
+                progressTv.text = getString(R.string.no_location_samples)
+                startBtn.isEnabled = true
+                return@launchWhenStarted
+            }
+
+            val meanLat = samples.map { it.latitude }.average()
+            val meanLon = samples.map { it.longitude }.average()
+
+            val latVars = samples.map { (it.latitude - meanLat) * (it.latitude - meanLat) }
+            val lonVars = samples.map { (it.longitude - meanLon) * (it.longitude - meanLon) }
+            val stdLat = sqrt(latVars.average())
+            val stdLon = sqrt(lonVars.average())
+
+            // persist the measured source position (id==0 row)
+            launch {
+                db.sourcePositionDao().upsert(SourcePosition(id = 0, latitude = meanLat, longitude = meanLon))
+            }
+
+            withContext(Dispatchers.Main) {
+                progressTv.text = getString(R.string.measuring_done, samples.size)
+                resultTv.text = getString(
+                    R.string.measurement_result,
+                    meanLat,
+                    meanLon,
+                    stdLat,
+                    stdLon
+                )
+                startBtn.isEnabled = true
+                Toast.makeText(this@MeasureSourceActivity, getString(R.string.measurement_saved), Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private suspend fun getCurrentLocationSuspend(timeoutMs: Long = 3000L): Location? {
+        return withTimeoutOrNull(timeoutMs) {
+            suspendCancellableCoroutine { cont ->
+                if (!hasLocationPermission()) {
+                    cont.resume(null)
+                    return@suspendCancellableCoroutine
+                }
+
+                if (ContextCompat.checkSelfPermission(this@MeasureSourceActivity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                    ContextCompat.checkSelfPermission(this@MeasureSourceActivity, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(
+                        this@MeasureSourceActivity,
+                        requiredPermissions,
+                        locationPermissionRequestCode
+                    )
+                    cont.resume(null)
+                    return@suspendCancellableCoroutine
+                }
+                val task = fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                task.addOnSuccessListener { loc -> if (!cont.isCompleted) cont.resume(loc) }
+                task.addOnFailureListener { _ -> if (!cont.isCompleted) cont.resume(null) }
+                cont.invokeOnCancellation { }
+            }
+        }
+    }
+
+    private fun hasLocationPermission(): Boolean {
+        return (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                || ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED)
+    }
+}
