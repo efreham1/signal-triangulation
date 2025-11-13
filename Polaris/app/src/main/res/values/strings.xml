@@ -25,4 +25,21 @@
     <string name="recording_started">Recording started</string>
     <string name="recording_stopped">Recording stopped</string>
 
+    <string name="source_position_placeholder">Source pos: (empty)\n\n</string>
+    <string name="source_position_label">Source pos: Lat %1$.6f, Lon %2$.6f\n\n</string>
+
+    <string name="measuring">Measuring...</string>
+    <string name="measuring_progress">Measuring %1$d/%2$d...</string>
+    <string name="sample_timed_out">Sample %1$d timed out</string>
+    <string name="no_location_samples">No location samples obtained.</string>
+    <string name="measuring_done">Done (%1$d samples)</string>
+    <string name="measurement_result">Mean: lat=%1$.6f lon=%2$.6f\nStd dev: lat=%3$.6f lon=%4$.6f</string>
+    <string name="measurement_saved">Measurement saved as source position</string>
+    <string name="source_position">Source pos: lat=%1$.6f lon=%2$.6f\n\n</string>
+
+    <string name="measure_source">Measure source position</string>
+    <string name="start_measurement">Start measurement</string>
+    <string name="back_to_main">Back to main</string>
+    <string name="ready">Ready</string>
+
 </resources>

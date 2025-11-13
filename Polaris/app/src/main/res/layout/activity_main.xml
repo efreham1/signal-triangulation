@@ -18,6 +18,13 @@
         android:layout_marginTop="8dp"
         android:text="@string/choose_ssid" />
 
+    <Button
+        android:id="@+id/measureSourceBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/measure_source" />
+
     <!-- start/stop automatic measurements -->
     <LinearLayout
         android:layout_width="match_parent"

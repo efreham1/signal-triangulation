@@ -33,6 +33,14 @@ data class SignalRecord(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+// new: persistent source position (single-row, id==0)
+@Entity(tableName = "source_position")
+data class SourcePosition(
+    @PrimaryKey val id: Int = 0,
+    val latitude: Double?,
+    val longitude: Double?
+)
+
 @Dao
 interface SignalDao {
     @Insert
@@ -45,9 +53,22 @@ interface SignalDao {
     suspend fun deleteAll()
 }
 
-@Database(entities = [SignalRecord::class], version = 2, exportSchema = false)
+@Dao
+interface SourcePositionDao {
+    @Query("SELECT * FROM source_position WHERE id = 0")
+    suspend fun get(): SourcePosition?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(pos: SourcePosition)
+
+    @Query("DELETE FROM source_position")
+    suspend fun deleteAll()
+}
+
+@Database(entities = [SignalRecord::class, SourcePosition::class], version = 3, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun signalDao(): SignalDao
+    abstract fun sourcePositionDao(): SourcePositionDao
 }
 
 @Suppress("DEPRECATION")
@@ -56,6 +77,7 @@ class MainActivity : AppCompatActivity() {
     // Room
     private lateinit var db: AppDatabase
     private lateinit var signalDao: SignalDao
+    private lateinit var sourcePositionDao: SourcePositionDao
 
     // Location
     private lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -69,6 +91,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var allRecordsText: TextView
     private lateinit var startAutoBtn: Button
     private lateinit var stopAutoBtn: Button
+    private lateinit var measureSourceBtn: Button
 
     // SSID list & selection
     private val ssidList = mutableListOf<String>()
@@ -198,6 +221,7 @@ class MainActivity : AppCompatActivity() {
             .fallbackToDestructiveMigration()
             .build()
         signalDao = db.signalDao()
+        sourcePositionDao = db.sourcePositionDao()
 
         // UI bindings
         cleanRecordsBtn = findViewById(R.id.cleanRecordsBtn)
@@ -206,6 +230,7 @@ class MainActivity : AppCompatActivity() {
         exportBtn = findViewById(R.id.exportBtn)
         startAutoBtn = findViewById(R.id.startAutoBtn)
         stopAutoBtn = findViewById(R.id.stopAutoBtn)
+        measureSourceBtn = findViewById(R.id.measureSourceBtn)
 
         // initial auto state
         isAutoRunning = false
@@ -240,6 +265,7 @@ class MainActivity : AppCompatActivity() {
                 .setPositiveButton(getString(R.string.confirm_delete_positive)) { _, _ ->
                     lifecycleScope.launch {
                         signalDao.deleteAll()
+                        sourcePositionDao.deleteAll()
                         refreshRecordsView()
                     }
                 }
@@ -248,6 +274,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         exportBtn.setOnClickListener { exportDatabaseToJson() }
+
+        measureSourceBtn.setOnClickListener {
+            val intent = android.content.Intent(this, MeasureSourceActivity::class.java)
+            startActivity(intent)
+        }
 
         val missing = requiredPermissions.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }.toTypedArray()
         if (missing.isNotEmpty()) {
@@ -290,6 +321,8 @@ class MainActivity : AppCompatActivity() {
             ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, mainLooper)
         }
+
+        refreshRecordsView()
     }
 
     override fun onPause() {
@@ -327,15 +360,23 @@ class MainActivity : AppCompatActivity() {
 
     private fun refreshRecordsView() {
         lifecycleScope.launch {
+            val source = sourcePositionDao.get()
             val all = signalDao.getAll()
             runOnUiThread {
-                if (all.isEmpty()) {
-                    allRecordsText.text = getString(R.string.placeholder_db)
+                val header = if (source?.latitude != null && source.longitude != null) {
+                    getString(R.string.source_position_label, source.latitude, source.longitude)
                 } else {
-                    allRecordsText.text = all.joinToString("\n") {
+                    getString(R.string.source_position_placeholder)
+                }
+
+                if (all.isEmpty()) {
+                    allRecordsText.text = header + getString(R.string.placeholder_db)
+                } else {
+                    val body = all.joinToString("\n") {
                         // Use string resource for consistent localization/formatting
                         getString(R.string.record_item, it.ssid, it.latitude, it.longitude, it.rssi, it.timestamp)
                     }
+                    allRecordsText.text = header + body
                 }
             }
         }
@@ -343,13 +384,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun exportDatabaseToJson() {
         lifecycleScope.launch {
+            val source = sourcePositionDao.get()
             val allRecords = signalDao.getAll()
-            if (allRecords.isEmpty()) {
-                runOnUiThread { allRecordsText.text = getString(R.string.no_data_export) }
-                return@launch
-            }
+
+            val exportObj = mapOf(
+                "source_pos" to if (source?.latitude != null && source.longitude != null) {
+                    mapOf("x" to source.latitude, "y" to source.longitude)
+                } else null,
+                "measurements" to allRecords
+            )
+
             val gson = GsonBuilder().setPrettyPrinting().create()
-            val jsonString = gson.toJson(allRecords)
+            val jsonString = gson.toJson(exportObj)
             val timeStr = java.text.SimpleDateFormat("HH_mm_ss", java.util.Locale.getDefault()).format(java.util.Date())
             val fileName = "signal_records_${timeStr}.json"
             val file = java.io.File(getExternalFilesDir(null)?.absolutePath ?: filesDir.absolutePath, fileName)
