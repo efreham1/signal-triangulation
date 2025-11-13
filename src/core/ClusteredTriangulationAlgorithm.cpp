@@ -254,7 +254,7 @@ double ClusteredTriangulationAlgorithm::getCost(double x, double y)
 		if (dot_prod < 0)
 		{
 			// total_cost += projection_length + point_to_centroid_mag
-			total_cost += dot_prod/cluster_grad_mag + std::sqrt(point_to_centroid[0]*point_to_centroid[0] + point_to_centroid[1]*point_to_centroid[1]);
+			total_cost += -dot_prod/cluster_grad_mag + std::sqrt(point_to_centroid[0]*point_to_centroid[0] + point_to_centroid[1]*point_to_centroid[1]);
 		} else {
 			double distance = cross_prod_mag / cluster_grad_mag;
 			total_cost += distance;
