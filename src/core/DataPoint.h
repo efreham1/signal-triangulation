@@ -2,28 +2,59 @@
 #define DATAPOINT_H
 
 #include <cstdint>
+#include <string>
+
+#define EARTH_RADIUS_METERS 6362475.0 // Earth radius in meters in Uppsala
 
 namespace core {
 
 /**
- * @struct DataPoint
+ * @class DataPoint
  * @brief Represents a signal measurement data point.
  */
-struct DataPoint {
-    double latitude;          ///< Geographical latitude
-    double longitude;         ///< Geographical longitude
-    int rssi;                ///< Received Signal Strength Indicator
-    int64_t timestamp_ms;    ///< Measurement timestamp in milliseconds
+class DataPoint {
+private:
+    double latitude;            ///< Geographical latitude
+    double longitude;           ///< Geographical longitude
+    double x;                   ///< X coordinate in euclidean space
+    double y;                   ///< Y coordinate in euclidean space
+    bool x_computed;            ///< Flag: x coordinate computed
+    bool y_computed;            ///< Flag: y coordinate computed
+    bool lat_computed;          ///< Flag: latitude value is valid/available
+    bool lon_computed;          ///< Flag: longitude value is valid/available
+public:
+    double zero_latitude;     ///< Latitude that represents zero point in the euclidean space
+    double zero_longitude;    ///< Longitude that represents zero point in the euclidean space
+    int rssi;                 ///< Received Signal Strength Indicator
+    int64_t timestamp_ms;     ///< Measurement timestamp in milliseconds
+    std::string ssid;         ///< Optional SSID identifier for the measured network
 
     // Default constructor
-    DataPoint() : latitude(0.0), longitude(0.0), rssi(0), timestamp_ms(0) {}
+    DataPoint();
 
-    // Parameterized constructor
-    DataPoint(double lat, double lon, int signal_strength, int64_t time)
-        : latitude(lat)
-        , longitude(lon)
-        , rssi(signal_strength)
-        , timestamp_ms(time) {}
+    // Parameterized constructors
+    DataPoint(double lat, double lon, double zero_lat, double zero_lon, int signal_strength, int64_t time, const std::string& ssid_in = "");
+
+    void setX(double x_val);
+    void setY(double y_val);
+
+    double getX() const; 
+    double getY() const;
+
+    void setLatitude(double lat);
+    void setLongitude(double lon);
+    
+    double getLatitude() const;
+    double getLongitude() const;
+
+    void computeCoordinates();
+
+    bool validCoordinates() const {
+        bool values_computed = lat_computed && lon_computed && x_computed && y_computed;
+        bool lat_valid = (latitude >= -90.0 && latitude <= 90.0);
+        bool lon_valid = (longitude >= -180.0 && longitude <= 180.0);
+        return values_computed && lat_valid && lon_valid;
+    }
 };
 
 } // namespace core

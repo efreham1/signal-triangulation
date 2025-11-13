@@ -1,0 +1,370 @@
+[
+  {
+    "id": 446,
+    "latitude": 59.8369626,
+    "longitude": 17.63357,
+    "rssi": -76,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941210034
+  },
+  {
+    "id": 445,
+    "latitude": 59.8369283,
+    "longitude": 17.6336619,
+    "rssi": -75,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941202818
+  },
+  {
+    "id": 444,
+    "latitude": 59.8369396,
+    "longitude": 17.6337043,
+    "rssi": -62,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941195536
+  },
+  {
+    "id": 443,
+    "latitude": 59.836925,
+    "longitude": 17.6337663,
+    "rssi": -68,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941188374
+  },
+  {
+    "id": 442,
+    "latitude": 59.8369056,
+    "longitude": 17.6337271,
+    "rssi": -78,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941181062
+  },
+  {
+    "id": 441,
+    "latitude": 59.8368622,
+    "longitude": 17.6337489,
+    "rssi": -67,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941173666
+  },
+  {
+    "id": 440,
+    "latitude": 59.8368444,
+    "longitude": 17.6336763,
+    "rssi": -64,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941166321
+  },
+  {
+    "id": 439,
+    "latitude": 59.8368001,
+    "longitude": 17.6337366,
+    "rssi": -73,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941158978
+  },
+  {
+    "id": 438,
+    "latitude": 59.8367727,
+    "longitude": 17.6336188,
+    "rssi": -77,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941151537
+  },
+  {
+    "id": 437,
+    "latitude": 59.8367704,
+    "longitude": 17.6335099,
+    "rssi": -68,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941144184
+  },
+  {
+    "id": 436,
+    "latitude": 59.8367581,
+    "longitude": 17.6334868,
+    "rssi": -64,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941136865
+  },
+  {
+    "id": 435,
+    "latitude": 59.8367395,
+    "longitude": 17.6334233,
+    "rssi": -74,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941129622
+  },
+  {
+    "id": 434,
+    "latitude": 59.8367591,
+    "longitude": 17.6333738,
+    "rssi": -69,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941122259
+  },
+  {
+    "id": 433,
+    "latitude": 59.8367544,
+    "longitude": 17.6332906,
+    "rssi": -68,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941114995
+  },
+  {
+    "id": 432,
+    "latitude": 59.8367607,
+    "longitude": 17.6332322,
+    "rssi": -88,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941107825
+  },
+  {
+    "id": 431,
+    "latitude": 59.8367203,
+    "longitude": 17.633171,
+    "rssi": -75,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941100405
+  },
+  {
+    "id": 430,
+    "latitude": 59.8367582,
+    "longitude": 17.6330862,
+    "rssi": -73,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941093215
+  },
+  {
+    "id": 429,
+    "latitude": 59.8367876,
+    "longitude": 17.633063,
+    "rssi": -76,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941085985
+  },
+  {
+    "id": 428,
+    "latitude": 59.8368313,
+    "longitude": 17.6330822,
+    "rssi": -77,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941078731
+  },
+  {
+    "id": 427,
+    "latitude": 59.836881,
+    "longitude": 17.6330222,
+    "rssi": -76,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941071439
+  },
+  {
+    "id": 426,
+    "latitude": 59.8369023,
+    "longitude": 17.6330577,
+    "rssi": -67,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941064116
+  },
+  {
+    "id": 425,
+    "latitude": 59.8369448,
+    "longitude": 17.6329956,
+    "rssi": -74,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941056770
+  },
+  {
+    "id": 424,
+    "latitude": 59.8369385,
+    "longitude": 17.6330812,
+    "rssi": -73,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941049356
+  },
+  {
+    "id": 423,
+    "latitude": 59.8369512,
+    "longitude": 17.6331199,
+    "rssi": -85,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941041973
+  },
+  {
+    "id": 422,
+    "latitude": 59.8369569,
+    "longitude": 17.6331856,
+    "rssi": -70,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941034661
+  },
+  {
+    "id": 421,
+    "latitude": 59.836938,
+    "longitude": 17.6331906,
+    "rssi": -73,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941027300
+  },
+  {
+    "id": 420,
+    "latitude": 59.8369588,
+    "longitude": 17.6332838,
+    "rssi": -86,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941020097
+  },
+  {
+    "id": 419,
+    "latitude": 59.8369432,
+    "longitude": 17.633347,
+    "rssi": -69,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941012907
+  },
+  {
+    "id": 418,
+    "latitude": 59.8369413,
+    "longitude": 17.6334361,
+    "rssi": -78,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762941005666
+  },
+  {
+    "id": 417,
+    "latitude": 59.8369327,
+    "longitude": 17.6334568,
+    "rssi": -81,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762940998422
+  },
+   {
+    "id": 416,
+    "latitude": 59.8369166,
+    "longitude": 17.633558,
+    "rssi": -59,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762940971597
+  },
+  {
+    "id": 415,
+    "latitude": 59.8369392,
+    "longitude": 17.6336476,
+    "rssi": -74,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762940964487
+  },
+  {
+    "id": 414,
+    "latitude": 59.8368676,
+    "longitude": 17.6336658,
+    "rssi": -87,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762940957242
+  },
+  {
+    "id": 413,
+    "latitude": 59.8367961,
+    "longitude": 17.6336801,
+    "rssi": -79,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762940949981
+  },
+  {
+    "id": 412,
+    "latitude": 59.836741,
+    "longitude": 17.6336239,
+    "rssi": -73,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762940942685
+  },
+  {
+    "id": 411,
+    "latitude": 59.8367292,
+    "longitude": 17.633474,
+    "rssi": -79,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762940935401
+  },
+  {
+    "id": 410,
+    "latitude": 59.8367224,
+    "longitude": 17.6333359,
+    "rssi": -75,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762940928146
+  },
+  {
+    "id": 409,
+    "latitude": 59.8367216,
+    "longitude": 17.6331903,
+    "rssi": -70,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762940920960
+  },
+  {
+    "id": 408,
+    "latitude": 59.8367367,
+    "longitude": 17.6330903,
+    "rssi": -72,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762940913660
+  },
+  {
+    "id": 407,
+    "latitude": 59.8368126,
+    "longitude": 17.633099,
+    "rssi": -79,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762940906336
+  },
+  {
+    "id": 406,
+    "latitude": 59.8368882,
+    "longitude": 17.6330599,
+    "rssi": -74,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762940899099
+  },
+  {
+    "id": 405,
+    "latitude": 59.8369462,
+    "longitude": 17.6330889,
+    "rssi": -85,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762940891797
+  },
+  {
+    "id": 404,
+    "latitude": 59.8369272,
+    "longitude": 17.633248,
+    "rssi": -79,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762940884603
+  },
+  {
+    "id": 403,
+    "latitude": 59.8369211,
+    "longitude": 17.6334097,
+    "rssi": -64,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762940877436
+  },
+  {
+    "id": 402,
+    "latitude": 59.836889,
+    "longitude": 17.6335902,
+    "rssi": -68,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762940870287
+  },
+  {
+    "id": 401,
+    "latitude": 59.8368559,
+    "longitude": 17.6335782,
+    "rssi": -58,
+    "ssid": "Jonathan – iPhone",
+    "timestamp": 1762940863048
+  }
+]
