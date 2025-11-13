@@ -1,0 +1,642 @@
+[
+    {
+      "id": 122,
+      "latitude": 59.8419383,
+      "longitude": 17.6438433,
+      "rssi": -74,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050659830
+    },
+    {
+      "id": 121,
+      "latitude": 59.8419382,
+      "longitude": 17.6438449,
+      "rssi": -75,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050652452
+    },
+    {
+      "id": 120,
+      "latitude": 59.8419435,
+      "longitude": 17.6438502,
+      "rssi": -71,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050647185
+    },
+    {
+      "id": 119,
+      "latitude": 59.8419267,
+      "longitude": 17.643935,
+      "rssi": -81,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050639889
+    },
+    {
+      "id": 118,
+      "latitude": 59.8419267,
+      "longitude": 17.643935,
+      "rssi": -80,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050632550
+    },
+    {
+      "id": 117,
+      "latitude": 59.8419296,
+      "longitude": 17.6438915,
+      "rssi": -80,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050612365
+    },
+    {
+      "id": 116,
+      "latitude": 59.8418583,
+      "longitude": 17.6439817,
+      "rssi": -85,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050599842
+    },
+    {
+      "id": 115,
+      "latitude": 59.841861,
+      "longitude": 17.6439691,
+      "rssi": -87,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050592449
+    },
+    {
+      "id": 114,
+      "latitude": 59.8418681,
+      "longitude": 17.643949,
+      "rssi": -89,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050586919
+    },
+    {
+      "id": 113,
+      "latitude": 59.8418344,
+      "longitude": 17.6437972,
+      "rssi": -85,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050567031
+    },
+    {
+      "id": 112,
+      "latitude": 59.8418378,
+      "longitude": 17.6437794,
+      "rssi": -83,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050559665
+    },
+    {
+      "id": 111,
+      "latitude": 59.8418219,
+      "longitude": 17.6437858,
+      "rssi": -83,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050552279
+    },
+    {
+      "id": 110,
+      "latitude": 59.84178,
+      "longitude": 17.6436514,
+      "rssi": -81,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050539740
+    },
+    {
+      "id": 109,
+      "latitude": 59.8417861,
+      "longitude": 17.6436448,
+      "rssi": -82,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050532455
+    },
+    {
+      "id": 108,
+      "latitude": 59.8417849,
+      "longitude": 17.6436672,
+      "rssi": -83,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050526890
+    },
+    {
+      "id": 107,
+      "latitude": 59.8417065,
+      "longitude": 17.6435487,
+      "rssi": -76,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050512402
+    },
+    {
+      "id": 106,
+      "latitude": 59.8417084,
+      "longitude": 17.6435488,
+      "rssi": -78,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050506463
+    },
+    {
+      "id": 105,
+      "latitude": 59.8417082,
+      "longitude": 17.6435447,
+      "rssi": -83,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050499050
+    },
+    {
+      "id": 104,
+      "latitude": 59.8417411,
+      "longitude": 17.6433949,
+      "rssi": -78,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050486924
+    },
+    {
+      "id": 103,
+      "latitude": 59.8417457,
+      "longitude": 17.6434002,
+      "rssi": -78,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050479594
+    },
+    {
+      "id": 102,
+      "latitude": 59.8417501,
+      "longitude": 17.643235,
+      "rssi": -76,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050459627
+    },
+    {
+      "id": 101,
+      "latitude": 59.8417502,
+      "longitude": 17.6432357,
+      "rssi": -78,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050452292
+    },
+    {
+      "id": 100,
+      "latitude": 59.8417533,
+      "longitude": 17.6432354,
+      "rssi": -79,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050446755
+    },
+    {
+      "id": 99,
+      "latitude": 59.8416767,
+      "longitude": 17.6430785,
+      "rssi": -74,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050426673
+    },
+    {
+      "id": 98,
+      "latitude": 59.8416887,
+      "longitude": 17.64307,
+      "rssi": -74,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050419386
+    },
+    {
+      "id": 97,
+      "latitude": 59.8416923,
+      "longitude": 17.6430606,
+      "rssi": -71,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050412204
+    },
+    {
+      "id": 96,
+      "latitude": 59.8415973,
+      "longitude": 17.64293,
+      "rssi": -78,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050399400
+    },
+    {
+      "id": 95,
+      "latitude": 59.8415958,
+      "longitude": 17.6429247,
+      "rssi": -76,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050392272
+    },
+    {
+      "id": 94,
+      "latitude": 59.8416027,
+      "longitude": 17.6429355,
+      "rssi": -79,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050386267
+    },
+    {
+      "id": 93,
+      "latitude": 59.8415354,
+      "longitude": 17.6427775,
+      "rssi": -89,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050372143
+    },
+    {
+      "id": 92,
+      "latitude": 59.8415389,
+      "longitude": 17.6427809,
+      "rssi": -86,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050366676
+    },
+    {
+      "id": 91,
+      "latitude": 59.8415344,
+      "longitude": 17.6427836,
+      "rssi": -86,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050359535
+    },
+    {
+      "id": 90,
+      "latitude": 59.8415608,
+      "longitude": 17.6425981,
+      "rssi": -90,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050346509
+    },
+    {
+      "id": 89,
+      "latitude": 59.8415648,
+      "longitude": 17.6426052,
+      "rssi": -92,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050339369
+    },
+    {
+      "id": 88,
+      "latitude": 59.8415647,
+      "longitude": 17.6426217,
+      "rssi": -82,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050332058
+    },
+    {
+      "id": 87,
+      "latitude": 59.8416337,
+      "longitude": 17.6424645,
+      "rssi": -87,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050319344
+    },
+    {
+      "id": 86,
+      "latitude": 59.841634,
+      "longitude": 17.6424861,
+      "rssi": -89,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050312226
+    },
+    {
+      "id": 85,
+      "latitude": 59.8416318,
+      "longitude": 17.6425055,
+      "rssi": -88,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050306569
+    },
+    {
+      "id": 84,
+      "latitude": 59.841695,
+      "longitude": 17.642315,
+      "rssi": -86,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050292298
+    },
+    {
+      "id": 83,
+      "latitude": 59.841695,
+      "longitude": 17.642315,
+      "rssi": -88,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050286841
+    },
+    {
+      "id": 82,
+      "latitude": 59.8416946,
+      "longitude": 17.6423159,
+      "rssi": -90,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050279597
+    },
+    {
+      "id": 81,
+      "latitude": 59.8417818,
+      "longitude": 17.6422122,
+      "rssi": -80,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050259544
+    },
+    {
+      "id": 80,
+      "latitude": 59.8417828,
+      "longitude": 17.6422312,
+      "rssi": -80,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050252257
+    },
+    {
+      "id": 79,
+      "latitude": 59.8417863,
+      "longitude": 17.6422716,
+      "rssi": -79,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050246789
+    },
+    {
+      "id": 78,
+      "latitude": 59.8419187,
+      "longitude": 17.642323,
+      "rssi": -82,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050226741
+    },
+    {
+      "id": 77,
+      "latitude": 59.8419415,
+      "longitude": 17.642343,
+      "rssi": -84,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050219517
+    },
+    {
+      "id": 76,
+      "latitude": 59.8419272,
+      "longitude": 17.6423732,
+      "rssi": -82,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050212131
+    },
+    {
+      "id": 75,
+      "latitude": 59.8419667,
+      "longitude": 17.6425633,
+      "rssi": -82,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050192223
+    },
+    {
+      "id": 74,
+      "latitude": 59.8419663,
+      "longitude": 17.6425653,
+      "rssi": -85,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050186583
+    },
+    {
+      "id": 73,
+      "latitude": 59.8419793,
+      "longitude": 17.6426284,
+      "rssi": -87,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050179387
+    },
+    {
+      "id": 72,
+      "latitude": 59.8419717,
+      "longitude": 17.6426767,
+      "rssi": -86,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050172189
+    },
+    {
+      "id": 71,
+      "latitude": 59.8419731,
+      "longitude": 17.6426766,
+      "rssi": -80,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050166812
+    },
+    {
+      "id": 70,
+      "latitude": 59.8419696,
+      "longitude": 17.6426856,
+      "rssi": -84,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050159552
+    },
+    {
+      "id": 69,
+      "latitude": 59.841975,
+      "longitude": 17.6428067,
+      "rssi": -79,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050152216
+    },
+    {
+      "id": 68,
+      "latitude": 59.8419755,
+      "longitude": 17.642809,
+      "rssi": -79,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050146788
+    },
+    {
+      "id": 67,
+      "latitude": 59.8419874,
+      "longitude": 17.6428589,
+      "rssi": -82,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050139567
+    },
+    {
+      "id": 66,
+      "latitude": 59.8419883,
+      "longitude": 17.6429417,
+      "rssi": -77,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050132285
+    },
+    {
+      "id": 65,
+      "latitude": 59.8419919,
+      "longitude": 17.6429362,
+      "rssi": -77,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050126914
+    },
+    {
+      "id": 64,
+      "latitude": 59.8419982,
+      "longitude": 17.6430552,
+      "rssi": -77,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050119570
+    },
+    {
+      "id": 63,
+      "latitude": 59.8419991,
+      "longitude": 17.6431076,
+      "rssi": -75,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050112363
+    },
+    {
+      "id": 62,
+      "latitude": 59.8420023,
+      "longitude": 17.6431026,
+      "rssi": -73,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050106938
+    },
+    {
+      "id": 61,
+      "latitude": 59.8420036,
+      "longitude": 17.643122,
+      "rssi": -78,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050099600
+    },
+    {
+      "id": 60,
+      "latitude": 59.8420083,
+      "longitude": 17.643235,
+      "rssi": -60,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050092349
+    },
+    {
+      "id": 59,
+      "latitude": 59.8420083,
+      "longitude": 17.643235,
+      "rssi": -64,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050086673
+    },
+    {
+      "id": 58,
+      "latitude": 59.8420219,
+      "longitude": 17.6433322,
+      "rssi": -69,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050059448
+    },
+    {
+      "id": 57,
+      "latitude": 59.8420326,
+      "longitude": 17.6434071,
+      "rssi": -69,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050052277
+    },
+    {
+      "id": 56,
+      "latitude": 59.84203,
+      "longitude": 17.6433788,
+      "rssi": -71,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050046817
+    },
+    {
+      "id": 55,
+      "latitude": 59.8420411,
+      "longitude": 17.6434704,
+      "rssi": -67,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050039504
+    },
+    {
+      "id": 54,
+      "latitude": 59.8420496,
+      "longitude": 17.6435648,
+      "rssi": -73,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050032197
+    },
+    {
+      "id": 53,
+      "latitude": 59.8420438,
+      "longitude": 17.6435205,
+      "rssi": -75,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050026645
+    },
+    {
+      "id": 52,
+      "latitude": 59.8420536,
+      "longitude": 17.6436281,
+      "rssi": -75,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050019260
+    },
+    {
+      "id": 51,
+      "latitude": 59.8420586,
+      "longitude": 17.6437321,
+      "rssi": -74,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050012060
+    },
+    {
+      "id": 50,
+      "latitude": 59.8420523,
+      "longitude": 17.6436981,
+      "rssi": -70,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763050006399
+    },
+    {
+      "id": 49,
+      "latitude": 59.8420404,
+      "longitude": 17.6437816,
+      "rssi": -72,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763049999288
+    },
+    {
+      "id": 48,
+      "latitude": 59.842026,
+      "longitude": 17.6438106,
+      "rssi": -71,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763049992094
+    },
+    {
+      "id": 47,
+      "latitude": 59.8420156,
+      "longitude": 17.6437834,
+      "rssi": -68,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763049986524
+    },
+    {
+      "id": 46,
+      "latitude": 59.8419613,
+      "longitude": 17.6438011,
+      "rssi": -79,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763049979412
+    },
+    {
+      "id": 45,
+      "latitude": 59.8419496,
+      "longitude": 17.6438292,
+      "rssi": -71,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763049972126
+    },
+    {
+      "id": 44,
+      "latitude": 59.8419494,
+      "longitude": 17.6438284,
+      "rssi": -69,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763049966652
+    },
+    {
+      "id": 43,
+      "latitude": 59.8419448,
+      "longitude": 17.6438268,
+      "rssi": -71,
+      "ssid": "Tildas iPhone",
+      "timestamp": 1763049959346
+    }
+  ]
