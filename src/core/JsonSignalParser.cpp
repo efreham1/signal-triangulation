@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <cctype>
 #include <iostream>
+#include <limits>
 
 namespace core {
 
@@ -133,7 +134,10 @@ std::vector<DataPoint> JsonSignalParser::parseFileToVector(const std::string& pa
                 DataPoint dp(lat, lon, zero_lat, zero_lon, rssi, timestamp, ssid);
                 out.push_back(dp);
             } catch (const std::exception& e) {
-                std::cout << e.what() << std::endl;
+                std::cout << "Error parsing record: " << e.what() << std::endl;
+                std::cout << "  Record content: " << obj << std::endl;
+                std::cout << "  Raw values: latitude=" << rawLat << ", longitude=" << rawLon
+                          << ", rssi=" << rawRssi << ", ssid=" << rawSsid << ", timestamp=" << rawTimestamp << std::endl;
                 // skip malformed record
             }
         }

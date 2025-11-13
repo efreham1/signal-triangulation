@@ -98,7 +98,7 @@ namespace core {
         } else if (lat_computed && lon_computed && x_computed && y_computed)
         {           
             // all values are already computed; nothing to do
-            // pass
+            // skip
         }
         
         else

@@ -151,6 +151,7 @@ def plot_3d(x, y, rssi, result_point=None, out_path="plots_3d.png", show=True, c
         try:
             ax.legend()
         except Exception:
+            # It is safe to ignore legend errors; legend is optional and plot remains usable.
             pass
     if show:
         plt.show()
