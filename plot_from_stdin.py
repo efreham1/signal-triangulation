@@ -103,7 +103,7 @@ def plot_2d(x, y, centroids=None, aoas=None, result_point=None, out_path="plots_
     # plot resulting gradient-descent point if provided
     if result_point is not None:
         rx, ry = result_point
-        ax.scatter([rx], [ry], marker='*', c='red', s=140, label='result')
+        ax.scatter([rx], [ry], marker='*', c='gold', s=140, label='result')
 
     ax.legend()
     if out_path:
