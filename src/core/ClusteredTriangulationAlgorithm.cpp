@@ -73,14 +73,17 @@ bool ClusteredTriangulationAlgorithm::calculatePosition(double& out_latitude, do
 		throw std::runtime_error("ClusteredTriangulationAlgorithm: no intersections found between cluster AoA lines");
 	}
 
-	double resolution = 0.1; // step size in meters
-	double current_x;
-	double current_y;
+	constexpr double GRADIENT_DESCENT_STEP_SIZE = 0.1; // step size in meters for gradient descent
+	double resolution = GRADIENT_DESCENT_STEP_SIZE;
+
+	double global_best_x = 0.0;
+	double global_best_y = 0.0;
+	double global_best_cost = std::numeric_limits<double>::max();
 
 	for (const auto& inter : intersections) {
 		bool continue_gradient_descent = true;
-		current_x = inter.x;
-		current_y = inter.y;
+		double current_x = inter.x;
+		double current_y = inter.y;
 		double current_cost = getCost(current_x, current_y);
 
 		while (continue_gradient_descent) {
@@ -113,15 +116,19 @@ bool ClusteredTriangulationAlgorithm::calculatePosition(double& out_latitude, do
 				continue_gradient_descent = false; // No better neighbors found
 			}
 		}
-		
+		if (current_cost < global_best_cost) {
+			global_best_cost = current_cost;
+			global_best_x = current_x;
+			global_best_y = current_y;
+		}
 	}
 
 	//print x and y of resulting point
-	std::cout << "Resulting point after gradient descent: x=" << current_x << ", y=" << current_y << std::endl;
+	std::cout << "Resulting point after gradient descent: x=" << global_best_x << ", y=" << global_best_y << std::endl;
 	
 	DataPoint result_point;
-	result_point.setX(current_x);
-	result_point.setY(current_y);
+	result_point.setX(global_best_x);
+	result_point.setY(global_best_y);
 	result_point.zero_latitude = m_points[0].zero_latitude;
 	result_point.zero_longitude = m_points[0].zero_longitude;
 	result_point.computeCoordinates();
@@ -137,6 +144,7 @@ bool ClusteredTriangulationAlgorithm::calculatePosition(double& out_latitude, do
 void ClusteredTriangulationAlgorithm::reset()
 {
 	m_points.clear();
+	m_clusters.clear();
 }
 
 void ClusteredTriangulationAlgorithm::clusterData()
@@ -180,6 +188,9 @@ void ClusteredTriangulationAlgorithm::estimateAoAForClusters()
 			vec1[0] * vec2[1] - vec1[1] * vec2[0]
 		};
 		// The gradient components
+		if (normal[2] == 0.0) {
+			continue; // Avoid division by zero
+		}
 		double grad_x = -normal[0] / normal[2];
 		double grad_y = -normal[1] / normal[2];
 		cluster.aoa_x = grad_x;
@@ -206,7 +217,7 @@ std::vector<ClusteredTriangulationAlgorithm::Point> ClusteredTriangulationAlgori
 			double c2 = m_clusters[j].centroid_y - m_clusters[i].centroid_y;
 
 			double denom = a1 * b2 - a2 * b1;
-			if (std::abs(denom) < 1e-6) {
+			if (std::abs(denom) < std::numeric_limits<double>::epsilon()) {
 				continue; // Lines are parallel or nearly parallel
 			}
 
