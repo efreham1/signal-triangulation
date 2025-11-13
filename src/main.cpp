@@ -4,6 +4,7 @@
 #include <memory>
 #include "core/ClusteredTriangulationAlgorithm.h"
 #include "core/JsonSignalParser.h"
+#include <iomanip>
 
 int main(int argc, char* argv[]) {
     try {
@@ -15,14 +16,14 @@ int main(int argc, char* argv[]) {
         auto triangulationService = std::make_shared<core::TriangulationService>();
         triangulationService->setPositionCallback(
             [](double latitude, double longitude) {
-                std::cout << "New position calculated: Lat=" << latitude << ", Lon=" << longitude << std::endl;
+                std::cout << "New position calculated: Lat=" << std::setprecision(10) << latitude << ", Lon=" << std::setprecision(10) << longitude << std::endl;
             }
         );
         triangulationService->setAlgorithm(
             std::make_unique<core::ClusteredTriangulationAlgorithm>()
         );
         
-        std::vector<core::DataPoint> dps = core::JsonSignalParser::parseFileToVector("signals_water.json");
+        std::vector<core::DataPoint> dps = core::JsonSignalParser::parseFileToVector("signals_water_2.json");
         for (auto& dp : dps) {
             dp.computeCoordinates();
             triangulationService->addDataPoint(dp);

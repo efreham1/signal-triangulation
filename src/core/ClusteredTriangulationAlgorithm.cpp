@@ -137,7 +137,7 @@ bool ClusteredTriangulationAlgorithm::calculatePosition(double& out_latitude, do
 	}
 	out_latitude = result_point.getLatitude();
 	out_longitude = result_point.getLongitude();
-
+	std::cout << "Computed position: Lat=" << out_latitude << ", Lon=" << out_longitude << std::endl;
 	return true;
 }
 

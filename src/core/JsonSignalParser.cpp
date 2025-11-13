@@ -116,7 +116,7 @@ std::vector<DataPoint> JsonSignalParser::parseFileToVector(const std::string& pa
             try {
                 double lat = 0.0;
                 double lon = 0.0;
-                int rssi = 0;
+                double rssi = 0;
                 int64_t timestamp = 0;
                 std::string ssid = "";
 
