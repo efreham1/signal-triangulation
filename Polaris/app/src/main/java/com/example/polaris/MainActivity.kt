@@ -411,8 +411,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun sanitizeFreeText(raw: String): String {
-        val sanitized = raw.trim().replace(Regex("[^A-Za-z0-9_-]"), "")
-        return sanitized.ifBlank { "noTag" }
+        val sanitized = raw.trim().replace(Regex("[^A-Za-z0-9_-]"), "").take(50)
+        return if (sanitized.isBlank()) {
+            "noTag_" + raw.hashCode().toUInt().toString(16)
+        } else sanitized
     }
 
     private fun exportDatabaseToJson(freeText: String) {
