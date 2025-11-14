@@ -16,28 +16,28 @@ all: configure build
 .PHONY: install-adb fetch_recordings
 
 install-adb:
-    @if command -v adb >/dev/null 2>&1; then \
-        echo "adb already installed: $$(command -v adb)"; \
-    else \
+	@if command -v adb >/dev/null 2>&1; then \
+    	echo "adb already installed: $$(command -v adb)"; \
+	else \
         if [ "$$(uname -s)" = "Linux" ] || [ "$$(uname -s)" = "Darwin" ]; then \
-            bash ./scripts/install-adb.sh; \
-        else \
-            echo "Unsupported OS for automatic adb install. This project supports Linux and macOS only." >&2; \
-            exit 1; \
-        fi; \
-    fi
+        	bash ./scripts/install-adb.sh; \
+    	else \
+        	echo "Unsupported OS for automatic adb install." >&2; \
+			exit 1; \
+		fi; \
+	fi
 
-fetch_recordings: install-adb
-    @echo "Fetching recordings from connected Android device..."
-    @bash ./scripts/FileTransfer.sh
+fetch_recordings:
+	@echo "Fetching recordings from connected Android device..."
+	@bash ./scripts/FileTransfer.sh
 
 configure:
-    $(CMAKE) $(CMAKE_FLAGS)
+	$(CMAKE) $(CMAKE_FLAGS)
 
 build:
-    $(CMAKE_BUILD)
+	$(CMAKE_BUILD)
 
 clean:
-    rm -rf $(BUILD_DIR)
+	rm -rf $(BUILD_DIR)
 
 rebuild: clean all
