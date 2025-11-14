@@ -29,6 +29,12 @@ target_include_directories(signal-triangulation
         ${SRC_DIR}
 )
 
+find_package(nlohmann_json CONFIG REQUIRED)
+
+target_link_libraries(signal-triangulation
+    PRIVATE nlohmann_json::nlohmann_json
+)
+
 # Install target (optional)
 install(TARGETS signal-triangulation RUNTIME DESTINATION bin)
 

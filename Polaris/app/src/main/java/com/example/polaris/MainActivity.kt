@@ -9,7 +9,10 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.net.wifi.WifiManager
 import android.os.Bundle
+import android.provider.Settings
+import android.annotation.SuppressLint
 import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -30,7 +33,8 @@ data class SignalRecord(
     val longitude: Double,
     val ssid: String,
     val rssi: Int,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val deviceID: String
 )
 
 // new: persistent source position (single-row, id==0)
@@ -71,6 +75,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun sourcePositionDao(): SourcePositionDao
 }
 
+@SuppressLint("HardwareIds")
 @Suppress("DEPRECATION")
 class MainActivity : AppCompatActivity() {
 
@@ -115,6 +120,10 @@ class MainActivity : AppCompatActivity() {
     // automatic mode flag
     @Volatile
     private var isAutoRunning = false
+
+    private val deviceID: String by lazy {
+        Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID) ?: "unknown"
+    }
 
     private val wifiScanReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -161,7 +170,7 @@ class MainActivity : AppCompatActivity() {
                         // only perform automatic capture when auto mode is running
                         if (isAutoRunning) {
                             onRssiMeasurementUpdated(found, seenTimeMs)
-                        } 
+                        }
                     }
                 } else {
                     // selected SSID not found in current scan
@@ -200,12 +209,13 @@ class MainActivity : AppCompatActivity() {
                 }
             } else {
                 val record = SignalRecord(
-                        latitude = bestLoc.latitude,
-                        longitude = bestLoc.longitude,
-                        ssid = scanResult.SSID,
-                        rssi = scanResult.level,
-                        timestamp = seenTimeMs
-                    )
+                    latitude = bestLoc.latitude,
+                    longitude = bestLoc.longitude,
+                    ssid = scanResult.SSID,
+                    rssi = scanResult.level,
+                    timestamp = seenTimeMs,
+                    deviceID = deviceID
+                )
                 signalDao.insert(record)
                 runOnUiThread { refreshRecordsView() }
             }
@@ -273,10 +283,10 @@ class MainActivity : AppCompatActivity() {
                 .show()
         }
 
-        exportBtn.setOnClickListener { exportDatabaseToJson() }
+        exportBtn.setOnClickListener { promptFreeTextAndExport() }
 
         measureSourceBtn.setOnClickListener {
-            val intent = android.content.Intent(this, MeasureSourceActivity::class.java)
+            val intent = Intent(this, MeasureSourceActivity::class.java)
             startActivity(intent)
         }
 
@@ -358,6 +368,7 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    @SuppressLint("SetTextI18n")
     private fun refreshRecordsView() {
         lifecycleScope.launch {
             val source = sourcePositionDao.get()
@@ -374,7 +385,7 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     val body = all.joinToString("\n") {
                         // Use string resource for consistent localization/formatting
-                        getString(R.string.record_item, it.ssid, it.latitude, it.longitude, it.rssi, it.timestamp)
+                        getString(R.string.record_item, it.ssid, it.latitude, it.longitude, it.rssi, java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(it.timestamp)))
                     }
                     allRecordsText.text = header + body
                 }
@@ -382,7 +393,31 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun exportDatabaseToJson() {
+    private fun promptFreeTextAndExport() {
+        val input = EditText(this).apply {
+            hint = getString(R.string.free_text_hint)
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.free_text_title))
+            .setView(input)
+            .setPositiveButton(getString(R.string.free_text_positive)) { dialog, _ ->
+                val sanitized = sanitizeFreeText(input.text?.toString().orEmpty())
+                exportDatabaseToJson(sanitized)
+                dialog.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel) { dialog, _ -> dialog.dismiss() }
+            .show()
+    }
+
+    private fun sanitizeFreeText(raw: String): String {
+        val sanitized = raw.trim().replace(Regex("[^A-Za-z0-9_-]"), "").take(50)
+        return if (sanitized.isBlank()) {
+            "noTag_" + raw.hashCode().toUInt().toString(16)
+        } else sanitized
+    }
+
+    private fun exportDatabaseToJson(freeText: String) {
         lifecycleScope.launch {
             val source = sourcePositionDao.get()
             val allRecords = signalDao.getAll()
@@ -397,7 +432,7 @@ class MainActivity : AppCompatActivity() {
             val gson = GsonBuilder().setPrettyPrinting().create()
             val jsonString = gson.toJson(exportObj)
             val timeStr = java.text.SimpleDateFormat("HH_mm_ss", java.util.Locale.getDefault()).format(java.util.Date())
-            val fileName = "signal_records_${timeStr}.json"
+            val fileName = "${System.currentTimeMillis()}_${deviceID}_${timeStr}_${freeText}.json"
             val file = java.io.File(getExternalFilesDir(null)?.absolutePath ?: filesDir.absolutePath, fileName)
             file.writeText(jsonString)
             runOnUiThread { allRecordsText.text = getString(R.string.exported_to, file.absolutePath) }
