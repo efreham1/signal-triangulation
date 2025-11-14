@@ -23,6 +23,10 @@ namespace core {
 
         const auto &arr = j["measurements"];
 
+        if (arr.size() == 0)
+        {
+            throw std::runtime_error("JSON measurements array is empty");
+        }
         // Set zero latitude and longitude to the first entry's values
         double zero_latitude = arr[0].value("latitude", 0.0);
         double zero_longitude = arr[0].value("longitude", 0.0);
