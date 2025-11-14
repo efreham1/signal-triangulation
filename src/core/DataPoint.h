@@ -28,12 +28,13 @@ public:
     int rssi;                 ///< Received Signal Strength Indicator
     int64_t timestamp_ms;     ///< Measurement timestamp in milliseconds
     std::string ssid;         ///< Optional SSID identifier for the measured network
+    std::string dev_id;       ///< Optional device identifier
 
     // Default constructor
     DataPoint();
 
     // Parameterized constructors
-    DataPoint(double lat, double lon, double zero_lat, double zero_lon, int signal_strength, int64_t time, const std::string& ssid_in = "");
+    DataPoint(double lat, double lon, double zero_lat, double zero_lon, int signal_strength, int64_t time, const std::string& ssid_in = "", const std::string& dev_id = "");
 
     void setX(double x_val);
     void setY(double y_val);
