@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <iostream>
 #include <cmath>
+#include <set>
 
 
 
@@ -86,21 +87,33 @@ bool ClusteredTriangulationAlgorithm::calculatePosition(double& out_latitude, do
 		double current_y = inter.y;
 		double current_cost = getCost(current_x, current_y);
 
-		while (continue_gradient_descent) {
+		std::set<std::pair<double, double>> visited_points;
+
+		bool explored_new_point = true;
+
+		while (continue_gradient_descent && explored_new_point) {
 			// Check neighboring points in a grid
 			double best_cost = current_cost;
 			double best_x = current_x;
 			double best_y = current_y;
+			explored_new_point = false;
 
 			for (int dx = -1; dx <= 1; ++dx) {
 				for (int dy = -1; dy <= 1; ++dy) {
 					if (dx == 0 && dy == 0) continue; // Skip the center point
+					double x = current_x + dx * resolution;
+					double y = current_y + dy * resolution;
+					if (visited_points.count({x, y}) > 0) {
+						continue; // Already visited this point
+					}
+					visited_points.insert({x, y});
+					explored_new_point = true;
 
-					double neighbor_x = current_x + dx * resolution;
-					double neighbor_y = current_y + dy * resolution;
+					double neighbor_x = x;
+					double neighbor_y = y;
 					double neighbor_cost = getCost(neighbor_x, neighbor_y);
 
-					if (neighbor_cost < best_cost) {
+					if (neighbor_cost <= best_cost) {
 						best_cost = neighbor_cost;
 						best_x = neighbor_x;
 						best_y = neighbor_y;
@@ -108,7 +121,7 @@ bool ClusteredTriangulationAlgorithm::calculatePosition(double& out_latitude, do
 				}
 			}
 
-			if (best_cost < current_cost) {
+			if (best_cost <= current_cost) {
 				current_x = best_x;
 				current_y = best_y;
 				current_cost = best_cost;
@@ -120,6 +133,8 @@ bool ClusteredTriangulationAlgorithm::calculatePosition(double& out_latitude, do
 			global_best_cost = current_cost;
 			global_best_x = current_x;
 			global_best_y = current_y;
+		} else if (std::abs(current_cost - global_best_cost) < std::numeric_limits<double>::epsilon()) {
+			std::cout << "Warning: multiple local minima found with the same cost value." << std::endl;
 		}
 	}
 
