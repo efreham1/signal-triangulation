@@ -13,6 +13,23 @@ CMAKE_FLAGS := -S . -B $(BUILD_DIR)
 
 all: configure build
 
+.PHONY: install-adb fetch_recordings
+
+install-adb:
+	@if command -v adb >/dev/null 2>&1; then \
+		echo "adb already installed: $$(command -v adb)"; \
+	else \
+		if [ "$$(uname -s)" = "Linux" ] || [ "$$(uname -s)" = "Darwin" ]; then \
+			bash ./tools/install-adb.sh; \
+		else \
+			powershell -ExecutionPolicy Bypass -File ./tools/install-adb.ps1; \
+		fi; \
+	fi
+
+fetch_recordings: install-adb
+	@echo "Fetching recordings from connected Android device..."
+	@bash ./src/core/FileTransfer.sh
+
 configure:
 	$(CMAKE) $(CMAKE_FLAGS)
 
