@@ -1,6 +1,5 @@
 #include "DataPoint.h"
 #include <stdexcept>
-#include <cmath>
 #include <iostream>
 namespace core {
     DataPoint::DataPoint()

@@ -38,6 +38,12 @@ target_link_libraries(signal-triangulation
 # Install target (optional)
 install(TARGETS signal-triangulation RUNTIME DESTINATION bin)
 
+set(APP_TARGET_NAME signal-triangulation)
+
+enable_testing()
+
+add_subdirectory(tests)
+
 # Helpful configure-time output
 message(STATUS "Configuring signal-triangulation")
 message(STATUS "Source dir: ${SRC_DIR}")

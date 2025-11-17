@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <string>
+#include <cmath>
 
 #define EARTH_RADIUS_METERS 6362475.0 // Earth radius in meters in Uppsala
 
@@ -12,6 +13,29 @@ namespace core {
  * @class DataPoint
  * @brief Represents a signal measurement data point.
  */
+
+/*
+    * @brief Calculate the Haversine distance between two geographical points.
+    * @note EARTH_RADIUS_METERS is adjusted for Uppsala region.
+    * This function could later on be usefully wrapped for DataPoints.
+    * @param lat1 Latitude of point 1 in degrees.
+    * @param lon1 Longitude of point 1 in degrees.
+    * @param lat2 Latitude of point 2 in degrees.
+    * @param lon2 Longitude of point 2 in degrees.
+    * @return Distance in meters.
+*/
+static double distanceBetween(double lat1, double lon1, double lat2, double lon2, const double radius = EARTH_RADIUS_METERS)
+{
+    const double toRad = M_PI / 180.0;
+    double dlat = (lat2 - lat1) * toRad;
+    double dlon = (lon2 - lon1) * toRad;
+    double a = std::sin(dlat / 2) * std::sin(dlat / 2) +
+               std::cos(lat1 * toRad) * std::cos(lat2 * toRad) *
+                   std::sin(dlon / 2) * std::sin(dlon / 2);
+    double c = 2 * std::atan2(std::sqrt(a), std::sqrt(1 - a));
+    return radius * c;
+}
+
 class DataPoint {
 private:
     double latitude;            ///< Geographical latitude
