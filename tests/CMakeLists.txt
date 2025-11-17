@@ -19,7 +19,6 @@ target_link_libraries(triangulation_tests
 
 target_compile_definitions(triangulation_tests
     PRIVATE
-      RECORDINGS_DIR=\"${CMAKE_SOURCE_DIR}/Recordings\"
       APP_BIN_PATH=\"${CMAKE_BINARY_DIR}/${APP_TARGET_NAME}\"
 )
 

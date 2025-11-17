@@ -16,10 +16,6 @@ namespace fs = std::filesystem;
 #error "APP_BIN_PATH not defined"
 #endif
 
-#ifndef RECORDINGS_DIR
-#error "RECORDINGS_DIR not defined"
-#endif
-
 static std::string runAppAndCapture(const std::string &exe, const std::string &arg)
 {
     std::string cmd = std::string("\"") + exe + "\" \"" + arg + "\" 2>&1";
@@ -27,7 +23,7 @@ static std::string runAppAndCapture(const std::string &exe, const std::string &a
     FILE *pipe = popen(cmd.c_str(), "r");
     if (!pipe)
         return {};
-    char buffer[4096]; // May be adjusted
+    char buffer[4096]; // Can be adjusted if needed
     while (fgets(buffer, sizeof(buffer), pipe) != nullptr)
         output += buffer;
     pclose(pipe);

@@ -14,17 +14,15 @@ namespace core {
  * @brief Represents a signal measurement data point.
  */
 
-/*
-    * @brief Calculate the Haversine distance between two geographical points.
-    * @note EARTH_RADIUS_METERS is adjusted for Uppsala region.
-    * This function could later on be usefully wrapped for DataPoints.
-    * @param lat1 Latitude of point 1 in degrees.
-    * @param lon1 Longitude of point 1 in degrees.
-    * @param lat2 Latitude of point 2 in degrees.
-    * @param lon2 Longitude of point 2 in degrees.
-    * @return Distance in meters.
-*/
-static double distanceBetween(double lat1, double lon1, double lat2, double lon2, const double radius = EARTH_RADIUS_METERS)
+/// @brief Calculate the Haversine distance between two geographical points.
+/// @note EARTH_RADIUS_METERS is adjusted for Uppsala region.
+/// @param lat1 Latitude of point 1 in degrees.
+/// @param lon1 Longitude of point 1 in degrees.
+/// @param lat2 Latitude of point 2 in degrees.
+/// @param lon2 Longitude of point 2 in degrees.
+ /// @param radius Radius of the sphere (default is EARTH_RADIUS_METERS).
+ /// @return Distance in meters.
+inline static double distanceBetween(double lat1, double lon1, double lat2, double lon2, const double radius = EARTH_RADIUS_METERS)
 {
     const double toRad = M_PI / 180.0;
     double dlat = (lat2 - lat1) * toRad;
