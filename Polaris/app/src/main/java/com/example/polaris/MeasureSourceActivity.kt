@@ -22,6 +22,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.math.sqrt
+import kotlinx.coroutines.isActive
 
 @Suppress("DEPRECATION")
 class MeasureSourceActivity : AppCompatActivity() {
@@ -38,6 +39,13 @@ class MeasureSourceActivity : AppCompatActivity() {
         Manifest.permission.ACCESS_FINE_LOCATION,
         Manifest.permission.ACCESS_COARSE_LOCATION,
         Manifest.permission.ACCESS_WIFI_STATE
+    )
+
+    private data class ReceivedSample(
+        val latitude: Double,
+        val longitude: Double,
+        val providerTimeMs: Long,
+        val providerElapsedNs: Long,
     )
 
     // Sample count
@@ -82,16 +90,49 @@ class MeasureSourceActivity : AppCompatActivity() {
         progressTv.text = getString(R.string.measuring)
 
         lifecycleScope.launchWhenStarted {
-            val samples = mutableListOf<Location>()
-            for (i in 1..sampleCount) {
-                progressTv.text = getString(R.string.measuring_progress, i, sampleCount)
+            // Collect unique samples only; retry until we have exactly sampleCount
+            val samples = mutableListOf<ReceivedSample>()
+            val seenFixIds = mutableSetOf<Long>() // unique by location fix timestamp
+
+            var attempts = 0
+            val maxAttempts = sampleCount * 10 // avoid infinite loop
+
+            while (isActive && samples.size < sampleCount && attempts < maxAttempts) {
+                progressTv.text = getString(R.string.measuring_progress, samples.size + 1, sampleCount)
+
                 val loc = getCurrentLocationSuspend(singleTimeoutMs)
                 if (loc != null) {
-                    samples.add(loc)
+                    // Use the provider's fix time to determine uniqueness
+                    val fixId = if (loc.elapsedRealtimeNanos != 0L) {
+                        loc.elapsedRealtimeNanos
+                    } else {
+                        // Fallback to wall-clock timestamp scaled to ns to keep the same type
+                        loc.time * 1_000_000L
+                    }
+
+                    if (seenFixIds.add(fixId)) {
+                        samples.add(
+                            ReceivedSample(
+                                latitude = loc.latitude,
+                                longitude = loc.longitude,
+                                providerTimeMs = loc.time,
+                                providerElapsedNs = loc.elapsedRealtimeNanos,
+                            )
+                        )
+                    }
                 } else {
-                    progressTv.text = getString(R.string.sample_timed_out, i)
+                    progressTv.text = getString(R.string.sample_timed_out, samples.size + 1)
                 }
-                delay(sampleDelayMs)
+
+                attempts++
+                if (samples.size < sampleCount) {
+                    delay(sampleDelayMs)
+                }
+            }
+
+            if (!isActive) {
+                startBtn.isEnabled = true
+                return@launchWhenStarted
             }
 
             if (samples.isEmpty()) {
@@ -100,6 +141,7 @@ class MeasureSourceActivity : AppCompatActivity() {
                 return@launchWhenStarted
             }
 
+            // Compute stats from unique samples only
             val meanLat = samples.map { it.latitude }.average()
             val meanLon = samples.map { it.longitude }.average()
 

@@ -41,6 +41,7 @@
     <string name="start_measurement">Start measurement</string>
     <string name="back_to_main">Back to main</string>
     <string name="ready">Ready</string>
+    <string name="measuring_incomplete">Measurement incomplete: obtained %1$d out of %2$d samples</string>
 
     <string name="free_text_hint">Enter text here (Optional)</string>
     <string name="free_text_title">Add free text:</string>
