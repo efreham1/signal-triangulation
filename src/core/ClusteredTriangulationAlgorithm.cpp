@@ -8,6 +8,21 @@
 
 
 
+// File-local tunable constants (avoid magic numbers in code)
+namespace {
+	// clustering
+	static constexpr double DEFAULT_COALITION_DISTANCE_METERS = 2.0; // meters used to coalesce nearby points
+	static constexpr unsigned int CLUSTER_MIN_POINTS = 3u; // minimum points to form a cluster (3 points needed for AoA estimation)
+	static constexpr double CLUSTER_RATIO_SPLIT_THRESHOLD = 0.4; // geometric ratio threshold to split cluster
+
+	// optimization / search
+	static constexpr double GRADIENT_DESCENT_STEP_METERS = 0.1; // step size for grid-based gradient descent
+
+	// numeric tolerances
+	static constexpr double NORMAL_REGULARIZATION_EPS = 1e-12; // regularize normal equations diagonal
+	static constexpr double GAUSS_ELIM_PIVOT_EPS = 1e-15; // pivot threshold for Gaussian elimination
+}
+
 namespace core {
 
 ClusteredTriangulationAlgorithm::ClusteredTriangulationAlgorithm() = default;
@@ -67,15 +82,12 @@ bool ClusteredTriangulationAlgorithm::calculatePosition(double& out_latitude, do
 	std::cout << "]" << std::endl;
 
 
-	// TODO: implement the cluster-based AoA triangulation algorithm.
-
 	std::vector<Point> intersections = findIntersections();
 	if (intersections.empty()) {
 		throw std::runtime_error("ClusteredTriangulationAlgorithm: no intersections found between cluster AoA lines");
 	}
 
-	constexpr double GRADIENT_DESCENT_STEP_SIZE = 0.1; // step size in meters for gradient descent
-	double resolution = GRADIENT_DESCENT_STEP_SIZE;
+		double resolution = GRADIENT_DESCENT_STEP_METERS;
 
 	double global_best_x = 0.0;
 	double global_best_y = 0.0;
@@ -162,46 +174,172 @@ void ClusteredTriangulationAlgorithm::reset()
 	m_clusters.clear();
 }
 
+
+
 void ClusteredTriangulationAlgorithm::clusterData()
 {
+	const double coalition_distance = DEFAULT_COALITION_DISTANCE_METERS; // meters
 	unsigned int cluster_id = 0;
 	unsigned int current_cluster_size = 0;
 	for (const auto& point : m_points) {
-		if (current_cluster_size == 3) {
-			cluster_id++;
-			current_cluster_size = 0;
+		if (current_cluster_size < CLUSTER_MIN_POINTS) {
+			if (current_cluster_size == 0) {
+				// Start a new cluster
+				m_clusters.emplace_back();
+			}
+			m_clusters[cluster_id].addPoint(point, coalition_distance);
+			current_cluster_size = static_cast<unsigned int>(m_clusters[cluster_id].points.size());
+		} else {
+			auto &c = m_clusters[cluster_id];
+			double ratio = c.geometricRatio();
+			if (ratio > CLUSTER_RATIO_SPLIT_THRESHOLD) {
+				cluster_id++;
+				current_cluster_size = 0;
+				m_clusters.emplace_back();
+				m_clusters[cluster_id].addPoint(point, coalition_distance);
+				current_cluster_size = static_cast<unsigned int>(m_clusters[cluster_id].points.size());
+			} else {
+				m_clusters[cluster_id].addPoint(point, coalition_distance);
+				current_cluster_size = static_cast<unsigned int>(m_clusters[cluster_id].points.size());
+			}
 		}
-		// Add point to the current cluster
-		if (m_clusters.size() <= cluster_id) {
-			m_clusters.emplace_back();
-		}
-		m_clusters[cluster_id].addPoint(point);
-		current_cluster_size++;
 	}
+	for (int i = 0; i < static_cast<int>(m_clusters.size()); ++i) {
+		auto &c = m_clusters[i];
+		double ratio = c.geometricRatio();
+		std::cout << "cluster:" << cluster_id
+		<< " centroid_x:" << c.centroid_x
+		<< " centroid_y:" << c.centroid_y
+		<< " ratio:" << ratio
+		<< std::endl;
+		
+		// Print points belonging to this cluster: one per line prefixed with 'p' (x y)
+		for (const auto &p : c.points) {
+			std::cout << "p " << p.getX() << " " << p.getY() << std::endl;
+		}
+		// Blank line to separate clusters
+		std::cout << std::endl;
+	}
+}
+
+std::vector<double> getNormalVector(const std::vector<double>& x, const std::vector<double>& y, const std::vector<double>& z) {
+	if (x.size() < CLUSTER_MIN_POINTS || y.size() < CLUSTER_MIN_POINTS || z.size() < CLUSTER_MIN_POINTS ||
+		x.size() != y.size() || x.size() != z.size()) {
+		return {0.0, 0.0, 0.0};
+	}
+
+	// Solve least-squares for plane z = a*x + b*y + c
+	// Build normal equations: [A^T A] [a b c]^T = A^T z
+	double Sxx = 0.0, Sxy = 0.0, Sx = 0.0;
+	double Syy = 0.0, Sy = 0.0;
+	double Sz = 0.0, Sxz = 0.0, Syz = 0.0;
+	int N = static_cast<int>(x.size());
+
+	for (int i = 0; i < N; ++i) {
+		Sxx += x[i] * x[i];
+		Sxy += x[i] * y[i];
+		Sx  += x[i];
+		Syy += y[i] * y[i];
+		Sy  += y[i];
+		Sz  += z[i];
+		Sxz += x[i] * z[i];
+		Syz += y[i] * z[i];
+	}
+
+	// Normal matrix (3x3)
+	double A00 = Sxx;
+	double A01 = Sxy;
+	double A02 = Sx;
+	double A10 = Sxy;
+	double A11 = Syy;
+	double A12 = Sy;
+	double A20 = Sx;
+	double A21 = Sy;
+	double A22 = static_cast<double>(N);
+
+	// Right-hand side
+	double b0 = Sxz;
+	double b1 = Syz;
+	double b2 = Sz;
+
+	// Add tiny regularization to diagonal to avoid singularity
+	const double eps = NORMAL_REGULARIZATION_EPS;
+	A00 += eps; A11 += eps; A22 += eps;
+
+	// Solve 3x3 linear system by Gaussian elimination (in-place on augmented matrix)
+	double M[3][4] = {
+		{A00, A01, A02, b0},
+		{A10, A11, A12, b1},
+		{A20, A21, A22, b2}
+	};
+
+	// Forward elimination
+	for (int col = 0; col < 3; ++col) {
+		// Find pivot
+		int pivot = col;
+		double maxabs = std::fabs(M[pivot][col]);
+		for (int r = col + 1; r < 3; ++r) {
+			double v = std::fabs(M[r][col]);
+			if (v > maxabs) { maxabs = v; pivot = r; }
+		}
+		if (pivot != col) {
+			for (int c = col; c < 4; ++c) std::swap(M[col][c], M[pivot][c]);
+		}
+		double piv = M[col][col];
+		if (std::fabs(piv) < GAUSS_ELIM_PIVOT_EPS) {
+			// singular; fallback: return zero vector
+			return {0.0, 0.0, 0.0};
+		}
+		// normalize row
+		for (int c = col; c < 4; ++c) M[col][c] /= piv;
+		// eliminate below
+		for (int r = col + 1; r < 3; ++r) {
+			double factor = M[r][col];
+			for (int c = col; c < 4; ++c) M[r][c] -= factor * M[col][c];
+		}
+	}
+
+	// Back substitution
+	double xsol[3];
+	for (int i = 2; i >= 0; --i) {
+		double val = M[i][3];
+		for (int j = i + 1; j < 3; ++j) val -= M[i][j] * xsol[j];
+		xsol[i] = val / M[i][i]; // M[i][i] should be 1.0 from normalization
+	}
+
+	double a = xsol[0];
+	double b = xsol[1];
+	// c = xsol[2]; not needed for normal
+
+	// Plane normal for a*x + b*y - z + c = 0 is [a, b, -1]
+	std::vector<double> normal = {a, b, -1.0};
+	double norm = std::sqrt(normal[0]*normal[0] + normal[1]*normal[1] + normal[2]*normal[2]);
+	if (norm > 0.0) {
+		for (auto &v : normal) v /= norm;
+	}
+	return normal;
 }
 
 void ClusteredTriangulationAlgorithm::estimateAoAForClusters()
 {
-	double xs[3] = {0.0, 0.0, 0.0};
-	double ys[3] = {0.0, 0.0, 0.0};
-	double rssis[3] = {0, 0, 0};
+	// column-major order: [x1, y1, rssi1, x2, y2, rssi2, ...]
+	std::vector<double> X;
+	std::vector<double> Y;
+	std::vector<double> Z;
 	for (auto& cluster : m_clusters) {
 		if (cluster.points.size() < 3) {
 			continue; // Need at least 3 points to estimate AoA
 		}
-		for (size_t i = 0; i < 3; ++i) {
-			xs[i] = cluster.points[i].getX();
-			ys[i] = cluster.points[i].getY();
-			rssis[i] = cluster.points[i].rssi;
-		}
-		// Calculate the gradient (slope) of the plane formed by the three points
-		double vec1[3] = {xs[1] - xs[0], ys[1] - ys[0], rssis[1] - rssis[0]};
-		double vec2[3] = {xs[2] - xs[0], ys[2] - ys[0], rssis[2] - rssis[0]};
-		double normal[3] = {
-			vec1[1] * vec2[2] - vec1[2] * vec2[1],
-			vec1[2] * vec2[0] - vec1[0] * vec2[2],
-			vec1[0] * vec2[1] - vec1[1] * vec2[0]
+		X.resize(cluster.points.size());
+		Y.resize(cluster.points.size());
+		Z.resize(cluster.points.size());
+		for (size_t i = 0; i < cluster.points.size(); ++i) {
+			const auto& point = cluster.points[i];
+			X[i] = point.getX();
+			Y[i] = point.getY();
+			Z[i] = static_cast<double>(point.rssi);
 		};
+		std::vector<double> normal = getNormalVector(X, Y, Z);
 		// The gradient components
 		if (normal[2] == 0.0) {
 			continue; // Avoid division by zero

@@ -5,13 +5,23 @@
 #include "core/JsonSignalParser.h"
 #include "core/ClusteredTriangulationAlgorithm.h"
 #include <iomanip>
+// test helper
+#include "tools/plane_test.h"
 
 int main(int argc, char *argv[])
 {
+    // Special test mode
+    if (argc == 2 && std::string(argv[1]) == "--run-plane-test") {
+        // run_plane_fit_test expects a double parameter (e.g., tolerance); pass a reasonable default
+        bool ok = tools::run_plane_fit_test(1e-6);
+        return ok ? 0 : 2;
+    }
+
     // Fetch json file from first argument
     if (argc < 2)
     {
         std::cerr << "Usage: " << argv[0] << " <signals_file.json>" << std::endl;
+        std::cerr << "Or: " << argv[0] << " --run-plane-test" << std::endl;
         return 1;
     }
 

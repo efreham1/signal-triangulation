@@ -3,13 +3,7 @@
 #include <iostream>
 namespace core {
     DataPoint::DataPoint()
-        : zero_latitude(0.0)
-        , zero_longitude(0.0)
-        , rssi(0)
-        , timestamp_ms(0)
-        , ssid()
-        , dev_id()
-        , latitude(0.0)
+        : latitude(0.0)
         , longitude(0.0)
         , x(0.0)
         , y(0.0)
@@ -17,17 +11,17 @@ namespace core {
         , y_computed(false)
         , lat_computed(false)
         , lon_computed(false)
+        , zero_latitude(0.0)
+        , zero_longitude(0.0)
+        , rssi(0)
+        , timestamp_ms(0)
+        , ssid()
+        , dev_id()
     {
     }
 
     DataPoint::DataPoint(double lat, double lon, double zero_lat, double zero_lon, int signal_strength, int64_t time, const std::string& ssid_in, const std::string& dev_id)
-        : zero_latitude(zero_lat)
-        , zero_longitude(zero_lon)
-        , rssi(signal_strength)
-        , timestamp_ms(time)
-        , ssid(ssid_in)
-        , dev_id(dev_id)
-        , latitude(lat)
+        : latitude(lat)
         , longitude(lon)
         , x(0.0)
         , y(0.0)
@@ -35,6 +29,13 @@ namespace core {
         , y_computed(false)
         , lat_computed(true)
         , lon_computed(true)
+        , zero_latitude(zero_lat)
+        , zero_longitude(zero_lon)
+        , rssi(signal_strength)
+        , timestamp_ms(time)
+        , ssid(ssid_in)
+        , dev_id(dev_id)
+        
     {
         // compute x/y from provided latitude/longitude
         computeCoordinates();
