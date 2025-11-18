@@ -8,6 +8,21 @@
 
 
 
+// File-local tunable constants (avoid magic numbers in code)
+namespace {
+	// clustering
+	static constexpr double DEFAULT_COALITION_DISTANCE_METERS = 2.0; // meters used to coalesce nearby points
+	static constexpr unsigned int CLUSTER_MIN_POINTS = 3u; // minimum points to form a cluster (3 points needed for AoA estimation)
+	static constexpr double CLUSTER_RATIO_SPLIT_THRESHOLD = 0.4; // geometric ratio threshold to split cluster
+
+	// optimization / search
+	static constexpr double GRADIENT_DESCENT_STEP_METERS = 0.1; // step size for grid-based gradient descent
+
+	// numeric tolerances
+	static constexpr double NORMAL_REGULARIZATION_EPS = 1e-12; // regularize normal equations diagonal
+	static constexpr double GAUSS_ELIM_PIVOT_EPS = 1e-15; // pivot threshold for Gaussian elimination
+}
+
 namespace core {
 
 ClusteredTriangulationAlgorithm::ClusteredTriangulationAlgorithm() = default;
@@ -72,8 +87,7 @@ bool ClusteredTriangulationAlgorithm::calculatePosition(double& out_latitude, do
 		throw std::runtime_error("ClusteredTriangulationAlgorithm: no intersections found between cluster AoA lines");
 	}
 
-	constexpr double GRADIENT_DESCENT_STEP_SIZE = 0.1; // step size in meters for gradient descent
-	double resolution = GRADIENT_DESCENT_STEP_SIZE;
+		double resolution = GRADIENT_DESCENT_STEP_METERS;
 
 	double global_best_x = 0.0;
 	double global_best_y = 0.0;
@@ -164,24 +178,52 @@ void ClusteredTriangulationAlgorithm::reset()
 
 void ClusteredTriangulationAlgorithm::clusterData()
 {
+	const double coalition_distance = DEFAULT_COALITION_DISTANCE_METERS; // meters
 	unsigned int cluster_id = 0;
 	unsigned int current_cluster_size = 0;
 	for (const auto& point : m_points) {
-		if (current_cluster_size < 3) {
-			cluster_id++;
-			current_cluster_size = 0;
+		if (current_cluster_size < CLUSTER_MIN_POINTS) {
+			if (current_cluster_size == 0) {
+				// Start a new cluster
+				m_clusters.emplace_back();
+			}
+			m_clusters[cluster_id].addPoint(point, coalition_distance);
+			current_cluster_size = static_cast<unsigned int>(m_clusters[cluster_id].points.size());
+		} else {
+			auto &c = m_clusters[cluster_id];
+			double ratio = c.geometricRatio();
+			if (ratio > CLUSTER_RATIO_SPLIT_THRESHOLD) {
+				cluster_id++;
+				current_cluster_size = 0;
+				m_clusters.emplace_back();
+				m_clusters[cluster_id].addPoint(point, coalition_distance);
+				current_cluster_size = static_cast<unsigned int>(m_clusters[cluster_id].points.size());
+			} else {
+				m_clusters[cluster_id].addPoint(point, coalition_distance);
+				current_cluster_size = static_cast<unsigned int>(m_clusters[cluster_id].points.size());
+			}
 		}
-		// Add point to the current cluster
-		if (m_clusters.size() <= cluster_id) {
-			m_clusters.emplace_back();
+	}
+	for (int i = 0; i < static_cast<int>(m_clusters.size()); ++i) {
+		auto &c = m_clusters[i];
+		double ratio = c.geometricRatio();
+		std::cout << "cluster:" << cluster_id
+		<< " centroid_x:" << c.centroid_x
+		<< " centroid_y:" << c.centroid_y
+		<< " ratio:" << ratio
+		<< std::endl;
+		
+		// Print points belonging to this cluster: one per line prefixed with 'p' (x y)
+		for (const auto &p : c.points) {
+			std::cout << "p " << p.getX() << " " << p.getY() << std::endl;
 		}
-		m_clusters[cluster_id].addPoint(point);
-		current_cluster_size++;
+		// Blank line to separate clusters
+		std::cout << std::endl;
 	}
 }
 
 std::vector<double> getNormalVector(const std::vector<double>& x, const std::vector<double>& y, const std::vector<double>& z) {
-	if (x.size() < 3 || y.size() < 3 || z.size() < 3 ||
+	if (x.size() < CLUSTER_MIN_POINTS || y.size() < CLUSTER_MIN_POINTS || z.size() < CLUSTER_MIN_POINTS ||
 		x.size() != y.size() || x.size() != z.size()) {
 		return {0.0, 0.0, 0.0};
 	}
@@ -221,7 +263,7 @@ std::vector<double> getNormalVector(const std::vector<double>& x, const std::vec
 	double b2 = Sz;
 
 	// Add tiny regularization to diagonal to avoid singularity
-	const double eps = 1e-12;
+	const double eps = NORMAL_REGULARIZATION_EPS;
 	A00 += eps; A11 += eps; A22 += eps;
 
 	// Solve 3x3 linear system by Gaussian elimination (in-place on augmented matrix)
@@ -244,7 +286,7 @@ std::vector<double> getNormalVector(const std::vector<double>& x, const std::vec
 			for (int c = col; c < 4; ++c) std::swap(M[col][c], M[pivot][c]);
 		}
 		double piv = M[col][col];
-		if (std::fabs(piv) < 1e-15) {
+		if (std::fabs(piv) < GAUSS_ELIM_PIVOT_EPS) {
 			// singular; fallback: return zero vector
 			return {0.0, 0.0, 0.0};
 		}

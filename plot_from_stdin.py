@@ -47,6 +47,60 @@ def parse_lists_from_text(text: str) -> Dict[str, Any]:
     return result
 
 
+def parse_clusters_from_text(text: str):
+    """Parse compact cluster blocks emitted by the C++ tool.
+
+    Expected format:
+      cluster:<id> centroid_x:<cx> centroid_y:<cy> ratio:<r>
+      p <x> <y>
+
+    Blank line separates clusters.
+    Returns a list of dicts: {id, centroid_x, centroid_y, ratio, points:[(x,y), ...]}
+    """
+    clusters = []
+    cur = None
+    cur_points = []
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line:
+            if cur is not None:
+                cur['points'] = cur_points
+                clusters.append(cur)
+                cur = None
+                cur_points = []
+            continue
+        if line.startswith('cluster:'):
+            tokens = line.split()
+            cur = {'id': -1, 'centroid_x': 0.0, 'centroid_y': 0.0, 'ratio': 0.0}
+            try:
+                first = tokens[0]
+                _, cid = first.split(':', 1)
+                cur['id'] = int(cid)
+            except Exception:
+                cur['id'] = -1
+            for tok in tokens[1:]:
+                if ':' not in tok:
+                    continue
+                k, v = tok.split(':', 1)
+                if k in ('centroid_x', 'centroid_y', 'ratio'):
+                    try:
+                        cur[k] = float(v)
+                    except Exception:
+                        cur[k] = 0.0
+        elif line.startswith('p '):
+            parts = line.split()
+            if len(parts) >= 3:
+                try:
+                    x = float(parts[1]); y = float(parts[2])
+                    cur_points.append((x, y))
+                except Exception:
+                    continue
+    if cur is not None:
+        cur['points'] = cur_points
+        clusters.append(cur)
+    return clusters
+
+
 def extract_resulting_point(text: str):
     """Extract a resulting point from lines like:
     "Resulting point after gradient descent: x=-19.2211, y=-40.8592"
@@ -169,7 +223,7 @@ def main():
     # read stdin fully
     text = sys.stdin.read()
     if not text:
-        print('No input received on stdin. Expecting variable assignments like `x = [..]`.')
+        print('No input received on stdin. Expecting variable assignments like `x = [..]` or cluster blocks.')
         return
 
     parsed = parse_lists_from_text(text)
@@ -197,11 +251,48 @@ def main():
     if result_point is not None:
         print(f"Parsed resulting point: x={result_point[0]}, y={result_point[1]}")
 
+    # Always save the core plots
     plot_2d(x, y, centroids=centroids, aoas=aoas, result_point=result_point, out_path=f"{prefix}_2d.png", show=show)
 
     # 3D plot if rssi present
     if rssi is not None:
         plot_3d(x, y, rssi, result_point=result_point, out_path=f"{prefix}_3d.png", show=show, cmap=args.cmap)
+
+    # Parse and plot cluster-specific output (if present in stdin)
+    clusters = parse_clusters_from_text(text)
+    if clusters:
+        # create a simple clusters-only plot saved to disk
+        try:
+            import matplotlib.pyplot as plt
+            fig, ax = plt.subplots(figsize=(8, 8))
+            colors = plt.get_cmap('tab10')
+            xs = []
+            ys = []
+            for cidx, c in enumerate(clusters):
+                pts = c.get('points', [])
+                if pts:
+                    px = [p[0] for p in pts]
+                    py = [p[1] for p in pts]
+                    xs.extend(px); ys.extend(py)
+                    ax.scatter(px, py, color=colors(cidx % 10), alpha=0.7, label=f'cluster {c.get("id")}')
+                cx = c.get('centroid_x', 0.0)
+                cy = c.get('centroid_y', 0.0)
+                ax.scatter([cx], [cy], marker='x', color='k')
+                ax.text(cx, cy, f'c{c.get("id")} r={c.get("ratio",0.0):.2f}', fontsize=9)
+            if xs and ys:
+                ax.set_aspect('equal', adjustable='box')
+            ax.set_xlabel('X (meters)')
+            ax.set_ylabel('Y (meters)')
+            ax.grid(True)
+            ax.legend(loc='best')
+            cluster_out = f"{prefix}_clusters.png"
+            fig.tight_layout()
+            fig.savefig(cluster_out, dpi=150)
+            print(f"Saved clusters plot to {cluster_out}")
+            if show:
+                plt.show()
+        except Exception as e:
+            print(f"Failed to generate clusters plot: {e}", file=sys.stderr)
 
 
 if __name__ == '__main__':

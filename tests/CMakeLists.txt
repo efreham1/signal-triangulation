@@ -14,7 +14,8 @@ add_executable(triangulation_tests test_triangulation.cpp)
 
 target_link_libraries(triangulation_tests
     PRIVATE
-      gtest_main
+  gtest_main
+  nlohmann_json::nlohmann_json
 )
 
 target_compile_definitions(triangulation_tests
