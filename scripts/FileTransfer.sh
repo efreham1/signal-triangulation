@@ -21,9 +21,18 @@ if ! command -v adb >/dev/null 2>&1; then
   exit 1
 fi
 
-device_line=$(adb devices | awk 'NR>1 && $2=="device" { print $1; exit }') || true
+# On WSL, prefer adb.exe from Windows if available (Linux adb won't see devices)
+ADB_CMD="adb"
+if [ "$IS_WSL" = true ]; then
+  if command -v adb.exe >/dev/null 2>&1; then
+    ADB_CMD="adb.exe"
+    echo "(WSL detected; using adb.exe from Windows)"
+  fi
+fi
+
+device_line=$($ADB_CMD devices | awk 'NR>1 && $2=="device" { print $1; exit }') || true
 if [ -z "$device_line" ]; then
-  echo "No connected adb device in 'device' state found. Run 'adb devices' to check." >&2
+  echo "No connected adb device in 'device' state found. Run '$ADB_CMD devices' to check." >&2
   exit 2
 fi
 
@@ -34,7 +43,7 @@ if [ "$IS_WSL" = true ] && command -v adb.exe >/dev/null 2>&1; then
   echo "(WSL detected; using adb.exe from Windows)"
   adb.exe -s "$device_line" pull "$REMOTE_PATH" "$DEST_DIR"
 else
-  adb -s "$device_line" pull "$REMOTE_PATH" "$DEST_DIR"
+  $ADB_CMD -s "$device_line" pull "$REMOTE_PATH" "$DEST_DIR"
 fi
 pull_rc=$?
 if [ $pull_rc -ne 0 ]; then
