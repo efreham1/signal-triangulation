@@ -35,7 +35,6 @@ namespace core {
         , timestamp_ms(time)
         , ssid(ssid_in)
         , dev_id(dev_id)
-        
     {
         // compute x/y from provided latitude/longitude
         computeCoordinates();

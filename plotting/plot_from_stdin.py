@@ -124,7 +124,7 @@ def extract_resulting_point(text: str):
     return None
 
 
-def plot_2d(x, y, centroids=None, aoas=None, result_point=None, out_path="plots_2d.png", show=True):
+def plot_2d(x, y, centroids=None, aoas=None, result_point=None, out_dir=None, show=True):
     import matplotlib.pyplot as plt
     import numpy as np
 
@@ -160,14 +160,14 @@ def plot_2d(x, y, centroids=None, aoas=None, result_point=None, out_path="plots_
         ax.scatter([rx], [ry], marker='*', c='gold', s=140, label='result')
 
     ax.legend()
-    if out_path:
-        fig.savefig(out_path, dpi=200)
-        print(f"Saved 2D plot to {out_path}")
+    if out_dir:
+        fig.savefig(f"{out_dir}/plot_2d.png", dpi=200)
+        print(f"Saved 2D plot to {out_dir}/plot_2d.png")
     if show:
         plt.show()
 
 
-def plot_3d(x, y, rssi, result_point=None, out_path="plots_3d.png", show=True, cmap='viridis'):
+def plot_3d(x, y, rssi, result_point=None, out_dir=None, show=True, cmap='viridis'):
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
     import numpy as np
@@ -203,9 +203,9 @@ def plot_3d(x, y, rssi, result_point=None, out_path="plots_3d.png", show=True, c
         except Exception:
             # It is safe to ignore legend errors; legend is optional and plot remains usable.
             pass
-    if out_path:
-        fig.savefig(out_path, dpi=200)
-        print(f"Saved 3D plot to {out_path}")
+    if out_dir:
+        fig.savefig(f"{out_dir}/plot_3d.png", dpi=200)
+        print(f"Saved 3D plot to {out_dir}/plot_3d.png")
     # vertical line at resulting point (if provided)
     if show:
         plt.show()
@@ -216,7 +216,7 @@ def main():
 
     parser = argparse.ArgumentParser(description='Parse arrays from stdin and plot.')
     parser.add_argument('--no-show', action='store_true', help='Do not show interactive windows')
-    parser.add_argument('--out-prefix', default='plots', help='Prefix for output files')
+    parser.add_argument('--out-dir', default=None, help='Output directory or prefix for saved plots (default: don\'t save)')
     parser.add_argument('--cmap', default='viridis', help='Colormap for 3D RSSI plot')
     args = parser.parse_args()
 
@@ -240,7 +240,6 @@ def main():
         return
 
     show = not args.no_show
-    prefix = args.out_prefix
 
     # 2D plot
     centroids = None
@@ -252,12 +251,11 @@ def main():
         print(f"Parsed resulting point: x={result_point[0]}, y={result_point[1]}")
 
     # Always save the core plots
-    plot_2d(x, y, centroids=centroids, aoas=aoas, result_point=result_point, out_path=f"{prefix}_2d.png", show=show)
+    plot_2d(x, y, centroids=centroids, aoas=aoas, result_point=result_point, out_dir=args.out_dir, show=show)
 
     # 3D plot if rssi present
     if rssi is not None:
-        plot_3d(x, y, rssi, result_point=result_point, out_path=f"{prefix}_3d.png", show=show, cmap=args.cmap)
-
+        plot_3d(x, y, rssi, result_point=result_point, out_dir=args.out_dir, show=show, cmap=args.cmap)
     # Parse and plot cluster-specific output (if present in stdin)
     clusters = parse_clusters_from_text(text)
     if clusters:
@@ -285,10 +283,10 @@ def main():
             ax.set_ylabel('Y (meters)')
             ax.grid(True)
             ax.legend(loc='best')
-            cluster_out = f"{prefix}_clusters.png"
             fig.tight_layout()
-            fig.savefig(cluster_out, dpi=150)
-            print(f"Saved clusters plot to {cluster_out}")
+            if args.out_dir is not None:
+                fig.savefig(f"{args.out_dir}/plot_clusters.png", dpi=150)
+                print(f"Saved clusters plot to {args.out_dir}/plot_clusters.png")
             if show:
                 plt.show()
         except Exception as e:

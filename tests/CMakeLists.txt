@@ -24,7 +24,7 @@ target_compile_definitions(triangulation_tests
 )
 
 # One CTest test per JSON file, named after the file
-file(GLOB RECORDING_JSONS "${CMAKE_SOURCE_DIR}/Recordings/*.json")
+file(GLOB RECORDING_JSONS "${CMAKE_SOURCE_DIR}/recordings/*.json")
 
 foreach(json_file IN LISTS RECORDING_JSONS)
   get_filename_component(stem "${json_file}" NAME_WE)

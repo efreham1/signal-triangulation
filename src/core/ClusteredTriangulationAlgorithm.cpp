@@ -207,7 +207,7 @@ void ClusteredTriangulationAlgorithm::clusterData()
 	for (int i = 0; i < static_cast<int>(m_clusters.size()); ++i) {
 		auto &c = m_clusters[i];
 		double ratio = c.geometricRatio();
-		std::cout << "cluster:" << cluster_id
+		std::cout << "cluster:" << i
 		<< " centroid_x:" << c.centroid_x
 		<< " centroid_y:" << c.centroid_y
 		<< " ratio:" << ratio

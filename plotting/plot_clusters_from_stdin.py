@@ -16,7 +16,6 @@ Usage:
 Optional flags: -o <file> to save instead of show.
 """
 import sys
-import math
 import argparse
 from collections import namedtuple
 
@@ -101,7 +100,6 @@ def plot_clusters(clusters, save_path=None):
     span = max(max(xs)-min(xs), max(ys)-min(ys))
     if span == 0:
         span = 1.0
-    arrow_scale = span * 0.2
 
     for idx, c in enumerate(clusters):
         pts = c.points
