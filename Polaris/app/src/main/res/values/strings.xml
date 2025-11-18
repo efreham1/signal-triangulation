@@ -41,9 +41,66 @@
     <string name="start_measurement">Start measurement</string>
     <string name="back_to_main">Back to main</string>
     <string name="ready">Ready</string>
+    <string name="measuring_incomplete">Measurement incomplete: obtained %1$d out of %2$d samples</string>
 
     <string name="free_text_hint">Enter text here (Optional)</string>
     <string name="free_text_title">Add free text:</string>
     <string name="free_text_positive">Add</string>
+
+    <string name="open_accuracy_test">Open Location Accuracy Test</string>
+    <string name="accuracy_test_title">Location Accuracy Test</string>
+    <string name="accuracy_test_body">This page will run accuracy experiments</string>
+    <string name="close">Close</string>
+
+    <string name="accuracy_samples_header">Samples:\n</string>
+    <string name="measure_start_button">Measure Start (%1$d samples)</string>
+    <string name="location_perm_required">Location permission required</string>
+    <string name="measuring_start_collecting">Measuring start position...\nCollecting %1$d samples</string>
+    <string name="start_set">Start set:\nlat=%1$.6f  lon=%2$.6f</string>
+    <string name="failed_collect_samples">Failed to collect enough samples for start position</string>
+    <string name="measure_current_location">Measure Current Location</string>
+    <string name="no_recent_location_match">No recent location match (7s window)</string>
+    <string name="reference_set_take_another">Reference set to current fix. Take another measurement.</string>
+
+    <!-- Measurement info lines -->
+    <string name="user_distance_line">User distance:       %1$.2f m</string>
+    <string name="gps_distance_line">GPS distance:        %1$.2f m</string>
+    <string name="error_line">Error:               %1$+.2f m</string>
+    <string name="from_line">From: %1$.6f, %2$.6f</string>
+    <string name="to_line">To:   %1$.6f, %2$.6f</string>
+    <string name="cumulative_user_line">Cumulative (user):   %1$.2f m</string>
+    <string name="cumulative_gps_line">Cumulative (GPS):    %1$.2f m</string>
+    <string name="direct_from_start_line">Direct from start:   %1$.2f m</string>
+    <string name="show_summary">Show Summary</string>
+
+    <!-- Distance input dialog -->
+    <string name="distance_moved_title">Distance moved (meters)</string>
+    <string name="distance_moved_hint">Distance moved (m)</string>
+    <string name="invalid_number">Invalid number</string>
+
+    <!-- Start measurement sampling -->
+    <string name="measuring_collected">Measuring start position...\nCollected %1$d / %2$d</string>
+    <string name="waiting_unique_fix">Waiting for unique GPS fix...</string>
+    <string name="sample_line">%1$2d) lat=%2$.6f  lon=%3$.6f  acc=%4$s m  t=%5$s</string>
+    <string name="mean_line">&#10;Mean: lat=%1$.6f  lon=%2$.6f&#10;</string>
+
+    <!-- Summary -->
+    <string name="summary_no_samples">No movement samples collected.</string>
+    <string name="summary_header">Movement Samples: %1$d</string>
+    <string name="summary_per_step_header">Per-step means:</string>
+    <string name="summary_mean_user">  Mean user distance: %1$.2f m</string>
+    <string name="summary_mean_gps">  Mean GPS distance:  %1$.2f m</string>
+    <string name="summary_mean_err">  Mean error:         %1$.2f m</string>
+    <string name="summary_mean_abs_err">  Mean abs error:     %1$.2f m</string>
+    <string name="summary_rmse">  RMSE error:         %1$.2f m</string>
+    <string name="summary_max_abs_err">  Max abs error:      %1$.2f m</string>
+    <string name="summary_cum_header">Cumulative (from start, sum of steps):</string>
+    <string name="summary_cum_user">  Cumulative user:    %1$.2f m</string>
+    <string name="summary_cum_gps">  Cumulative GPS:     %1$.2f m</string>
+    <string name="summary_cum_err">  Cumulative error:   %1$.2f m</string>
+    <string name="summary_direct_from_start">  Direct from start (GPS): %1$.2f m</string>
+    <string name="summary_samples_header">Samples:</string>
+    <string name="summary_sample_line">%1$2d) user=%2$6.2f gps=%3$6.2f err=%4$+6.2f  cumUser=%5$6.2f cumGps=%6$6.2f%7$s  from=(%8$.6f,%9$.6f) to=(%10$.6f,%11$.6f)</string>
+    <string name="summary_direct_suffix"> direct=%1$.2f</string>
 
 </resources>
