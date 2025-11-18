@@ -80,7 +80,7 @@
     <!-- Start measurement sampling -->
     <string name="measuring_collected">Measuring start position...\nCollected %1$d / %2$d</string>
     <string name="waiting_unique_fix">Waiting for unique GPS fix...</string>
-    <string name="sample_line">%1$2d) lat=%2$ .6f  lon=%3$ .6f  acc=%4$s m  t=%5$s</string>
+    <string name="sample_line">%1$2d) lat=%2$.6f  lon=%3$.6f  acc=%4$s m  t=%5$s</string>
     <string name="mean_line">&#10;Mean: lat=%1$ .6f  lon=%2$ .6f&#10;</string>
 
     <!-- Summary -->
