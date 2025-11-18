@@ -87,6 +87,8 @@ private:
     std::vector<ClusteredTriangulationAlgorithm::Point> findIntersections();
 };
 
+std::vector<double> getNormalVector(const std::vector<double>& x, const std::vector<double>& y, const std::vector<double>& z);
+
 } // namespace core
 
 #endif // CLUSTERED_TRIANGULATION_ALGORITHM_H
