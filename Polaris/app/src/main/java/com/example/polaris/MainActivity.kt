@@ -1,30 +1,35 @@
 package com.example.polaris
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.location.Location
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.provider.Settings
-import android.annotation.SuppressLint
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import androidx.room.*
-import com.google.android.gms.location.*
+import androidx.room.Dao
+import androidx.room.Database
+import androidx.room.Entity
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.PrimaryKey
+import androidx.room.Query
+import androidx.room.Room
+import androidx.room.RoomDatabase
 import com.google.gson.GsonBuilder
 import kotlinx.coroutines.launch
-import kotlin.math.abs
 
 @Entity(tableName = "signal_records")
 data class SignalRecord(
@@ -84,11 +89,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var signalDao: SignalDao
     private lateinit var sourcePositionDao: SourcePositionDao
 
-    // Location
-    private lateinit var fusedLocationClient: FusedLocationProviderClient
-    private lateinit var locationRequest: LocationRequest
-    private lateinit var locationCallback: LocationCallback
-
     // UI
     private lateinit var cleanRecordsBtn: Button
     private lateinit var exportBtn: Button
@@ -97,6 +97,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var startAutoBtn: Button
     private lateinit var stopAutoBtn: Button
     private lateinit var measureSourceBtn: Button
+    private lateinit var accuracyTestBtn: Button
 
     // SSID list & selection
     private val ssidList = mutableListOf<String>()
@@ -109,10 +110,6 @@ class MainActivity : AppCompatActivity() {
         Manifest.permission.ACCESS_COARSE_LOCATION,
         Manifest.permission.ACCESS_WIFI_STATE
     )
-
-    // location buffer for timestamp matching
-    private val locationBuffer = ArrayDeque<Location>()
-    private val maxLocationBufferSize = 50
 
     // track last scan timestamps per BSSID/SSID to detect updates
     private val lastScanTimestamps = mutableMapOf<String, Long>()
@@ -190,19 +187,12 @@ class MainActivity : AppCompatActivity() {
         val now = System.currentTimeMillis()
         val timeStr = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(now))
 
-        // UI feedback (toast)
         runOnUiThread {
             Toast.makeText(this@MainActivity, getString(R.string.rssi_updated, scanResult.level, timeStr), Toast.LENGTH_SHORT).show()
         }
 
-        // capture matched location and insert into DB asynchronously
         lifecycleScope.launch {
-            // try to find the buffered location closest to seenTimeMs
-            val bestLoc = synchronized(locationBuffer) {
-                if (locationBuffer.isEmpty()) null
-                else locationBuffer.minByOrNull { abs(it.time - seenTimeMs) }
-            }
-
+            val bestLoc = LocationStream.nearestByWallClock(seenTimeMs, maxDeltaMs = 7_000) // NOTE: magic number 7 seconds
             if (bestLoc == null) {
                 runOnUiThread {
                     Toast.makeText(this@MainActivity, getString(R.string.no_location), Toast.LENGTH_SHORT).show()
@@ -241,26 +231,11 @@ class MainActivity : AppCompatActivity() {
         startAutoBtn = findViewById(R.id.startAutoBtn)
         stopAutoBtn = findViewById(R.id.stopAutoBtn)
         measureSourceBtn = findViewById(R.id.measureSourceBtn)
+        accuracyTestBtn = findViewById(R.id.accuracyTestBtn)
 
         // initial auto state
         isAutoRunning = false
         updateAutoButtons()
-
-        // Location client & continuous buffer callback
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
-            .setMinUpdateIntervalMillis(250)
-            .build()
-
-        locationCallback = object : LocationCallback() {
-            override fun onLocationResult(result: LocationResult) {
-                val loc = result.lastLocation ?: return
-                synchronized(locationBuffer) {
-                    locationBuffer.addFirst(loc)
-                    while (locationBuffer.size > maxLocationBufferSize) locationBuffer.removeLast()
-                }
-            }
-        }
 
         // UI actions
         selectSsidBtn.setOnClickListener { showSsidChoiceDialog() }
@@ -287,6 +262,11 @@ class MainActivity : AppCompatActivity() {
 
         measureSourceBtn.setOnClickListener {
             val intent = Intent(this, MeasureSourceActivity::class.java)
+            startActivity(intent)
+        }
+
+        accuracyTestBtn.setOnClickListener {
+            val intent = Intent(this, AccuracyTestActivity::class.java)
             startActivity(intent)
         }
 
@@ -327,9 +307,10 @@ class MainActivity : AppCompatActivity() {
         val wifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
         wifiManager.startScan()
 
+        // Start shared 1 Hz stream once we have permission
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, mainLooper)
+            LocationStream.start(this)
         }
 
         refreshRecordsView()
@@ -338,7 +319,7 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         try { unregisterReceiver(wifiScanReceiver) } catch (_: Exception) { }
-        fusedLocationClient.removeLocationUpdates(locationCallback)
+        LocationStream.stop()
     }
 
     private fun updateSelectedSsidButton() {
@@ -412,9 +393,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun sanitizeFreeText(raw: String): String {
         val sanitized = raw.trim().replace(Regex("[^A-Za-z0-9_-]"), "").take(50)
-        return if (sanitized.isBlank()) {
+        return sanitized.ifBlank {
             "noTag_" + raw.hashCode().toUInt().toString(16)
-        } else sanitized
+        }
     }
 
     private fun exportDatabaseToJson(freeText: String) {

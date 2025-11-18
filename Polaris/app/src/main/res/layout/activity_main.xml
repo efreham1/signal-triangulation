@@ -25,6 +25,13 @@
         android:layout_marginTop="8dp"
         android:text="@string/measure_source" />
 
+    <Button
+        android:id="@+id/accuracyTestBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/open_accuracy_test"
+        android:layout_marginTop="8dp" />
+
     <!-- start/stop automatic measurements -->
     <LinearLayout
         android:layout_width="match_parent"
