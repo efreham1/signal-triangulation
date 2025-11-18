@@ -48,6 +48,7 @@ object LocationStream {
         fused?.let { c -> callback?.let { cb -> c.removeLocationUpdates(cb) } }
         callback = null
         fused = null
+        synchronized(buffer) { buffer.clear() }
         started = false
     }
 
