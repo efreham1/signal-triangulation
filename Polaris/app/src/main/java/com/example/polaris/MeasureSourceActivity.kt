@@ -46,7 +46,6 @@ class MeasureSourceActivity : AppCompatActivity() {
         val longitude: Double,
         val providerTimeMs: Long,
         val providerElapsedNs: Long,
-        val receivedAt: Long
     )
 
     // Sample count
@@ -95,7 +94,10 @@ class MeasureSourceActivity : AppCompatActivity() {
             val samples = mutableListOf<ReceivedSample>()
             val seenFixIds = mutableSetOf<Long>() // unique by location fix timestamp
 
-            while (isActive && samples.size < sampleCount) {
+            var attempts = 0
+            val maxAttempts = sampleCount * 10 // avoid infinite loop
+
+            while (isActive && samples.size < sampleCount && attempts < maxAttempts) {
                 progressTv.text = getString(R.string.measuring_progress, samples.size + 1, sampleCount)
 
                 val loc = getCurrentLocationSuspend(singleTimeoutMs)
@@ -108,24 +110,24 @@ class MeasureSourceActivity : AppCompatActivity() {
                         loc.time * 1_000_000L
                     }
 
-                    if (!seenFixIds.contains(fixId)) {
-                        val receivedAt = System.currentTimeMillis()
+                    if (seenFixIds.add(fixId)) {
                         samples.add(
                             ReceivedSample(
                                 latitude = loc.latitude,
                                 longitude = loc.longitude,
                                 providerTimeMs = loc.time,
                                 providerElapsedNs = loc.elapsedRealtimeNanos,
-                                receivedAt = receivedAt
                             )
                         )
-                        seenFixIds.add(fixId)
                     }
                 } else {
                     progressTv.text = getString(R.string.sample_timed_out, samples.size + 1)
                 }
 
-                delay(sampleDelayMs)
+                attempts++
+                if (samples.size < sampleCount) {
+                    delay(sampleDelayMs)
+                }
             }
 
             if (!isActive) {
