@@ -18,6 +18,9 @@ import sys
 import re
 import ast
 from typing import Dict, Any
+import matplotlib.pyplot as plt
+import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
 
 
 def parse_lists_from_text(text: str) -> Dict[str, Any]:
@@ -124,10 +127,27 @@ def extract_resulting_point(text: str):
     return None
 
 
-def plot_2d(x, y, centroids=None, aoas=None, result_point=None, out_path="plots_2d.png", show=True):
-    import matplotlib.pyplot as plt
-    import numpy as np
+def extract_source_point_from_text(text: str):
+    """Look for a line like:
+    'Source position from file: x=-0.5422806643, y=-11.24231094' or without comma.
+    Return (x, y) in projected coordinates if found, else None.
+    """
+    patterns = [
+        r"Source position from file:\s*x\s*=\s*([+-]?\d+\.?\d*(?:[eE][+-]?\d+)?)\s*,?\s*y\s*=\s*([+-]?\d+\.?\d*(?:[eE][+-]?\d+)?)",
+    ]
+    for pat in patterns:
+        m = re.search(pat, text)
+        if m:
+            try:
+                xv = float(m.group(1))
+                yv = float(m.group(2))
+                return (xv, yv)
+            except Exception:
+                continue
+    return None
 
+
+def plot_2d(x, y, centroids=None, aoas=None, result_point=None, out_dir=None, show=True, source_point=None):
     fig, ax = plt.subplots(figsize=(8, 6))
     ax.scatter(x, y, c='C0', label='points')
     ax.plot(x, y, c='C1', linestyle='-', linewidth=1, label='path')
@@ -159,19 +179,20 @@ def plot_2d(x, y, centroids=None, aoas=None, result_point=None, out_path="plots_
         rx, ry = result_point
         ax.scatter([rx], [ry], marker='*', c='gold', s=140, label='result')
 
+    # plot source position if provided
+    if source_point is not None:
+        sx, sy = source_point
+        ax.scatter([sx], [sy], marker='P', c='red', s=120, label='source')
+
     ax.legend()
-    if out_path:
-        fig.savefig(out_path, dpi=200)
-        print(f"Saved 2D plot to {out_path}")
+    if out_dir:
+        fig.savefig(f"{out_dir}/plot_2d.png", dpi=200)
+        print(f"Saved 2D plot to {out_dir}/plot_2d.png")
     if show:
         plt.show()
 
 
-def plot_3d(x, y, rssi, result_point=None, out_path="plots_3d.png", show=True, cmap='viridis'):
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
-    import numpy as np
-
+def plot_3d(x, y, rssi, result_point=None, out_dir=None, show=True, cmap='viridis', source_point=None):
     xs = np.array(x)
     ys = np.array(y)
     zs = np.array(rssi)
@@ -194,21 +215,80 @@ def plot_3d(x, y, rssi, result_point=None, out_path="plots_3d.png", show=True, c
         # draw a vertical line at (rx, ry) from min(zs) to max(zs)
         zmin = float(np.min(zs))
         zmax = float(np.max(zs))
-        ax.plot([rx, rx], [ry, ry], [zmin, zmax], color='red', linewidth=2, alpha=0.9, label='result_line')
+        ax.plot([rx, rx], [ry, ry], [zmin, zmax], color='gold', linewidth=2, alpha=0.9, label='result_line')
         # also mark the intersection at mean z
         zmid = (zmin + zmax) / 2.0
-        ax.scatter([rx], [ry], [zmid], c='red', marker='*', s=80)
+        ax.scatter([rx], [ry], [zmid], c='gold', marker='*', s=80)
         try:
             ax.legend()
         except Exception:
             # It is safe to ignore legend errors; legend is optional and plot remains usable.
             pass
-    if out_path:
-        fig.savefig(out_path, dpi=200)
-        print(f"Saved 3D plot to {out_path}")
+    if out_dir:
+        fig.savefig(f"{out_dir}/plot_3d.png", dpi=200)
+        print(f"Saved 3D plot to {out_dir}/plot_3d.png")
+    # plot source position if provided (as vertical marker)
+    if source_point is not None:
+        sx, sy = source_point
+        # draw a vertical line at (rx, ry) from min(zs) to max(zs)
+        zmin = float(np.min(zs))
+        zmax = float(np.max(zs))
+        ax.plot([sx, sx], [sy, sy], [zmin, zmax], color='red', linewidth=2, alpha=0.9, label='result_line')
+        # also mark the intersection at mean z
+        zmid = (zmin + zmax) / 2.0
+        ax.scatter([sx], [sy], [zmid], c='red', marker='P', s=80)
+        try:
+            ax.legend()
+        except Exception:
+            # It is safe to ignore legend errors; legend is optional and plot remains usable.
+            pass
     # vertical line at resulting point (if provided)
     if show:
         plt.show()
+
+def plot_clusters(clusters, result_point=None, out_dir=None, show=True, source_point=None):
+    # create a simple clusters-only plot saved to disk
+        try:
+            fig, ax = plt.subplots(figsize=(8, 8))
+            colors = plt.get_cmap('tab10')
+            xs = []
+            ys = []
+            for cidx, c in enumerate(clusters):
+                pts = c.get('points', [])
+                if pts:
+                    px = [p[0] for p in pts]
+                    py = [p[1] for p in pts]
+                    xs.extend(px); ys.extend(py)
+                    ax.scatter(px, py, color=colors(cidx % 10), alpha=0.7, label=f'cluster {c.get("id")}')
+                cx = c.get('centroid_x', 0.0)
+                cy = c.get('centroid_y', 0.0)
+                ax.scatter([cx], [cy], marker='x', color='k')
+                ax.text(cx, cy, f'c{c.get("id")} r={c.get("ratio",0.0):.2f}', fontsize=9)
+            if result_point is not None:
+                rx, ry = result_point
+                ax.scatter([rx], [ry], marker='*', c='gold', s=140, label='result')
+            if source_point is not None:
+                try:
+                    sx, sy = source_point
+                    ax.scatter([sx], [sy], marker='P', c='red', s=120, label='source')
+                    ax.legend(loc='best')
+                except Exception:
+                    pass
+            if xs and ys:
+                ax.set_aspect('equal', adjustable='box')
+            ax.set_xlabel('X (meters)')
+            ax.set_ylabel('Y (meters)')
+            ax.grid(True)
+            ax.legend(loc='best')
+            fig.tight_layout()
+            if out_dir is not None:
+                fig.savefig(f"{out_dir}/plot_clusters.png", dpi=150)
+                print(f"Saved clusters plot to {out_dir}/plot_clusters.png")
+            # plot source on cluster plot if available
+            if show:
+                plt.show()
+        except Exception as e:
+            print(f"Failed to generate clusters plot: {e}", file=sys.stderr)
 
 
 def main():
@@ -216,8 +296,9 @@ def main():
 
     parser = argparse.ArgumentParser(description='Parse arrays from stdin and plot.')
     parser.add_argument('--no-show', action='store_true', help='Do not show interactive windows')
-    parser.add_argument('--out-prefix', default='plots', help='Prefix for output files')
+    parser.add_argument('--out-dir', default=None, help='Output directory or prefix for saved plots (default: don\'t save)')
     parser.add_argument('--cmap', default='viridis', help='Colormap for 3D RSSI plot')
+    parser.add_argument('--save-images', action='store_true', help='Save images to directory images/ if not specified otherwise')
     args = parser.parse_args()
 
     # read stdin fully
@@ -240,7 +321,8 @@ def main():
         return
 
     show = not args.no_show
-    prefix = args.out_prefix
+    if args.out_dir is None and args.save_images:
+        args.out_dir = "images"
 
     # 2D plot
     centroids = None
@@ -250,50 +332,21 @@ def main():
     result_point = extract_resulting_point(text)
     if result_point is not None:
         print(f"Parsed resulting point: x={result_point[0]}, y={result_point[1]}")
+    
+    source_point = extract_source_point_from_text(text)
 
     # Always save the core plots
-    plot_2d(x, y, centroids=centroids, aoas=aoas, result_point=result_point, out_path=f"{prefix}_2d.png", show=show)
+    plot_2d(x, y, centroids=centroids, aoas=aoas, result_point=result_point, out_dir=args.out_dir, show=show, source_point=source_point)
 
     # 3D plot if rssi present
     if rssi is not None:
-        plot_3d(x, y, rssi, result_point=result_point, out_path=f"{prefix}_3d.png", show=show, cmap=args.cmap)
+        plot_3d(x, y, rssi, result_point=result_point, out_dir=args.out_dir, show=show, cmap=args.cmap, source_point=source_point)
+    # Extract source position if printed in stdout from the app
 
     # Parse and plot cluster-specific output (if present in stdin)
     clusters = parse_clusters_from_text(text)
     if clusters:
-        # create a simple clusters-only plot saved to disk
-        try:
-            import matplotlib.pyplot as plt
-            fig, ax = plt.subplots(figsize=(8, 8))
-            colors = plt.get_cmap('tab10')
-            xs = []
-            ys = []
-            for cidx, c in enumerate(clusters):
-                pts = c.get('points', [])
-                if pts:
-                    px = [p[0] for p in pts]
-                    py = [p[1] for p in pts]
-                    xs.extend(px); ys.extend(py)
-                    ax.scatter(px, py, color=colors(cidx % 10), alpha=0.7, label=f'cluster {c.get("id")}')
-                cx = c.get('centroid_x', 0.0)
-                cy = c.get('centroid_y', 0.0)
-                ax.scatter([cx], [cy], marker='x', color='k')
-                ax.text(cx, cy, f'c{c.get("id")} r={c.get("ratio",0.0):.2f}', fontsize=9)
-            if xs and ys:
-                ax.set_aspect('equal', adjustable='box')
-            ax.set_xlabel('X (meters)')
-            ax.set_ylabel('Y (meters)')
-            ax.grid(True)
-            ax.legend(loc='best')
-            cluster_out = f"{prefix}_clusters.png"
-            fig.tight_layout()
-            fig.savefig(cluster_out, dpi=150)
-            print(f"Saved clusters plot to {cluster_out}")
-            if show:
-                plt.show()
-        except Exception as e:
-            print(f"Failed to generate clusters plot: {e}", file=sys.stderr)
-
+        plot_clusters(clusters, result_point=result_point, out_dir=args.out_dir, show=show, source_point=source_point)        
 
 if __name__ == '__main__':
     main()

@@ -1,41 +1,16 @@
 #include "DataPoint.h"
+
 #include <stdexcept>
 #include <iostream>
-namespace core {
+namespace core
+{
     DataPoint::DataPoint()
-        : latitude(0.0)
-        , longitude(0.0)
-        , x(0.0)
-        , y(0.0)
-        , x_computed(false)
-        , y_computed(false)
-        , lat_computed(false)
-        , lon_computed(false)
-        , zero_latitude(0.0)
-        , zero_longitude(0.0)
-        , rssi(0)
-        , timestamp_ms(0)
-        , ssid()
-        , dev_id()
+        : latitude(0.0), longitude(0.0), x(0.0), y(0.0), x_computed(false), y_computed(false), lat_computed(false), lon_computed(false), zero_latitude(0.0), zero_longitude(0.0), rssi(0), timestamp_ms(0), ssid(), dev_id()
     {
     }
 
-    DataPoint::DataPoint(double lat, double lon, double zero_lat, double zero_lon, int signal_strength, int64_t time, const std::string& ssid_in, const std::string& dev_id)
-        : latitude(lat)
-        , longitude(lon)
-        , x(0.0)
-        , y(0.0)
-        , x_computed(false)
-        , y_computed(false)
-        , lat_computed(true)
-        , lon_computed(true)
-        , zero_latitude(zero_lat)
-        , zero_longitude(zero_lon)
-        , rssi(signal_strength)
-        , timestamp_ms(time)
-        , ssid(ssid_in)
-        , dev_id(dev_id)
-        
+    DataPoint::DataPoint(double lat, double lon, double zero_lat, double zero_lon, int signal_strength, int64_t time, const std::string &ssid_in, const std::string &dev_id)
+        : latitude(lat), longitude(lon), x(0.0), y(0.0), x_computed(false), y_computed(false), lat_computed(true), lon_computed(true), zero_latitude(zero_lat), zero_longitude(zero_lon), rssi(signal_strength), timestamp_ms(time), ssid(ssid_in), dev_id(dev_id)
     {
         // compute x/y from provided latitude/longitude
         computeCoordinates();
@@ -61,7 +36,8 @@ namespace core {
 
     double DataPoint::getX() const
     {
-        if (!x_computed) {
+        if (!x_computed)
+        {
             throw std::runtime_error("DataPoint: x coordinate not computed");
         }
         return x;
@@ -69,7 +45,8 @@ namespace core {
 
     double DataPoint::getY() const
     {
-        if (!y_computed) {
+        if (!y_computed)
+        {
             throw std::runtime_error("DataPoint: y coordinate not computed");
         }
         return y;
@@ -88,7 +65,8 @@ namespace core {
             y = EARTH_RADIUS_METERS * lat_rad;
             x_computed = true;
             y_computed = true;
-        } else if (!lat_computed && !lon_computed && x_computed && y_computed)
+        }
+        else if (!lat_computed && !lon_computed && x_computed && y_computed)
         {
             lat_rad = y / EARTH_RADIUS_METERS;
             lon_rad = x / (EARTH_RADIUS_METERS * cos(zero_latitude * (M_PI / 180.0)));
@@ -101,12 +79,13 @@ namespace core {
 
             lat_computed = true;
             lon_computed = true;
-        } else if (lat_computed && lon_computed && x_computed && y_computed)
-        {           
+        }
+        else if (lat_computed && lon_computed && x_computed && y_computed)
+        {
             // all values are already computed; nothing to do
             // skip
         }
-        
+
         else
         {
             throw std::runtime_error("DataPoint: insufficient data to compute coordinates");
@@ -133,7 +112,8 @@ namespace core {
 
     double DataPoint::getLatitude() const
     {
-        if (!lat_computed) {
+        if (!lat_computed)
+        {
             throw std::runtime_error("DataPoint: latitude not computed");
         }
         return latitude;
@@ -141,10 +121,19 @@ namespace core {
 
     double DataPoint::getLongitude() const
     {
-        if (!lon_computed) {
+        if (!lon_computed)
+        {
             throw std::runtime_error("DataPoint: longitude not computed");
         }
         return longitude;
+    }
+
+    bool DataPoint::validCoordinates() const
+    {
+        bool values_computed = lat_computed && lon_computed && x_computed && y_computed;
+        bool lat_valid = (latitude >= -90.0 && latitude <= 90.0);
+        bool lon_valid = (longitude >= -180.0 && longitude <= 180.0);
+        return values_computed && lat_valid && lon_valid;
     }
 
 } // namespace core
