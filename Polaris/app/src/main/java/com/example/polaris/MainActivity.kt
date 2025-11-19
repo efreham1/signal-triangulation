@@ -334,9 +334,7 @@ class MainActivity : AppCompatActivity() {
             if (isMeasuringSource) {
                 isMeasuringSource = false
                 if (pos != null) {
-                    withContext(Dispatchers.Main) {
-                        promptForSourceName()
-                    }
+                    promptForSourceName()
                 }
             }
             
