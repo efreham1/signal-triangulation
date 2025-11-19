@@ -16,18 +16,18 @@ CMAKE_BUILD := $(CMAKE) --build $(BUILD_DIR) --config Release -j$(NPROC)
 all: configure build
 
 install-adb:
-	@if command -v adb >/dev/null 2>&1; then \
-    	echo "adb already installed: $$(command -v adb)"; \
-	else \
-        if [ "$$(uname -s)" = "Linux" ] || [ "$$(uname -s)" = "Darwin" ]; then \
-        	bash ./scripts/install-adb.sh; \
-    	else \
-        	echo "Unsupported OS for automatic adb install." >&2; \
-			exit 1; \
+	@echo "Detecting platform and installing adb if needed..."
+	@if [ "$$(uname -s)" = "Darwin" ] || [ "$$(uname -s)" = "Linux" ]; then \
+		if command -v adb >/dev/null 2>&1; then \
+			echo "adb already installed: $$(command -v adb)"; \
+		else \
+			bash ./scripts/install-adb.sh; \
 		fi; \
+	else \
+		powershell -NoProfile -Command "if (Get-Command adb -ErrorAction SilentlyContinue) { Write-Host 'adb already installed'; exit 0 } else { Write-Host 'Installing adb...'; powershell -ExecutionPolicy Bypass -File ./scripts/install-adb.ps1; exit $$LASTEXITCODE }"; \
 	fi
 
-fetch_recordings:
+fetch_recordings: install-adb
 	@echo "Fetching recordings from connected Android device..."
 	@bash ./scripts/FileTransfer.sh
 
@@ -42,7 +42,7 @@ test: configure build
 	cd $(BUILD_DIR) && ctest --output-on-failure
 
 clean:
-	rm -rf $(BUILD_DIR)
+	@if [ -d $(BUILD_DIR) ]; then rm -rf $(BUILD_DIR); else true; fi
 
 rebuild: clean all
 
