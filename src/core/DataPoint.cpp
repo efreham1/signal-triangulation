@@ -74,9 +74,6 @@ namespace core
             latitude = zero_latitude + (lat_rad * 180.0 / M_PI);
             longitude = zero_longitude + (lon_rad * 180.0 / M_PI);
 
-            std::cout << "Computed latitude: " << latitude << ", longitude: " << longitude << std::endl;
-            std::cout << "Radians: lat_rad=" << lat_rad << ", lon_rad=" << lon_rad << std::endl;
-
             lat_computed = true;
             lon_computed = true;
         }

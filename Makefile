@@ -48,6 +48,9 @@ test-location: configure
 clean:
 	@if [ -d $(BUILD_DIR) ]; then rm -rf $(BUILD_DIR); else true; fi
 
-rebuild: clean all
+purge-logs:
+	rm -rf logs/*
+
+rebuild: clean all purge-logs
 
 .PHONY: all clean rebuild configure build test-plane test-location install-adb fetch_recordings

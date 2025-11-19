@@ -17,9 +17,11 @@ namespace core
     class ITriangulationAlgorithm
     {
     public:
+        bool plottingEnabled = false;
+
         virtual ~ITriangulationAlgorithm() = default;
-        virtual bool processDataPoint(const DataPoint &point) = 0;
-        virtual bool calculatePosition(double &out_latitude, double &out_longitude) = 0;
+        virtual void processDataPoint(const DataPoint &point) = 0;
+        virtual void calculatePosition(double &out_latitude, double &out_longitude) = 0;
         virtual void reset() = 0;
     };
 
