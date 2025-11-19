@@ -24,6 +24,7 @@ target_include_directories(plane_fit_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(plane_fit_tests PRIVATE
   gtest_main
   nlohmann_json::nlohmann_json
+  spdlog::spdlog
 )
 add_test(NAME plane_fit COMMAND plane_fit_tests)
 set_tests_properties(plane_fit PROPERTIES LABELS "plane")
@@ -38,6 +39,7 @@ target_link_libraries(triangulation_tests
   PRIVATE
   gtest_main
   nlohmann_json::nlohmann_json
+  spdlog::spdlog
 )
 
 # Define APP_BIN_PATH correctly per platform

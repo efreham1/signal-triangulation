@@ -5,6 +5,7 @@
 #include <iostream>
 #include <cmath>
 #include <set>
+#include <spdlog/spdlog.h>
 
 // File-local tunable constants (avoid magic numbers in code)
 namespace
@@ -29,7 +30,7 @@ namespace core
 
 	ClusteredTriangulationAlgorithm::~ClusteredTriangulationAlgorithm() = default;
 
-	bool ClusteredTriangulationAlgorithm::processDataPoint(const DataPoint &point)
+	void ClusteredTriangulationAlgorithm::processDataPoint(const DataPoint &point)
 	{
 		// Basic validation; throw on invalid coordinates to make errors explicit
 		if (!point.validCoordinates())
@@ -43,57 +44,37 @@ namespace core
 			[](const DataPoint &a, const int64_t t)
 			{ return a.timestamp_ms < t; });
 		m_points.insert(it, point);
-		return true;
 	}
 
-	bool ClusteredTriangulationAlgorithm::calculatePosition(double &out_latitude, double &out_longitude)
+	void printPointsAndClusters(const std::vector<DataPoint> &points, std::vector<PointCluster> &clusters)
 	{
-		clusterData();
-		estimateAoAForClusters();
-
-		std::cout << "x = [";
-		for (const auto &point : m_points)
+		std::cout << "Data Points:" << std::endl;
+		for (const auto &point : points)
 		{
-			std::cout << point.getX() << ", ";
-		}
-		std::cout << "]" << std::endl;
-		std::cout << "y = [";
-		for (const auto &point : m_points)
-		{
-			std::cout << point.getY() << ", ";
-		}
-		std::cout << "]" << std::endl;
-		std::cout << "rssi = [";
-		for (const auto &point : m_points)
-		{
-			std::cout << point.rssi << ", ";
-		}
-		std::cout << "]" << std::endl;
-		std::cout << "Clusterx = [";
-		for (const auto &cluster : m_clusters)
-		{
-			std::cout << cluster.centroid_x << ", ";
-		}
-		std::cout << "]" << std::endl;
-		std::cout << "Clustery = [";
-		for (const auto &cluster : m_clusters)
-		{
-			std::cout << cluster.centroid_y << ", ";
-		}
-		std::cout << "]" << std::endl;
-		std::cout << "AoAs = [";
-		for (const auto &cluster : m_clusters)
-		{
-			std::cout << cluster.estimated_aoa << ", ";
-		}
-		std::cout << "]" << std::endl;
-
-		std::vector<std::pair<double, double>> intersections = findIntersections();
-		if (intersections.empty())
-		{
-			throw std::runtime_error("ClusteredTriangulationAlgorithm: no intersections found between cluster AoA lines");
+			std::cout << "  x: " << point.getX() << ", y: " << point.getY() << ", rssi: " << point.rssi << std::endl;
 		}
 
+		std::cout << "Clusters:" << std::endl;
+		for (size_t i = 0; i < clusters.size(); ++i)
+		{
+			auto &cluster = clusters[i];
+			double ratio = cluster.geometricRatio();
+			std::cout << "  Cluster " << i << ": centroid_x: " << cluster.centroid_x
+					  << ", centroid_y: " << cluster.centroid_y
+					  << ", avg_rssi: " << cluster.avg_rssi
+					  << ", estimated_aoa: " << cluster.estimated_aoa
+					  << ", ratio: " << ratio
+					  << ", num_points: " << cluster.points.size() << std::endl;
+			// Print points belonging to this cluster: one per line prefixed with 'p' (x y)
+			for (const auto &p : cluster.points)
+			{
+				std::cout << "p " << p.getX() << " " << p.getY() << std::endl;
+			}
+		}
+	}
+
+	void ClusteredTriangulationAlgorithm::gradientDescent(double &out_x, double &out_y, std::vector<std::pair<double, double>> intersections)
+	{
 		double resolution = GRADIENT_DESCENT_STEP_METERS;
 
 		double global_best_x = 0.0;
@@ -169,9 +150,32 @@ namespace core
 				std::cout << "Warning: multiple local minima found with the same cost value." << std::endl;
 			}
 		}
+		out_x = global_best_x;
+		out_y = global_best_y;
+	}
+
+	void ClusteredTriangulationAlgorithm::calculatePosition(double &out_latitude, double &out_longitude)
+	{
+		clusterData();
+		estimateAoAForClusters();
+
+		std::vector<std::pair<double, double>> intersections = findIntersections();
+		if (intersections.empty())
+		{
+			throw std::runtime_error("ClusteredTriangulationAlgorithm: no intersections found between cluster AoA lines");
+		}
+
+		double global_best_x = 0.0;
+		double global_best_y = 0.0;
+		
+		gradientDescent(global_best_x, global_best_y, intersections);
 
 		// print x and y of resulting point
-		std::cout << "Resulting point after gradient descent: x=" << global_best_x << ", y=" << global_best_y << std::endl;
+		if (plottingEnabled)
+		{
+			printPointsAndClusters(m_points, m_clusters);
+			std::cout << "Resulting point after gradient descent: x=" << global_best_x << ", y=" << global_best_y << std::endl;
+		}
 
 		DataPoint result_point;
 		result_point.setX(global_best_x);
@@ -185,8 +189,6 @@ namespace core
 		}
 		out_latitude = result_point.getLatitude();
 		out_longitude = result_point.getLongitude();
-		std::cout << "Computed position: Lat=" << out_latitude << ", Lon=" << out_longitude << std::endl;
-		return true;
 	}
 
 	void ClusteredTriangulationAlgorithm::reset()
@@ -215,39 +217,29 @@ namespace core
 			else
 			{
 				auto &c = m_clusters[cluster_id];
-				double ratio = c.geometricRatio();
-				if (ratio > CLUSTER_RATIO_SPLIT_THRESHOLD)
+
+				m_clusters[cluster_id].addPoint(point, coalition_distance);
+				current_cluster_size = static_cast<unsigned int>(m_clusters[cluster_id].points.size());
+
+				if (c.geometricRatio() > CLUSTER_RATIO_SPLIT_THRESHOLD)
 				{
 					cluster_id++;
 					current_cluster_size = 0;
-					m_clusters.emplace_back();
-					m_clusters[cluster_id].addPoint(point, coalition_distance);
-					current_cluster_size = static_cast<unsigned int>(m_clusters[cluster_id].points.size());
-				}
-				else
-				{
-					m_clusters[cluster_id].addPoint(point, coalition_distance);
-					current_cluster_size = static_cast<unsigned int>(m_clusters[cluster_id].points.size());
 				}
 			}
 		}
-		for (int i = 0; i < static_cast<int>(m_clusters.size()); ++i)
+		spdlog::info("ClusteredTriangulationAlgorithm: formed {} clusters from {} data points", m_clusters.size(), m_points.size());
+		if (m_clusters.size() != cluster_id + 1)
 		{
-			auto &c = m_clusters[i];
-			double ratio = c.geometricRatio();
-			std::cout << "cluster:" << i
-					  << " centroid_x:" << c.centroid_x
-					  << " centroid_y:" << c.centroid_y
-					  << " ratio:" << ratio
-					  << std::endl;
-
-			// Print points belonging to this cluster: one per line prefixed with 'p' (x y)
-			for (const auto &p : c.points)
-			{
-				std::cout << "p " << p.getX() << " " << p.getY() << std::endl;
-			}
-			// Blank line to separate clusters
-			std::cout << std::endl;
+			spdlog::warn("ClusteredTriangulationAlgorithm: last cluster formed does not meet requirements");
+		}
+		if (m_clusters.size() < 2)
+		{
+			throw std::runtime_error("ClusteredTriangulationAlgorithm: insufficient clusters formed for AoA estimation");
+		}
+		else if (m_clusters.size() < 3)
+		{
+			spdlog::warn("ClusteredTriangulationAlgorithm: only {} clusters formed; AoA estimation may be unreliable", m_clusters.size());
 		}
 	}
 
@@ -442,6 +434,10 @@ namespace core
 				double intersect_y = m_clusters[i].centroid_y + t1 * m_clusters[i].aoa_y;
 				intersections.emplace_back(intersect_x, intersect_y);
 			}
+		}
+		if (intersections.size() < 2)
+		{
+			spdlog::warn("ClusteredTriangulationAlgorithm: only {} intersections found between cluster AoA lines", intersections.size());
 		}
 		return intersections;
 	}

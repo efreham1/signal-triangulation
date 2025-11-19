@@ -38,8 +38,18 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
+FetchContent_Declare(
+    spdlog
+    GIT_REPOSITORY https://github.com/gabime/spdlog.git
+    GIT_TAG v1.14.1
+)
+
+FetchContent_MakeAvailable(spdlog)
+
 target_link_libraries(signal-triangulation
-    PRIVATE nlohmann_json::nlohmann_json
+    PRIVATE
+    nlohmann_json::nlohmann_json
+    spdlog::spdlog
 )
 
 # Install target (optional)
