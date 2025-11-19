@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Simple installer for Android platform-tools (adb) on macOS and common Linux distros.
-# - Tries package managers (brew, apt, pacman)
-# - Falls back to downloading platform-tools and symlinking adb to ~/bin
+# Installer for Android platform-tools (adb) on macOS, Linux, and WSL.
+# - Detects WSL and uses apt
+# - On macOS tries Homebrew, then download
+# - On Linux tries apt, pacman, or download
 
 OS="$(uname -s)"
+IS_WSL=false
+if grep -qi microsoft /proc/version 2>/dev/null || [ -f /proc/sys/fs/binfmt_misc/WSLInterop ]; then
+    IS_WSL=true
+fi
 
 ensure_bin() {
     mkdir -p "$HOME/bin"
@@ -63,7 +68,10 @@ case "$OS" in
         fi
         ;;
     Linux)
-        if command -v apt-get >/dev/null 2>&1; then
+        if [ "$IS_WSL" = true ]; then
+            echo "WSL detected; using apt to install adb."
+            install_via_apt
+        elif command -v apt-get >/dev/null 2>&1; then
             install_via_apt
         elif command -v pacman >/dev/null 2>&1; then
             install_via_pacman
@@ -73,7 +81,7 @@ case "$OS" in
         fi
         ;;
     *)
-        echo "Unsupported OS: $OS. This installer supports macOS and Linux only." >&2
+        echo "Unsupported OS: $OS. This installer supports macOS, Linux, and WSL only." >&2
         exit 1
         ;;
 esac
