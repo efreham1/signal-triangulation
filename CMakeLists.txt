@@ -26,7 +26,7 @@ add_executable(signal-triangulation ${PROJECT_SOURCES})
 
 target_include_directories(signal-triangulation
     PRIVATE
-        ${SRC_DIR}
+    ${SRC_DIR}
 )
 
 include(FetchContent)
@@ -49,7 +49,7 @@ set(APP_TARGET_NAME signal-triangulation)
 
 enable_testing()
 
-add_subdirectory(tests)
+add_subdirectory(tests EXCLUDE_FROM_ALL)
 
 # Helpful configure-time output
 message(STATUS "Configuring signal-triangulation")
