@@ -116,16 +116,14 @@ class MeasureSourceActivity : AppCompatActivity() {
                 val loc = waitForUniqueLocation(singleTimeoutMs, seenFixIds)
                 if (loc != null) {
                     val fixId = if (loc.elapsedRealtimeNanos != 0L) loc.elapsedRealtimeNanos else loc.time * 1_000_000L
-                    if (seenFixIds.add(fixId)) {
-                        samples.add(
-                            ReceivedSample(
-                                latitude = loc.latitude,
-                                longitude = loc.longitude,
-                                providerTimeMs = loc.time,
-                                providerElapsedNs = loc.elapsedRealtimeNanos
-                            )
+                    samples.add(
+                        ReceivedSample(
+                            latitude = loc.latitude,
+                            longitude = loc.longitude,
+                            providerTimeMs = loc.time,
+                            providerElapsedNs = loc.elapsedRealtimeNanos
                         )
-                    }
+                    )
                 } else {
                     progressTv.text = getString(R.string.sample_timed_out, samples.size + 1)
                 }
@@ -153,8 +151,8 @@ class MeasureSourceActivity : AppCompatActivity() {
 
             val latVars = samples.map { (it.latitude - meanLat) * (it.latitude - meanLat) }
             val lonVars = samples.map { (it.longitude - meanLon) * (it.longitude - meanLon) }
-            val stdLat = kotlin.math.sqrt(latVars.average())
-            val stdLon = kotlin.math.sqrt(lonVars.average())
+            val stdLat = sqrt(latVars.average())
+            val stdLon = sqrt(lonVars.average())
 
             launch { db.sourcePositionDao().upsert(SourcePosition(id = 0, latitude = meanLat, longitude = meanLon)) }
 
