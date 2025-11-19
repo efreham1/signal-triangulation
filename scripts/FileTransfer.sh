@@ -26,7 +26,7 @@ if [ "$IS_WSL" = true ]; then
   WIN_USER="$(cmd.exe /c 'echo %USERNAME%' 2>/dev/null | tr -d '\r' || true)"
   if [ -n "$WIN_USER" ]; then
     PT="/mnt/c/Users/$WIN_USER/AppData/Local/Android/Sdk/platform-tools/adb.exe"
-    if [ -f "$PT" ] || [ -x "$PT" ]; then
+    if [ -x "$PT" ]; then
       ADB_CMD="$PT"
       echo "(WSL detected; using adb.exe at $PT)"
     fi
