@@ -7,7 +7,7 @@ REMOTE_PATH="/sdcard/Android/data/com.example.polaris/files"
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 REPO_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
-DEST_DIR="$REPO_ROOT/Recordings"
+DEST_DIR="$REPO_ROOT/recordings"
 mkdir -p "$DEST_DIR"
 
 # Detect WSL

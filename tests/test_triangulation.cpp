@@ -1,5 +1,5 @@
-#include <gtest/gtest.h>
-#include <nlohmann/json.hpp>
+#include "../src/core/DataPoint.h"
+
 #include <filesystem>
 #include <fstream>
 #include <regex>
@@ -7,7 +7,8 @@
 #include <cmath>
 #include <cstdlib>
 #include <string>
-#include "../src/core/DataPoint.h"
+#include <gtest/gtest.h>
+#include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
 namespace fs = std::filesystem;

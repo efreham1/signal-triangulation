@@ -37,13 +37,17 @@ configure:
 build:
 	$(CMAKE_BUILD)
 
-test: configure build
-	@echo "Running ctest in $(BUILD_DIR)..."
-	cd $(BUILD_DIR) && ctest --output-on-failure
+test-plane: configure
+	@$(CMAKE) --build $(BUILD_DIR) --config Release -j$(NPROC) --target plane_fit_tests
+	@cd $(BUILD_DIR) && ctest -L plane --output-on-failure
+
+test-location: configure
+	@$(CMAKE) --build $(BUILD_DIR) --config Release -j$(NPROC) --target triangulation_tests
+	@cd $(BUILD_DIR) && ctest -L location --output-on-failure
 
 clean:
 	@if [ -d $(BUILD_DIR) ]; then rm -rf $(BUILD_DIR); else true; fi
 
 rebuild: clean all
 
-.PHONY: all clean rebuild configure build test install-adb fetch_recordings
+.PHONY: all clean rebuild configure build test-plane test-location install-adb fetch_recordings
