@@ -95,8 +95,6 @@ class MeasureSourceActivity : AppCompatActivity() {
             )
             return
         }
-        if (!hasLocationPermission()) return
-        LocationStream.start(this)
 
         startBtn.isEnabled = false
         resultTv.text = ""
