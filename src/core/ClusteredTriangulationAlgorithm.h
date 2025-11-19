@@ -26,8 +26,8 @@ namespace core
         ~ClusteredTriangulationAlgorithm() override;
 
         // ITriangulationAlgorithm interface
-        bool processDataPoint(const DataPoint &point) override;
-        bool calculatePosition(double &out_latitude, double &out_longitude) override;
+        void processDataPoint(const DataPoint &point) override;
+        void calculatePosition(double &out_latitude, double &out_longitude) override;
         void reset() override;
 
     private:
@@ -41,6 +41,7 @@ namespace core
         void clusterData();
         void estimateAoAForClusters();
         double getCost(double x, double y);
+        void gradientDescent(double &out_x, double &out_y, std::vector<std::pair<double, double>> intersections);
         std::vector<std::pair<double, double>> findIntersections();
     };
 

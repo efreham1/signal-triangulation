@@ -51,57 +51,111 @@ def parse_lists_from_text(text: str) -> Dict[str, Any]:
 
 
 def parse_clusters_from_text(text: str):
-    """Parse compact cluster blocks emitted by the C++ tool.
+    """Parse cluster blocks in the newer program output.
 
-    Expected format:
-      cluster:<id> centroid_x:<cx> centroid_y:<cy> ratio:<r>
-      p <x> <y>
+    Expected header lines like:
+      Cluster 0: centroid_x: -3.63872, centroid_y: 3.54872, avg_rssi: -67, estimated_aoa: 78.7988, ratio: 0.618537, num_points: 7
+    Followed by lines starting with `p <x> <y>` for the cluster points. Blank lines or next header end the cluster.
 
-    Blank line separates clusters.
-    Returns a list of dicts: {id, centroid_x, centroid_y, ratio, points:[(x,y), ...]}
+    Returns a list of dicts with keys: id, centroid_x, centroid_y, avg_rssi, estimated_aoa, ratio, num_points, points
     """
     clusters = []
     cur = None
     cur_points = []
+    header_re = re.compile(r"^\s*Cluster\s+(\d+)\s*:\s*(.*)$")
+    kv_re = re.compile(r"([A-Za-z_]+)\s*:\s*([+-]?\d+\.?\d*(?:[eE][+-]?\d+)?)")
+
     for raw in text.splitlines():
-        line = raw.strip()
-        if not line:
+        line = raw.rstrip()
+        if not line.strip():
+            # blank line ends current cluster
             if cur is not None:
                 cur['points'] = cur_points
                 clusters.append(cur)
                 cur = None
                 cur_points = []
             continue
-        if line.startswith('cluster:'):
-            tokens = line.split()
-            cur = {'id': -1, 'centroid_x': 0.0, 'centroid_y': 0.0, 'ratio': 0.0}
-            try:
-                first = tokens[0]
-                _, cid = first.split(':', 1)
-                cur['id'] = int(cid)
-            except Exception:
-                cur['id'] = -1
-            for tok in tokens[1:]:
-                if ':' not in tok:
+
+        m = header_re.match(line)
+        if m:
+            # commit previous cluster if any
+            if cur is not None:
+                cur['points'] = cur_points
+                clusters.append(cur)
+                cur_points = []
+            cid = int(m.group(1))
+            rest = m.group(2)
+            cur = {'id': cid, 'centroid_x': 0.0, 'centroid_y': 0.0,
+                   'avg_rssi': None, 'estimated_aoa': None, 'ratio': None, 'num_points': None}
+            for kv in kv_re.finditer(rest):
+                k = kv.group(1)
+                v = kv.group(2)
+                try:
+                    fv = float(v)
+                except Exception:
                     continue
-                k, v = tok.split(':', 1)
-                if k in ('centroid_x', 'centroid_y', 'ratio'):
-                    try:
-                        cur[k] = float(v)
-                    except Exception:
-                        cur[k] = 0.0
-        elif line.startswith('p '):
+                if k == 'centroid_x': cur['centroid_x'] = fv
+                elif k == 'centroid_y': cur['centroid_y'] = fv
+                elif k == 'avg_rssi': cur['avg_rssi'] = fv
+                elif k == 'estimated_aoa': cur['estimated_aoa'] = fv
+                elif k == 'ratio': cur['ratio'] = fv
+                elif k == 'num_points': cur['num_points'] = int(fv)
+            continue
+
+        # point line: starts with 'p ' then x y
+        if line.lstrip().startswith('p '):
             parts = line.split()
-            if len(parts) >= 3:
+            if len(parts) >= 3 and cur is not None:
                 try:
                     x = float(parts[1]); y = float(parts[2])
                     cur_points.append((x, y))
                 except Exception:
                     continue
+
     if cur is not None:
         cur['points'] = cur_points
         clusters.append(cur)
     return clusters
+
+
+def parse_datapoints_from_text(text: str):
+    """Parse the new 'Data Points:' section where each data point is a line like:
+    "  x: 1.4617, y: 7.12916, rssi: -63"
+
+    Returns lists (x_list, y_list, rssi_list).
+    """
+    pts = []
+    # locate the Data Points: section start
+    start = None
+    for i, raw in enumerate(text.splitlines()):
+        if raw.strip().lower().startswith('data points:'):
+            start = i + 1
+            break
+    if start is None:
+        return None, None, None
+
+    dp_re = re.compile(r"x\s*:\s*([+-]?\d+\.?\d*(?:[eE][+-]?\d+)?)\s*,\s*y\s*:\s*([+-]?\d+\.?\d*(?:[eE][+-]?\d+)?)\s*,\s*rssi\s*:\s*([+-]?\d+\.?\d*(?:[eE][+-]?\d+)?)")
+    for raw in text.splitlines()[start:]:
+        if not raw.strip():
+            break
+        m = dp_re.search(raw)
+        if m:
+            try:
+                x = float(m.group(1)); y = float(m.group(2)); r = float(m.group(3))
+                pts.append((x, y, r))
+            except Exception:
+                continue
+        else:
+            # stop if we reach the Clusters: section
+            if raw.strip().lower().startswith('clusters:'):
+                break
+
+    if not pts:
+        return None, None, None
+    xs = [p[0] for p in pts]
+    ys = [p[1] for p in pts]
+    rss = [p[2] for p in pts]
+    return xs, ys, rss
 
 
 def extract_resulting_point(text: str):
@@ -215,7 +269,7 @@ def plot_3d(x, y, rssi, result_point=None, out_dir=None, show=True, cmap='viridi
         # draw a vertical line at (rx, ry) from min(zs) to max(zs)
         zmin = float(np.min(zs))
         zmax = float(np.max(zs))
-        ax.plot([rx, rx], [ry, ry], [zmin, zmax], color='gold', linewidth=2, alpha=0.9, label='result_line')
+        ax.plot([rx, rx], [ry, ry], [zmin, zmax], color='gold', linewidth=2, alpha=0.9, label='result')
         # also mark the intersection at mean z
         zmid = (zmin + zmax) / 2.0
         ax.scatter([rx], [ry], [zmid], c='gold', marker='*', s=80)
@@ -224,16 +278,13 @@ def plot_3d(x, y, rssi, result_point=None, out_dir=None, show=True, cmap='viridi
         except Exception:
             # It is safe to ignore legend errors; legend is optional and plot remains usable.
             pass
-    if out_dir:
-        fig.savefig(f"{out_dir}/plot_3d.png", dpi=200)
-        print(f"Saved 3D plot to {out_dir}/plot_3d.png")
     # plot source position if provided (as vertical marker)
     if source_point is not None:
         sx, sy = source_point
         # draw a vertical line at (rx, ry) from min(zs) to max(zs)
         zmin = float(np.min(zs))
         zmax = float(np.max(zs))
-        ax.plot([sx, sx], [sy, sy], [zmin, zmax], color='red', linewidth=2, alpha=0.9, label='result_line')
+        ax.plot([sx, sx], [sy, sy], [zmin, zmax], color='red', linewidth=2, alpha=0.9, label='source')
         # also mark the intersection at mean z
         zmid = (zmin + zmax) / 2.0
         ax.scatter([sx], [sy], [zmid], c='red', marker='P', s=80)
@@ -243,6 +294,9 @@ def plot_3d(x, y, rssi, result_point=None, out_dir=None, show=True, cmap='viridi
             # It is safe to ignore legend errors; legend is optional and plot remains usable.
             pass
     # vertical line at resulting point (if provided)
+    if out_dir:
+        fig.savefig(f"{out_dir}/plot_3d.png", dpi=200)
+        print(f"Saved 3D plot to {out_dir}/plot_3d.png")
     if show:
         plt.show()
 
@@ -271,7 +325,6 @@ def plot_clusters(clusters, result_point=None, out_dir=None, show=True, source_p
                 try:
                     sx, sy = source_point
                     ax.scatter([sx], [sy], marker='P', c='red', s=120, label='source')
-                    ax.legend(loc='best')
                 except Exception:
                     pass
             if xs and ys:
@@ -307,18 +360,17 @@ def main():
         print('No input received on stdin. Expecting variable assignments like `x = [..]` or cluster blocks.')
         return
 
-    parsed = parse_lists_from_text(text)
-    # map expected variables
-    x = parsed.get('x') or parsed.get('xs')
-    y = parsed.get('y') or parsed.get('ys')
-    rssi = parsed.get('rssi') or parsed.get('rssis')
-    clusterx = parsed.get('clusterx') or parsed.get('clusterx')
-    clustery = parsed.get('clustery') or parsed.get('clustery')
-    aoas = parsed.get('aoas') or parsed.get('aoa')
-
+    # Parse new Data Points block (preferred)
+    x, y, rssi = parse_datapoints_from_text(text)
     if x is None or y is None:
-        print('Missing x or y arrays in input; nothing to plot.')
+        print('Missing Data Points section in input; nothing to plot.')
         return
+
+    # Parse clusters in the new format
+    clusters = parse_clusters_from_text(text)
+    clusterx = [c.get('centroid_x') for c in clusters] if clusters else None
+    clustery = [c.get('centroid_y') for c in clusters] if clusters else None
+    aoas = [c.get('estimated_aoa') for c in clusters] if clusters else None
 
     show = not args.no_show
     if args.out_dir is None and args.save_images:
@@ -328,11 +380,10 @@ def main():
     centroids = None
     if clusterx is not None and clustery is not None:
         centroids = (clusterx, clustery)
+
     # try to extract resulting point from free-form text
     result_point = extract_resulting_point(text)
-    if result_point is not None:
-        print(f"Parsed resulting point: x={result_point[0]}, y={result_point[1]}")
-    
+
     source_point = extract_source_point_from_text(text)
 
     # Always save the core plots
@@ -344,9 +395,8 @@ def main():
     # Extract source position if printed in stdout from the app
 
     # Parse and plot cluster-specific output (if present in stdin)
-    clusters = parse_clusters_from_text(text)
     if clusters:
-        plot_clusters(clusters, result_point=result_point, out_dir=args.out_dir, show=show, source_point=source_point)        
+        plot_clusters(clusters, result_point=result_point, out_dir=args.out_dir, show=show, source_point=source_point)
 
 if __name__ == '__main__':
     main()
