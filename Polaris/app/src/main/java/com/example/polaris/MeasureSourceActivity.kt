@@ -158,6 +158,9 @@ class MeasureSourceActivity : AppCompatActivity() {
                 progressTv.text = getString(R.string.measuring_done, samples.size)
                 resultTv.text = getString(R.string.measurement_result, meanLat, meanLon, stdLat, stdLon)
                 startBtn.isEnabled = true
+
+                setResult(RESULT_OK)
+
                 Toast.makeText(this@MeasureSourceActivity, getString(R.string.measurement_saved), Toast.LENGTH_SHORT).show()
             }
         }

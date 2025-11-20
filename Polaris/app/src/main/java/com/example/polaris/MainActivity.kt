@@ -30,6 +30,9 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.google.gson.GsonBuilder
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import androidx.activity.result.contract.ActivityResultContracts
 
 @Entity(tableName = "signal_records")
 data class SignalRecord(
@@ -98,6 +101,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var stopAutoBtn: Button
     private lateinit var measureSourceBtn: Button
     private lateinit var accuracyTestBtn: Button
+    private lateinit var sourceNameText: TextView
 
     // SSID list & selection
     private val ssidList = mutableListOf<String>()
@@ -117,6 +121,10 @@ class MainActivity : AppCompatActivity() {
     // automatic mode flag
     @Volatile
     private var isAutoRunning = false
+
+    // Session-only name for the source position
+    private var sessionSourceName: String? = null
+    private var isMeasuringSource = false
 
     private val deviceID: String by lazy {
         Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID) ?: "unknown"
@@ -212,6 +220,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Define the launcher to handle the result from MeasureSourceActivity
+    private val measureSourceLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == RESULT_OK) {
+            isMeasuringSource = true
+            // Refresh UI to show the new source position immediately
+            refreshRecordsView()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -232,7 +249,7 @@ class MainActivity : AppCompatActivity() {
         stopAutoBtn = findViewById(R.id.stopAutoBtn)
         measureSourceBtn = findViewById(R.id.measureSourceBtn)
         accuracyTestBtn = findViewById(R.id.accuracyTestBtn)
-
+        sourceNameText = findViewById(R.id.source_name_text)
         // initial auto state
         isAutoRunning = false
         updateAutoButtons()
@@ -243,26 +260,27 @@ class MainActivity : AppCompatActivity() {
         startAutoBtn.setOnClickListener { startMeasurements() }
         stopAutoBtn.setOnClickListener { stopMeasurements() }
 
+        exportBtn.setOnClickListener { promptFreeTextAndExport() }
+
         cleanRecordsBtn.setOnClickListener {
             AlertDialog.Builder(this)
                 .setTitle(getString(R.string.confirm_delete_title))
                 .setMessage(getString(R.string.confirm_delete_message))
                 .setPositiveButton(getString(R.string.confirm_delete_positive)) { _, _ ->
                     lifecycleScope.launch {
+                        // Only delete signal records, preserve source position
                         signalDao.deleteAll()
-                        sourcePositionDao.deleteAll()
                         refreshRecordsView()
+                        Toast.makeText(this@MainActivity, "Recordings deleted", Toast.LENGTH_SHORT).show()
                     }
                 }
                 .setNegativeButton(getString(R.string.confirm_delete_negative), null)
                 .show()
         }
 
-        exportBtn.setOnClickListener { promptFreeTextAndExport() }
-
         measureSourceBtn.setOnClickListener {
             val intent = Intent(this, MeasureSourceActivity::class.java)
-            startActivity(intent)
+            measureSourceLauncher.launch(intent)
         }
 
         accuracyTestBtn.setOnClickListener {
@@ -303,7 +321,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        registerReceiver(wifiScanReceiver, IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION))
+        val filter = IntentFilter()
+        filter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION)
+        registerReceiver(wifiScanReceiver, filter)
         val wifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
         wifiManager.startScan()
 
@@ -312,8 +332,54 @@ class MainActivity : AppCompatActivity() {
             ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             LocationStream.start(this)
         }
-
         refreshRecordsView()
+        checkAndRefreshSource()
+    }
+
+    private fun checkAndRefreshSource() {
+        lifecycleScope.launch {
+            val pos = sourcePositionDao.get()
+            
+            // If we just came back from measuring and we have a new measurement, prompt for a name
+            if (isMeasuringSource) {
+                isMeasuringSource = false
+                if (pos != null) {
+                    promptForSourceName()
+                }
+            }
+            
+            updateSourceUi(pos)
+        }
+    }
+
+    private fun promptForSourceName() {
+        val input = EditText(this).apply {
+            hint = getString(R.string.enter_source_name_hint)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.enter_source_name_title))
+            .setView(input)
+            .setPositiveButton(getString(R.string.set_name)) { _, _ ->
+                val name = input.text.toString().trim()
+                if (name.isNotEmpty()) {
+                    sessionSourceName = name
+                    // Refresh UI to show new name
+                    lifecycleScope.launch { updateSourceUi(sourcePositionDao.get()) }
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private suspend fun updateSourceUi(pos: SourcePosition?) {
+        withContext(Dispatchers.Main) {
+            if (pos != null) {
+                val name = sessionSourceName ?: getString(R.string.source_default_name)
+                sourceNameText.text = getString(R.string.selected_source, name)
+            } else {
+                sourceNameText.text = getString(R.string.placeholder_source)
+            }
+        }
     }
 
     override fun onPause() {

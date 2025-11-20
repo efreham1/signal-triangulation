@@ -37,7 +37,13 @@
     <string name="measurement_saved">Measurement saved as source position</string>
     <string name="source_position">Source pos: lat=%1$.6f lon=%2$.6f\n\n</string>
 
-    <string name="measure_source">Measure source position</string>
+    <string name="placeholder_source">No source selected</string>
+    <string name="selected_source">Selected Source: %1$s</string>
+    <string name="enter_source_name_title">Name this source location</string>
+    <string name="enter_source_name_hint">e.g. Living Room AP</string>
+    <string name="source_default_name">Unnamed Source</string>
+    <string name="set_name">Set Name</string>
+    <string name="measure_source">Measure new source position</string>
     <string name="start_measurement">Start measurement</string>
     <string name="back_to_main">Back to main</string>
     <string name="ready">Ready</string>
