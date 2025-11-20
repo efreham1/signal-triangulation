@@ -32,6 +32,7 @@ import com.google.gson.GsonBuilder
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
+import androidx.activity.result.contract.ActivityResultContracts
 
 @Entity(tableName = "signal_records")
 data class SignalRecord(
@@ -219,6 +220,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Define the launcher to handle the result from MeasureSourceActivity
+    private val measureSourceLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == RESULT_OK) {
+            isMeasuringSource = true
+            // Refresh UI to show the new source position immediately
+            refreshRecordsView()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -269,8 +279,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         measureSourceBtn.setOnClickListener {
-            isMeasuringSource = true
-            startActivity(Intent(this, MeasureSourceActivity::class.java))
+            val intent = Intent(this, MeasureSourceActivity::class.java)
+            measureSourceLauncher.launch(intent)
         }
 
         accuracyTestBtn.setOnClickListener {
@@ -330,7 +340,7 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val pos = sourcePositionDao.get()
             
-            // If we just came back from measuring, prompt for a name
+            // If we just came back from measuring and we have a new measurement, prompt for a name
             if (isMeasuringSource) {
                 isMeasuringSource = false
                 if (pos != null) {
