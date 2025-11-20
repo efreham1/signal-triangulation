@@ -16,9 +16,9 @@ namespace fs = std::filesystem;
 #error "APP_BIN_PATH not defined"
 #endif
 
-static std::string runAppAndCapture(const std::string &exe, const std::string &arg)
+static std::string runAppAndCapture(const std::string &exe, const std::string &arg1, const std::string &arg2)
 {
-    std::string cmd = std::string("\"") + exe + "\" \"" + arg + "\" 2>&1";
+    std::string cmd = std::string("\"") + exe + "\" " + arg1 + " " + arg2;
     std::string output;
     FILE *pipe = popen(cmd.c_str(), "r");
     if (!pipe)
@@ -53,8 +53,8 @@ TEST(Triangulation, DistanceCheckForFile)
     double srcLat = j["source_pos"]["x"].get<double>();
     double srcLon = j["source_pos"]["y"].get<double>();
 
-    // Run app and capture stdout
-    std::string out = runAppAndCapture(APP_BIN_PATH, "--signals-file=\"" + filePath + "\"");
+    // Run app and capture stdout (expects the line: "New position calculated: Lat=..., Lon=...")
+    std::string out = runAppAndCapture(APP_BIN_PATH, std::string("--signals-file"), std::string("\"" + filePath + "\""));
     std::regex re(R"(Calculated Position: Latitude\s*=\s*([0-9\.\-eE]+)\s*,\s*Longitude\s*=\s*([0-9\.\-eE]+))");
     std::smatch m;
     ASSERT_TRUE(std::regex_search(out, m, re) && m.size() >= 3)

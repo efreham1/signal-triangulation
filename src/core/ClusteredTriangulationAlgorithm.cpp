@@ -44,6 +44,8 @@ namespace core
 			[](const DataPoint &a, const int64_t t)
 			{ return a.timestamp_ms < t; });
 		m_points.insert(it, point);
+
+		spdlog::debug("ClusteredTriangulationAlgorithm: added DataPoint (x={}, y={}, rssi={}, timestamp={})", point.getX(), point.getY(), point.rssi, point.timestamp_ms);
 	}
 
 	void printPointsAndClusters(const std::vector<DataPoint> &points, std::vector<PointCluster> &clusters)
@@ -75,6 +77,7 @@ namespace core
 
 	void ClusteredTriangulationAlgorithm::gradientDescent(double &out_x, double &out_y, std::vector<std::pair<double, double>> intersections)
 	{
+		spdlog::debug("ClusteredTriangulationAlgorithm: starting gradient descent with {} intersection points", intersections.size());
 		double resolution = GRADIENT_DESCENT_STEP_METERS;
 
 		double global_best_x = 0.0;
@@ -83,6 +86,7 @@ namespace core
 
 		for (const auto &inter : intersections)
 		{
+			spdlog::debug("ClusteredTriangulationAlgorithm: starting gradient descent from intersection point (x={}, y={})", inter.first, inter.second);
 			bool continue_gradient_descent = true;
 			double current_x = inter.first;
 			double current_y = inter.second;
@@ -147,11 +151,14 @@ namespace core
 			}
 			else if (std::abs(current_cost - global_best_cost) < std::numeric_limits<double>::epsilon())
 			{
-				std::cout << "Warning: multiple local minima found with the same cost value." << std::endl;
+				spdlog::warn("ClusteredTriangulationAlgorithm: multiple local minima found with the same cost value.");
 			}
+			spdlog::debug("ClusteredTriangulationAlgorithm: gradient descent from intersection (x={}, y={}) found local minimum at (x={}, y={}) with cost {}", inter.first, inter.second, current_x, current_y, current_cost);
 		}
 		out_x = global_best_x;
 		out_y = global_best_y;
+
+		spdlog::info("ClusteredTriangulationAlgorithm: gradient descent completed, global minimum at (x={}, y={}) with cost {}", out_x, out_y, global_best_cost);
 	}
 
 	void ClusteredTriangulationAlgorithm::calculatePosition(double &out_latitude, double &out_longitude)
@@ -167,7 +174,7 @@ namespace core
 
 		double global_best_x = 0.0;
 		double global_best_y = 0.0;
-		
+
 		gradientDescent(global_best_x, global_best_y, intersections);
 
 		// print x and y of resulting point
@@ -204,32 +211,23 @@ namespace core
 		unsigned int current_cluster_size = 0;
 		for (const auto &point : m_points)
 		{
-			if (current_cluster_size < CLUSTER_MIN_POINTS)
+			if (current_cluster_size == 0)
 			{
-				if (current_cluster_size == 0)
-				{
-					// Start a new cluster
-					m_clusters.emplace_back();
-				}
-				m_clusters[cluster_id].addPoint(point, coalition_distance);
-				current_cluster_size = static_cast<unsigned int>(m_clusters[cluster_id].points.size());
+				m_clusters.emplace_back();
 			}
-			else
+
+			m_clusters[cluster_id].addPoint(point, coalition_distance);
+			current_cluster_size = static_cast<unsigned int>(m_clusters[cluster_id].points.size());
+			auto &c = m_clusters[cluster_id];
+			if (c.geometricRatio() > CLUSTER_RATIO_SPLIT_THRESHOLD && current_cluster_size >= CLUSTER_MIN_POINTS)
 			{
-				auto &c = m_clusters[cluster_id];
-
-				m_clusters[cluster_id].addPoint(point, coalition_distance);
-				current_cluster_size = static_cast<unsigned int>(m_clusters[cluster_id].points.size());
-
-				if (c.geometricRatio() > CLUSTER_RATIO_SPLIT_THRESHOLD)
-				{
-					cluster_id++;
-					current_cluster_size = 0;
-				}
+				spdlog::debug("ClusteredTriangulationAlgorithm: created new cluster (id={}) after splitting cluster (id={}) due to geometric ratio {}", cluster_id + 1, cluster_id, c.geometricRatio());
+				cluster_id++;
+				current_cluster_size = 0;
 			}
 		}
 		spdlog::info("ClusteredTriangulationAlgorithm: formed {} clusters from {} data points", m_clusters.size(), m_points.size());
-		if (m_clusters.size() != cluster_id + 1)
+		if (m_clusters.size() != cluster_id)
 		{
 			spdlog::warn("ClusteredTriangulationAlgorithm: last cluster formed does not meet requirements");
 		}
@@ -394,6 +392,8 @@ namespace core
 			cluster.aoa_x = grad_x;
 			cluster.aoa_y = grad_y;
 			cluster.estimated_aoa = atan2(grad_y, grad_x) * (180.0 / M_PI); // in degrees
+
+			spdlog::info("ClusteredTriangulationAlgorithm: cluster AoA estimated at {} degrees (grad_x={}, grad_y={})", cluster.estimated_aoa, grad_x, grad_y);
 		}
 		// Estimate AoA as the arctangent of the gradient
 	}
@@ -433,9 +433,11 @@ namespace core
 				double intersect_x = m_clusters[i].centroid_x + t1 * m_clusters[i].aoa_x;
 				double intersect_y = m_clusters[i].centroid_y + t1 * m_clusters[i].aoa_y;
 				intersections.emplace_back(intersect_x, intersect_y);
+
+				spdlog::debug("ClusteredTriangulationAlgorithm: found intersection between cluster {} and {} at (x={}, y={})", i, j, intersect_x, intersect_y);
 			}
 		}
-		if (intersections.size() < 2)
+		if (intersections.size() < 3)
 		{
 			spdlog::warn("ClusteredTriangulationAlgorithm: only {} intersections found between cluster AoA lines", intersections.size());
 		}
@@ -474,11 +476,13 @@ namespace core
 			{
 				// total_cost += projection_length + point_to_centroid_mag
 				total_cost += -dot_prod / cluster_grad_mag + std::sqrt(point_to_centroid[0] * point_to_centroid[0] + point_to_centroid[1] * point_to_centroid[1]);
+				spdlog::debug("ClusteredTriangulationAlgorithm: cost for cluster at (centroid_x={}, centroid_y={}) with AoA ({}, {}) is {} (behind centroid)", cluster.centroid_x, cluster.centroid_y, cluster.aoa_x, cluster.aoa_y, total_cost);
 			}
 			else
 			{
 				double distance = cross_prod_mag / cluster_grad_mag;
 				total_cost += distance;
+				spdlog::debug("ClusteredTriangulationAlgorithm: cost for cluster at (centroid_x={}, centroid_y={}) with AoA ({}, {}) is {} (in front of centroid)", cluster.centroid_x, cluster.centroid_y, cluster.aoa_x, cluster.aoa_y, total_cost);
 			}
 		}
 		return total_cost;
