@@ -219,7 +219,7 @@ namespace core
 			}
 		}
 		spdlog::info("ClusteredTriangulationAlgorithm: formed {} clusters from {} data points", m_clusters.size(), m_points.size());
-		if (m_clusters.size() != cluster_id)
+		if (m_clusters.size() != cluster_id + 1)
 		{
 			spdlog::warn("ClusteredTriangulationAlgorithm: last cluster formed does not meet requirements");
 		}
@@ -227,7 +227,7 @@ namespace core
 		{
 			throw std::runtime_error("ClusteredTriangulationAlgorithm: insufficient clusters formed for AoA estimation");
 		}
-		else if (m_clusters.size() <= 3)
+		else if (m_clusters.size() < 3)
 		{
 			spdlog::warn("ClusteredTriangulationAlgorithm: only {} clusters formed; AoA estimation may be unreliable", m_clusters.size());
 		}
@@ -425,7 +425,7 @@ namespace core
 				intersections.emplace_back(intersect_x, intersect_y);
 			}
 		}
-		if (intersections.size() <= 2)
+		if (intersections.size() < 2)
 		{
 			spdlog::warn("ClusteredTriangulationAlgorithm: only {} intersections found between cluster AoA lines", intersections.size());
 		}

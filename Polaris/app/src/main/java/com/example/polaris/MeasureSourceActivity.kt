@@ -69,10 +69,21 @@ class MeasureSourceActivity : AppCompatActivity() {
 
         startBtn.setOnClickListener { startMeasurements() }
         cancelBtn.setOnClickListener { finish() }
+        db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "signal-db").fallbackToDestructiveMigration().build()
+    }
 
-        db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "signal-db")
-            .fallbackToDestructiveMigration()
-            .build()
+    override fun onStart() {
+        super.onStart()
+        if (hasLocationPermission()) {
+            LocationStream.start(this)
+        } else {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), locationPermissionRequestCode)
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        LocationStream.stop()
     }
 
     private fun startMeasurements() {
@@ -100,26 +111,17 @@ class MeasureSourceActivity : AppCompatActivity() {
             while (isActive && samples.size < sampleCount && attempts < maxAttempts) {
                 progressTv.text = getString(R.string.measuring_progress, samples.size + 1, sampleCount)
 
-                val loc = getCurrentLocationSuspend(singleTimeoutMs)
+                val loc = waitForUniqueLocation(singleTimeoutMs, seenFixIds)
                 if (loc != null) {
-                    // Use the provider's fix time to determine uniqueness
-                    val fixId = if (loc.elapsedRealtimeNanos != 0L) {
-                        loc.elapsedRealtimeNanos
-                    } else {
-                        // Fallback to wall-clock timestamp scaled to ns to keep the same type
-                        loc.time * 1_000_000L
-                    }
-
-                    if (seenFixIds.add(fixId)) {
-                        samples.add(
-                            ReceivedSample(
-                                latitude = loc.latitude,
-                                longitude = loc.longitude,
-                                providerTimeMs = loc.time,
-                                providerElapsedNs = loc.elapsedRealtimeNanos,
-                            )
+                    val fixId = if (loc.elapsedRealtimeNanos != 0L) loc.elapsedRealtimeNanos else loc.time * 1_000_000L
+                    samples.add(
+                        ReceivedSample(
+                            latitude = loc.latitude,
+                            longitude = loc.longitude,
+                            providerTimeMs = loc.time,
+                            providerElapsedNs = loc.elapsedRealtimeNanos
                         )
-                    }
+                    )
                 } else {
                     progressTv.text = getString(R.string.sample_timed_out, samples.size + 1)
                 }
@@ -150,24 +152,34 @@ class MeasureSourceActivity : AppCompatActivity() {
             val stdLat = sqrt(latVars.average())
             val stdLon = sqrt(lonVars.average())
 
-            // persist the measured source position (id==0 row)
-            launch {
-                db.sourcePositionDao().upsert(SourcePosition(id = 0, latitude = meanLat, longitude = meanLon))
-            }
+            launch { db.sourcePositionDao().upsert(SourcePosition(id = 0, latitude = meanLat, longitude = meanLon)) }
 
             withContext(Dispatchers.Main) {
                 progressTv.text = getString(R.string.measuring_done, samples.size)
-                resultTv.text = getString(
-                    R.string.measurement_result,
-                    meanLat,
-                    meanLon,
-                    stdLat,
-                    stdLon
-                )
+                resultTv.text = getString(R.string.measurement_result, meanLat, meanLon, stdLat, stdLon)
                 startBtn.isEnabled = true
                 Toast.makeText(this@MeasureSourceActivity, getString(R.string.measurement_saved), Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private suspend fun waitForUniqueLocation(timeoutMs: Long, seen: Set<Long>): Location? {
+        val start = System.currentTimeMillis()
+        var lastCandidateId: Long? = null
+        while (System.currentTimeMillis() - start < timeoutMs) {
+            val loc = LocationStream.latest()
+            if (loc != null) {
+                val fixId = if (loc.elapsedRealtimeNanos != 0L) loc.elapsedRealtimeNanos else loc.time * 1_000_000L
+                if (fixId != lastCandidateId) {
+                    lastCandidateId = fixId
+                    if (!seen.contains(fixId)) {
+                        return loc
+                    }
+                }
+            }
+            delay(250L)
+        }
+        return null
     }
 
     private suspend fun getCurrentLocationSuspend(timeoutMs: Long = 3000L): Location? {

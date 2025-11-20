@@ -13,6 +13,8 @@
 #include <chrono>
 #include <ctime>
 
+#define LOG_FILE_PATH "logs"
+
 int main(int argc, char *argv[])
 {
     // Default logging configuration (can be overridden via command-line)
@@ -61,7 +63,7 @@ int main(int argc, char *argv[])
 
     try
     {
-        std::filesystem::path logs_dir("logs");
+        std::filesystem::path logs_dir(LOG_FILE_PATH);
         if (!std::filesystem::exists(logs_dir))
         {
             std::filesystem::create_directories(logs_dir);
@@ -77,7 +79,7 @@ int main(int argc, char *argv[])
         char buf[64];
         std::strftime(buf, sizeof(buf), "%Y%m%d_%H%M%S", &tmnow);
         std::string filename = std::string("signal-triangulation_") + buf + ".log";
-        std::filesystem::path log_file_path = (std::filesystem::path("logs") / filename).string();
+        std::filesystem::path log_file_path = (std::filesystem::path(LOG_FILE_PATH) / filename).string();
 
         auto file_logger = spdlog::basic_logger_mt("file_logger", log_file_path);
         spdlog::set_default_logger(file_logger);
