@@ -11,8 +11,8 @@
 namespace
 {
 	// clustering
-	static constexpr double DEFAULT_COALITION_DISTANCE_METERS = 3.0; // meters used to coalesce nearby points
-	static constexpr unsigned int CLUSTER_MIN_POINTS = 7u;			 // minimum points to form a cluster (3 points needed for AoA estimation)
+	static constexpr double DEFAULT_COALITION_DISTANCE_METERS = 1.0; // meters used to coalesce nearby points
+	static constexpr unsigned int CLUSTER_MIN_POINTS = 4u;			 // minimum points to form a cluster (3 points needed for AoA estimation)
 	static constexpr double CLUSTER_RATIO_SPLIT_THRESHOLD = 0.35;	 // geometric ratio threshold to split cluster
 
 	// optimization / search
@@ -21,6 +21,9 @@ namespace
 	// numeric tolerances
 	static constexpr double NORMAL_REGULARIZATION_EPS = 1e-12; // regularize normal equations diagonal
 	static constexpr double GAUSS_ELIM_PIVOT_EPS = 1e-15;	   // pivot threshold for Gaussian elimination
+
+	static constexpr bool FILTER_POINTS = false;			  // Enable filtering of isolated points
+	static constexpr double ISOLATION_THRESHOLD_METERS = 5.0; // Points further than this from ANY other point are discarded
 }
 
 namespace core
@@ -46,6 +49,125 @@ namespace core
 		m_points.insert(it, point);
 
 		spdlog::debug("ClusteredTriangulationAlgorithm: added DataPoint (x={}, y={}, rssi={}, timestamp={})", point.getX(), point.getY(), point.rssi, point.timestamp_ms);
+	}
+
+	void ClusteredTriangulationAlgorithm::reorderDataPointsByDistance(bool filterOutliers)
+	{
+		std::vector<DataPoint> points_to_process;
+
+		if (filterOutliers)
+		{
+			// ---------------------------------------------------------
+			// 1. Filter: Simple isolation check.
+			//    Keep a point if it has at least one neighbor within ISOLATION_THRESHOLD_METERS.
+			// ---------------------------------------------------------
+
+			points_to_process.reserve(m_points.size());
+			size_t discarded_count = 0;
+
+			for (size_t i = 0; i < m_points.size(); ++i)
+			{
+				bool has_neighbor = false;
+				for (size_t j = 0; j < m_points.size(); ++j)
+				{
+					if (i == j)
+						continue;
+
+					double dx = m_points[i].getX() - m_points[j].getX();
+					double dy = m_points[i].getY() - m_points[j].getY();
+					double dist = std::sqrt(dx * dx + dy * dy);
+
+					if (dist <= ISOLATION_THRESHOLD_METERS)
+					{
+						has_neighbor = true;
+						break; // Found a neighbor, this point is valid
+					}
+				}
+
+				if (has_neighbor)
+				{
+					points_to_process.push_back(m_points[i]);
+				}
+				else
+				{
+					discarded_count++;
+					spdlog::debug("ClusteredTriangulationAlgorithm: discarding isolated point (x={:.2f}, y={:.2f})", m_points[i].getX(), m_points[i].getY());
+				}
+			}
+
+			if (points_to_process.empty())
+			{
+				m_points.clear();
+				spdlog::warn("ClusteredTriangulationAlgorithm: all points discarded after filtering.");
+				return;
+			}
+
+			spdlog::info("ClusteredTriangulationAlgorithm: filtering complete. Kept {} points (discarded {} isolated points).",
+						 points_to_process.size(), discarded_count);
+		}
+		else
+		{
+			// No filtering requested, use all points
+			points_to_process = m_points;
+		}
+
+		// ---------------------------------------------------------
+		// 2. Reorder: Sort valid points by closest neighbor (Greedy Path)
+		// ---------------------------------------------------------
+
+		if (points_to_process.empty())
+		{
+			m_points.clear();
+			return;
+		}
+
+		std::vector<DataPoint> ordered_points;
+		ordered_points.reserve(points_to_process.size());
+		std::vector<bool> used(points_to_process.size(), false);
+
+		// Start with the first point (preserves original time-based start if valid)
+		ordered_points.push_back(points_to_process[0]);
+		used[0] = true;
+
+		while (ordered_points.size() < points_to_process.size())
+		{
+			const DataPoint &last_point = ordered_points.back();
+			double best_dist = std::numeric_limits<double>::max();
+			size_t best_idx = static_cast<size_t>(-1);
+
+			for (size_t i = 0; i < points_to_process.size(); ++i)
+			{
+				if (used[i])
+					continue;
+
+				double dx = last_point.getX() - points_to_process[i].getX();
+				double dy = last_point.getY() - points_to_process[i].getY();
+				double dist = std::sqrt(dx * dx + dy * dy);
+
+				if (dist < best_dist)
+				{
+					best_dist = dist;
+					best_idx = i;
+				}
+			}
+
+			if (best_idx != static_cast<size_t>(-1))
+			{
+				ordered_points.push_back(points_to_process[best_idx]);
+				used[best_idx] = true;
+			}
+			else
+			{
+				break; // Should not happen
+			}
+		}
+
+		m_points = std::move(ordered_points);
+
+		if (!filterOutliers)
+		{
+			spdlog::info("ClusteredTriangulationAlgorithm: reordered {} points (filtering disabled).", m_points.size());
+		}
 	}
 
 	void printPointsAndClusters(const std::vector<DataPoint> &points, std::vector<PointCluster> &clusters)
@@ -163,6 +285,8 @@ namespace core
 
 	void ClusteredTriangulationAlgorithm::calculatePosition(double &out_latitude, double &out_longitude)
 	{
+		reorderDataPointsByDistance(FILTER_POINTS);
+
 		clusterData();
 		estimateAoAForClusters();
 

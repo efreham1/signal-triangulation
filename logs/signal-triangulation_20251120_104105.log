@@ -1,4 +1,0 @@
-[2025-11-20 10:41:05.790] [file_logger] [info] Logging initialized. level=info
-[2025-11-20 10:41:05.790] [file_logger] [info] ClusteredTriangulationAlgorithm: formed 6 clusters from 46 data points
-[2025-11-20 10:41:05.790] [file_logger] [warning] ClusteredTriangulationAlgorithm: last cluster formed does not meet requirements
-[2025-11-20 10:41:05.790] [file_logger] [warning] ClusteredTriangulationAlgorithm: only 2 intersections found between cluster AoA lines

@@ -29,17 +29,18 @@ namespace core
         void processDataPoint(const DataPoint &point) override;
         void calculatePosition(double &out_latitude, double &out_longitude) override;
         void reset() override;
-
-    private:
+        
+        private:
         // Storage for received measurements. Implement clustering and additional
         // state in later iterations.
         std::vector<DataPoint> m_points;
-
+        
         std::vector<PointCluster> m_clusters;
-
+        
         // Internal helpers (stubs)
         void clusterData();
         void estimateAoAForClusters();
+        void reorderDataPointsByDistance(bool filterOutliers = true);
         double getCost(double x, double y);
         void gradientDescent(double &out_x, double &out_y, std::vector<std::pair<double, double>> intersections);
         std::vector<std::pair<double, double>> findIntersections();
