@@ -25,18 +25,18 @@ int main(int argc, char *argv[])
     for (int i = 1; i < argc; ++i)
     {
         std::string a = argv[i];
-        const std::string lvl_prefix = "--log-level=";
+        const std::string lvl_prefix = "--log-level";
         if (a.rfind(lvl_prefix, 0) == 0)
         {
-            log_level_str = a.substr(lvl_prefix.size());
+            log_level_str = argv[i+1];
         }
-        else if (a.rfind("--signals-file=", 0) == 0)
+        else if (a.rfind("--signals-file", 0) == 0)
         {
-            signalsFile = a.substr(std::string("--signals-file=").size());
+            signalsFile = argv[i+1];
         }
-        else if (a.rfind("--algorithm=", 0) == 0)
+        else if (a.rfind("--algorithm", 0) == 0)
         {
-            algorithmType = a.substr(std::string("--algorithm=").size());
+            algorithmType = argv[i+1];
         }
         else if (a == "--plotting-output")
         {

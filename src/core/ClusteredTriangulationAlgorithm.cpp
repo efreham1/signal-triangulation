@@ -204,28 +204,19 @@ namespace core
 		unsigned int current_cluster_size = 0;
 		for (const auto &point : m_points)
 		{
-			if (current_cluster_size < CLUSTER_MIN_POINTS)
+			if (current_cluster_size == 0)
 			{
-				if (current_cluster_size == 0)
-				{
-					// Start a new cluster
-					m_clusters.emplace_back();
-				}
-				m_clusters[cluster_id].addPoint(point, coalition_distance);
-				current_cluster_size = static_cast<unsigned int>(m_clusters[cluster_id].points.size());
+				m_clusters.emplace_back();
 			}
-			else
+
+			m_clusters[cluster_id].addPoint(point, coalition_distance);
+			current_cluster_size = static_cast<unsigned int>(m_clusters[cluster_id].points.size());
+			
+			auto &c = m_clusters[cluster_id];
+			if (c.geometricRatio() > CLUSTER_RATIO_SPLIT_THRESHOLD && current_cluster_size >= CLUSTER_MIN_POINTS)
 			{
-				auto &c = m_clusters[cluster_id];
-
-				m_clusters[cluster_id].addPoint(point, coalition_distance);
-				current_cluster_size = static_cast<unsigned int>(m_clusters[cluster_id].points.size());
-
-				if (c.geometricRatio() > CLUSTER_RATIO_SPLIT_THRESHOLD)
-				{
-					cluster_id++;
-					current_cluster_size = 0;
-				}
+				cluster_id++;
+				current_cluster_size = 0;
 			}
 		}
 		spdlog::info("ClusteredTriangulationAlgorithm: formed {} clusters from {} data points", m_clusters.size(), m_points.size());
