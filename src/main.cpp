@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
                 std::cout << "Missing value for " << lvl_prefix << std::endl;
                 return 1;
             }
-            log_level_str = argv[i + 1];
+            log_level_str = argv[++i];
         }
         else if (a.rfind("--signals-file", 0) == 0)
         {
@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
                 std::cout << "Missing value for --signals-file" << std::endl;
                 return 1;
             }
-            signalsFile = argv[i + 1];
+            signalsFile = argv[++i];
         }
         else if (a.rfind("--algorithm", 0) == 0)
         {
@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
                 std::cout << "Missing value for --algorithm" << std::endl;
                 return 1;
             }
-            algorithmType = argv[i + 1];
+            algorithmType = argv[++i];
         }
         else if (a == "--plotting-output")
         {
