@@ -19,6 +19,8 @@ namespace fs = std::filesystem;
 #error "APP_BIN_PATH not defined"
 #endif
 
+#define MAX_ALLOWED_ERROR_METERS 3.0
+
 static std::string runAppAndCapture(const std::string &exe, const std::string &arg1, const std::string &arg2)
 {
     std::string cmd = std::string("\"") + exe + "\" " + arg1 + " " + arg2;
@@ -29,7 +31,12 @@ static std::string runAppAndCapture(const std::string &exe, const std::string &a
     char buffer[4096];
     while (fgets(buffer, sizeof(buffer), pipe) != nullptr)
         output += buffer;
-    pclose(pipe);
+    int exitCode = pclose(pipe);
+    if (exitCode != 0)
+    {
+        std::cerr << "[DEBUG] Command failed with exit code " << exitCode << ": " << cmd << std::endl;
+        return {};
+    }
     return output;
 }
 
@@ -52,15 +59,15 @@ double calculateErrorForFile(const std::string &filePath)
     {
         ifs >> j;
     }
-    catch (...)
+    catch (const nlohmann::json::exception &e)
     {
         std::cerr << "[DEBUG] JSON parse failed: " << filePath << std::endl;
         return -1.0;
     }
 
-    if (!j.contains("source_pos"))
+    if (!j["source_pos"].contains("x") || !j["source_pos"].contains("y"))
     {
-        std::cerr << "[DEBUG] Missing 'source_pos' in JSON: " << filePath << std::endl;
+        std::cerr << "[DEBUG] Missing 'x' or 'y' in 'source_pos' in JSON: " << filePath << std::endl;
         return -1.0;
     }
     double srcLat = j["source_pos"]["x"].get<double>();
@@ -119,7 +126,16 @@ TEST(Triangulation, GlobalSummary)
     if (results.empty())
     {
         std::cout << "[   WARN   ] No valid recordings found in " << recDir << std::endl;
-        return; // Pass with warning
+        GTEST_SKIP() << "No valid recordings found" << recDir;
+    }
+
+    // Truncate long names for better table formatting
+    for (auto &r : results)
+    {
+        if (r.name.length() > 34)
+        {
+            r.name = "..." + r.name.substr(r.name.length() - 31);
+        }
     }
 
     // Print Summary Table
@@ -133,7 +149,7 @@ TEST(Triangulation, GlobalSummary)
     {
         std::cout << std::left << std::setw(35) << r.name
                   << "| " << std::fixed << std::setprecision(2) << std::setw(10) << r.error
-                  << "| " << (r.error < 3.0 ? "OK" : "HIGH") << "\n";
+                  << "| " << (r.error < MAX_ALLOWED_ERROR_METERS ? "OK" : "HIGH") << "\n";
     }
     std::cout << std::string(60, '-') << "\n";
 
@@ -145,5 +161,5 @@ TEST(Triangulation, GlobalSummary)
               << " m (across " << errors.size() << " files)\n";
     std::cout << std::string(60, '-') << "\n";
 
-    EXPECT_LT(avg, 3.0) << "Global average error is too high!";
+    EXPECT_LT(avg, MAX_ALLOWED_ERROR_METERS) << "Global average error is too high!";
 }
