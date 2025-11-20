@@ -17,7 +17,7 @@
     <string name="prompt_select_ssid_first">Please choose an SSID first</string>
     <string name="rssi_updated">RSSI updated: %1$d dBm @ %2$s</string>
 
-    <string name="network_unavailable_message">The selected network "%1$s" is not available right now, retrying...</string>
+    <string name="network_unavailable_message">The selected network "%1$s" is not available right now, retrying…</string>
 
     <string name="record_item">SSID: %1$s, Lat: %2$.6f, Lon: %3$.6f, RSSI: %4$d, Time: %5$s</string>
     <string name="start_recording">Start Recording</string>
@@ -28,8 +28,8 @@
     <string name="source_position_placeholder">Source pos: (empty)\n\n</string>
     <string name="source_position_label">Source pos: Lat %1$.6f, Lon %2$.6f\n\n</string>
 
-    <string name="measuring">Measuring...</string>
-    <string name="measuring_progress">Measuring %1$d/%2$d...</string>
+    <string name="measuring">Measuring…</string>
+    <string name="measuring_progress">Measuring %1$d/%2$d…</string>
     <string name="sample_timed_out">Sample %1$d timed out</string>
     <string name="no_location_samples">No location samples obtained.</string>
     <string name="measuring_done">Done (%1$d samples)</string>
@@ -45,6 +45,7 @@
     <string name="set_name">Set Name</string>
     <string name="measure_source">Measure new source position</string>
     <string name="start_measurement">Start measurement</string>
+    <string name="start_measurement_legacy">Start measurement (legacy)</string>
     <string name="back_to_main">Back to main</string>
     <string name="ready">Ready</string>
     <string name="measuring_incomplete">Measurement incomplete: obtained %1$d out of %2$d samples</string>
@@ -61,7 +62,7 @@
     <string name="accuracy_samples_header">Samples:\n</string>
     <string name="measure_start_button">Measure Start (%1$d samples)</string>
     <string name="location_perm_required">Location permission required</string>
-    <string name="measuring_start_collecting">Measuring start position...\nCollecting %1$d samples</string>
+    <string name="measuring_start_collecting">Measuring start position…\nCollecting %1$d samples</string>
     <string name="start_set">Start set:\nlat=%1$.6f  lon=%2$.6f</string>
     <string name="failed_collect_samples">Failed to collect enough samples for start position</string>
     <string name="measure_current_location">Measure Current Location</string>
@@ -85,8 +86,8 @@
     <string name="invalid_number">Invalid number</string>
 
     <!-- Start measurement sampling -->
-    <string name="measuring_collected">Measuring start position...\nCollected %1$d / %2$d</string>
-    <string name="waiting_unique_fix">Waiting for unique GPS fix...</string>
+    <string name="measuring_collected">Measuring start position…\nCollected %1$d / %2$d</string>
+    <string name="waiting_unique_fix">Waiting for unique GPS fix…</string>
     <string name="sample_line">%1$2d) lat=%2$.6f  lon=%3$.6f  acc=%4$s m  t=%5$s</string>
     <string name="mean_line">&#10;Mean: lat=%1$.6f  lon=%2$.6f&#10;</string>
 
@@ -108,5 +109,6 @@
     <string name="summary_samples_header">Samples:</string>
     <string name="summary_sample_line">%1$2d) user=%2$6.2f gps=%3$6.2f err=%4$+6.2f  cumUser=%5$6.2f cumGps=%6$6.2f%7$s  from=(%8$.6f,%9$.6f) to=(%10$.6f,%11$.6f)</string>
     <string name="summary_direct_suffix"> direct=%1$.2f</string>
+    <string name="collecting_stream_samples_s">Collecting stream samples… %1$ds</string>
 
 </resources>
