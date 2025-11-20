@@ -28,15 +28,30 @@ int main(int argc, char *argv[])
         const std::string lvl_prefix = "--log-level";
         if (a.rfind(lvl_prefix, 0) == 0)
         {
-            log_level_str = argv[i+1];
+            if (i + 1 >= argc)
+            {
+                std::cout << "Missing value for " << lvl_prefix << std::endl;
+                return 1;
+            }
+            log_level_str = argv[i + 1];
         }
         else if (a.rfind("--signals-file", 0) == 0)
         {
-            signalsFile = argv[i+1];
+            if (i + 1 >= argc)
+            {
+                std::cout << "Missing value for --signals-file" << std::endl;
+                return 1;
+            }
+            signalsFile = argv[i + 1];
         }
         else if (a.rfind("--algorithm", 0) == 0)
         {
-            algorithmType = argv[i+1];
+            if (i + 1 >= argc)
+            {
+                std::cout << "Missing value for --algorithm" << std::endl;
+                return 1;
+            }
+            algorithmType = argv[i + 1];
         }
         else if (a == "--plotting-output")
         {
@@ -102,6 +117,7 @@ int main(int argc, char *argv[])
     else
     {
         spdlog::error("Unknown algorithm type: {}", algorithmType);
+        std::cout << "Unknown algorithm type: " << algorithmType << std::endl;
         return 1;
     }
 
@@ -117,6 +133,7 @@ int main(int argc, char *argv[])
     catch (const std::exception &ex)
     {
         spdlog::error("Failed to parse signals file '{}': {}", signalsFile, ex.what());
+        std::cout << "Failed to parse signals file '" << signalsFile << "': " << ex.what() << std::endl;
         return 1;
     }
     try
@@ -130,6 +147,7 @@ int main(int argc, char *argv[])
     catch (const std::exception &ex)
     {
         spdlog::error("Error processing data points: {}", ex.what());
+        std::cout << "Error processing data points: " << ex.what() << std::endl;
         return 1;
     }
 
@@ -140,12 +158,13 @@ int main(int argc, char *argv[])
     {
         algorithm->calculatePosition(latitude, longitude);
     }
-    catch(const std::exception &ex)
+    catch (const std::exception &ex)
     {
         spdlog::error("Error calculating position: {}", ex.what());
+        std::cout << "Error calculating position: " << ex.what() << std::endl;
         return 1;
     }
-    
+
     if (!plottingEnabled)
     {
         std::cout << "Calculated Position: Latitude = " << std::setprecision(10) << latitude

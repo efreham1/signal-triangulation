@@ -167,7 +167,7 @@ namespace core
 
 		double global_best_x = 0.0;
 		double global_best_y = 0.0;
-		
+
 		gradientDescent(global_best_x, global_best_y, intersections);
 
 		// print x and y of resulting point
@@ -211,7 +211,6 @@ namespace core
 
 			m_clusters[cluster_id].addPoint(point, coalition_distance);
 			current_cluster_size = static_cast<unsigned int>(m_clusters[cluster_id].points.size());
-			
 			auto &c = m_clusters[cluster_id];
 			if (c.geometricRatio() > CLUSTER_RATIO_SPLIT_THRESHOLD && current_cluster_size >= CLUSTER_MIN_POINTS)
 			{

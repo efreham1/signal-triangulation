@@ -1,0 +1,5 @@
+[2025-11-20 10:50:12.721] [file_logger] [info] Logging initialized. level=info
+[2025-11-20 10:50:12.721] [file_logger] [info] ClusteredTriangulationAlgorithm: formed 2 clusters from 25 data points
+[2025-11-20 10:50:12.721] [file_logger] [warning] ClusteredTriangulationAlgorithm: only 2 clusters formed; AoA estimation may be unreliable
+[2025-11-20 10:50:12.721] [file_logger] [warning] ClusteredTriangulationAlgorithm: only 0 intersections found between cluster AoA lines
+[2025-11-20 10:50:12.721] [file_logger] [error] Error calculating position: ClusteredTriangulationAlgorithm: no intersections found between cluster AoA lines

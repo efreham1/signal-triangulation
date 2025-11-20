@@ -54,7 +54,7 @@ TEST(Triangulation, DistanceCheckForFile)
     double srcLon = j["source_pos"]["y"].get<double>();
 
     // Run app and capture stdout (expects the line: "New position calculated: Lat=..., Lon=...")
-    std::string out = runAppAndCapture(APP_BIN_PATH, std::string("--signals-file2"), std::string("\"" + filePath + "\"");
+    std::string out = runAppAndCapture(APP_BIN_PATH, std::string("--signals-file2"), std::string("\"" + filePath + "\""));
     std::regex re(R"(Calculated Position: Latitude\s*=\s*([0-9\.\-eE]+)\s*,\s*Longitude\s*=\s*([0-9\.\-eE]+))");
     std::smatch m;
     ASSERT_TRUE(std::regex_search(out, m, re) && m.size() >= 3)
