@@ -1,5 +1,5 @@
-#ifndef CLUSTERED_TRIANGULATION_ALGORITHM_H
-#define CLUSTERED_TRIANGULATION_ALGORITHM_H
+#ifndef CLUSTERED_TRIANGULATION_ALGORITHM2_H
+#define CLUSTERED_TRIANGULATION_ALGORITHM2_H
 
 #include "ITriangulationAlgorithm.h"
 #include "DataPoint.h"
@@ -13,21 +13,21 @@ namespace core
 {
 
     /**
-     * @class ClusteredTriangulationAlgorithm
+     * @class ClusteredTriangulationAlgorithm2
      * @brief Skeleton for the cluster-based triangulation algorithm described in the
      * design notes. This file provides method stubs and a minimal data model so the
      * class can be compiled and integrated; algorithmic details should be implemented
      * in subsequent iterations.
      */
-    class ClusteredTriangulationAlgorithm : public ITriangulationAlgorithm
+    class ClusteredTriangulationAlgorithm2 : public ITriangulationAlgorithm
     {
     public:
-        ClusteredTriangulationAlgorithm();
-        ~ClusteredTriangulationAlgorithm() override;
+        ClusteredTriangulationAlgorithm2();
+        ~ClusteredTriangulationAlgorithm2() override;
 
         // ITriangulationAlgorithm interface
         void processDataPoint(const DataPoint &point) override;
-        void calculatePosition(double &out_latitude, double &out_longitude) override;
+        void calculatePosition(double &out_latitude, double &out_longitude, double precision, double timeout) override;
         void reset() override;
 
     private:
@@ -41,12 +41,11 @@ namespace core
         void clusterData();
         void estimateAoAForClusters();
         double getCost(double x, double y);
-        void gradientDescent(double &out_x, double &out_y, std::vector<std::pair<double, double>> intersections);
-        std::vector<std::pair<double, double>> findIntersections();
+        void bruteForceSearch(double &out_x, double &out_y, double precision, double timeout);
     };
 
-    std::vector<double> getNormalVector(const std::vector<double> &x, const std::vector<double> &y, const std::vector<double> &z);
+    std::vector<double> getNormalVector2(const std::vector<double> &x, const std::vector<double> &y, const std::vector<double> &z);
 
 } // namespace core
 
-#endif // CLUSTERED_TRIANGULATION_ALGORITHM_H
+#endif // CLUSTERED_TRIANGULATION_ALGORITHM2_H

@@ -21,7 +21,7 @@ namespace core
 
         virtual ~ITriangulationAlgorithm() = default;
         virtual void processDataPoint(const DataPoint &point) = 0;
-        virtual void calculatePosition(double &out_latitude, double &out_longitude) = 0;
+        virtual void calculatePosition(double &out_latitude, double &out_longitude, double precision, double timeout) = 0;
         virtual void reset() = 0;
     };
 
