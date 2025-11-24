@@ -32,8 +32,9 @@ object LocationStream {
 
         val appCtx = context.applicationContext
         val client = LocationServices.getFusedLocationProviderClient(appCtx)
-        val req = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000L)
-            .setMinUpdateIntervalMillis(250L)
+        // Increased frequency: 500ms interval
+        val req = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 500L)
+            .setMinUpdateIntervalMillis(100L)
             .build()
 
         val cb = object : LocationCallback() {
@@ -81,9 +82,16 @@ object LocationStream {
      * Returns the average location and the list of samples used.
      */
     fun getAveragedLocationAndSamples(durationMs: Long): Pair<Location, List<Location>>? {
-        val now = System.currentTimeMillis()
+        return getAveragedLocationAndSamplesFrom(System.currentTimeMillis(), durationMs)
+    }
+
+    /**
+     * Calculates a weighted average location from samples looking back [durationMs] from [fromTimeMs].
+     * Returns the average location and the list of samples used.
+     */
+    fun getAveragedLocationAndSamplesFrom(fromTimeMs: Long, durationMs: Long): Pair<Location, List<Location>>? {
         val samples = synchronized(buffer) {
-            buffer.filter { (now - it.time) <= durationMs && (now - it.time) >= 0 }
+            buffer.filter { it.time <= fromTimeMs && (fromTimeMs - it.time) <= durationMs }
         }
 
         if (samples.isEmpty()) return null
@@ -113,7 +121,7 @@ object LocationStream {
         val result = Location("weighted_avg")
         result.latitude = avgLat
         result.longitude = avgLon
-        result.time = now
+        result.time = fromTimeMs
         // Estimate resulting accuracy (heuristic: best sample accuracy / sqrt(N))
         result.accuracy = (bestAcc / sqrt(samples.size.toFloat()))
 
