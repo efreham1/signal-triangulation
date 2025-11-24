@@ -104,13 +104,11 @@ class MeasureSourceActivity : AppCompatActivity() {
             if (avgLoc != null) {
                 launch { db.sourcePositionDao().upsert(SourcePosition(id = 0, latitude = avgLoc.latitude, longitude = avgLoc.longitude)) }
                 
-                withContext(Dispatchers.Main) {
-                    progressTv.text = getString(R.string.measuring_done, sampleCount)
-                    // Note: std dev is not calculated in the stream method currently, passing 0.0
-                    resultTv.text = getString(R.string.measurement_result, avgLoc.latitude, avgLoc.longitude, 0.0, 0.0)
-                    Toast.makeText(this@MeasureSourceActivity, getString(R.string.measurement_saved), Toast.LENGTH_SHORT).show()
-                    setResult(RESULT_OK)
-                }
+                progressTv.text = getString(R.string.measuring_done, sampleCount)
+                // Note: std dev is not calculated in the stream method currently, passing 0.0
+                resultTv.text = getString(R.string.measurement_result, avgLoc.latitude, avgLoc.longitude, 0.0, 0.0)
+                Toast.makeText(this@MeasureSourceActivity, getString(R.string.measurement_saved), Toast.LENGTH_SHORT).show()
+                setResult(RESULT_OK)
             } else {
                 progressTv.text = getString(R.string.no_location_samples)
             }
