@@ -14,10 +14,10 @@ namespace core
 
     /**
      * @class ClusteredTriangulationAlgorithm2
-     * @brief Skeleton for the cluster-based triangulation algorithm described in the
-     * design notes. This file provides method stubs and a minimal data model so the
-     * class can be compiled and integrated; algorithmic details should be implemented
-     * in subsequent iterations.
+     * @brief Cluster-based triangulation algorithm implementing a brute force search
+     * for position estimation. This class processes received measurements and applies
+     * a brute force search to estimate the target position. Clustering and AoA estimation
+     * are planned for future enhancements.
      */
     class ClusteredTriangulationAlgorithm2 : public ITriangulationAlgorithm
     {
