@@ -183,16 +183,16 @@ def plot_composite_3d_surface(X, Y, Z, result_point=None, source_point=None, out
         try:
             rz = get_z(rx, ry)
             ax.scatter([rx], [ry], [rz], c='gold', marker='*', s=200, edgecolors='black', label='result', zorder=10)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Warning: Could not plot result point at ({rx}, {ry}): {e}")
         
     if source_point is not None:
         sx, sy = source_point
         try:
             sz = get_z(sx, sy)
             ax.scatter([sx], [sy], [sz], c='cyan', marker='P', s=150, edgecolors='black', label='source', zorder=10)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Warning: Could not plot source point at ({sx}, {sy}): {e}")
 
     ax.set_title('Composite 3D Cost Surface')
     ax.set_xlabel('X (meters)')
