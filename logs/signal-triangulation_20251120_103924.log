@@ -1,0 +1,3 @@
+[2025-11-20 10:39:24.785] [file_logger] [info] Logging initialized. level=info
+[2025-11-20 10:39:24.786] [file_logger] [info] ClusteredTriangulationAlgorithm: formed 8 clusters from 165 data points
+[2025-11-20 10:39:24.786] [file_logger] [warning] ClusteredTriangulationAlgorithm: last cluster formed does not meet requirements

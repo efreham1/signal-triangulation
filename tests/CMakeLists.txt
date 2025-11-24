@@ -49,19 +49,7 @@ else()
   set(APP_BIN "${CMAKE_BINARY_DIR}/${APP_TARGET_NAME}")
 endif()
 
-target_compile_definitions(triangulation_tests PRIVATE APP_BIN_PATH=\"${APP_BIN}\")
-
-# One CTest test per JSON file for the triangulation suite
-file(GLOB RECORDING_JSONS "${CMAKE_SOURCE_DIR}/recordings/*.json")
-
-foreach(json_file IN LISTS RECORDING_JSONS)
-  get_filename_component(stem "${json_file}" NAME_WE)
-  string(REGEX REPLACE "[^A-Za-z0-9]" "_" test_name "${stem}")
-
-  add_test(NAME "location_${test_name}"
-    COMMAND triangulation_tests --gtest_filter=Triangulation.DistanceCheckForFile)
-  set_tests_properties("location_${test_name}" PROPERTIES
-    ENVIRONMENT "JSON_FILE=${json_file}"
-    LABELS "location"
-  )
-endforeach()
+target_compile_definitions(triangulation_tests PRIVATE 
+    APP_BIN_PATH=\"${APP_BIN}\"
+    RECORDINGS_DIR=\"${CMAKE_SOURCE_DIR}/recordings\"
+)

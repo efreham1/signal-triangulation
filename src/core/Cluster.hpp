@@ -6,6 +6,7 @@
 #include <limits>
 #include <utility>
 #include <vector>
+#include <spdlog/spdlog.h>
 
 namespace core
 {
@@ -45,6 +46,7 @@ namespace core
                 {
                     furthest_distance = dist;
                     points_furthest_between = std::make_pair(i, static_cast<unsigned int>(points.size()));
+                    spdlog::debug("PointCluster: updated furthest distance to {} between points {} and {}", furthest_distance, i, points.size());
                 }
             }
             points.push_back(point);
@@ -58,6 +60,8 @@ namespace core
             double previous_total_y = centroid_y * static_cast<double>(points.size() - 1);
             centroid_x = (previous_total_x + point.getX()) / static_cast<double>(points.size());
             centroid_y = (previous_total_y + point.getY()) / static_cast<double>(points.size());
+
+            spdlog::debug("PointCluster: added point (x={}, y={}, rssi={}), new centroid (x={}, y={}), avg_rssi={}", point.getX(), point.getY(), point.rssi, centroid_x, centroid_y, avg_rssi);
         }
 
         void addPoint(const DataPoint &point, double coalition_distance)
@@ -69,6 +73,8 @@ namespace core
                               (existing_point.getY() - point.getY()) * (existing_point.getY() - point.getY());
                 if (dist <= coalition_distance * coalition_distance)
                 {
+                    spdlog::debug("PointCluster: coalesced point (x={}, y={}, rssi={}) into existing point (x={}, y={}, rssi={}), new centroid (x={}, y={}), avg_rssi={}", point.getX(), point.getY(), point.rssi, existing_point.getX(), existing_point.getY(), existing_point.rssi, centroid_x, centroid_y, avg_rssi);
+                    
                     // Point is close enough to be coalesced into this point
                     centroid_x = centroid_x * static_cast<double>(points.size()) - existing_point.getX();
                     centroid_y = centroid_y * static_cast<double>(points.size()) - existing_point.getY();
@@ -85,8 +91,10 @@ namespace core
 
                     avg_rssi = (avg_rssi + existing_point.rssi) / static_cast<double>(points.size());
 
+
                     if (points_furthest_between.first == i || points_furthest_between.second == i)
                     {
+                        spdlog::debug("PointCluster: recomputing furthest points after coalescing affected point {}", i);
                         // Recalculate furthest points
                         furthest_distance = 0.0;
                         for (int m = 0; m < static_cast<int>(points.size()); ++m)
@@ -102,6 +110,7 @@ namespace core
                                 }
                             }
                         }
+                        spdlog::debug("PointCluster: recomputed furthest distance to {} between points {} and {}", furthest_distance, points_furthest_between.first, points_furthest_between.second);
                     }
                     return;
                 }
@@ -123,6 +132,7 @@ namespace core
             int idx2 = points_furthest_between.second;
             if (idx1 < 0 || idx2 < 0 || idx1 >= static_cast<int>(points.size()) || idx2 >= static_cast<int>(points.size()))
             {
+                spdlog::debug("PointCluster: furthest point indices invalid ({} , {}), recomputing", idx1, idx2);
                 double best_d = 0.0;
                 for (int i = 0; i < static_cast<int>(points.size()); ++i)
                 {
@@ -141,6 +151,7 @@ namespace core
                 }
                 furthest_distance = best_d;
                 points_furthest_between = std::make_pair(idx1, idx2);
+                spdlog::debug("PointCluster: recomputed furthest distance to {} between points {} and {}", furthest_distance, idx1, idx2);
             }
 
             // Get unit vector along the line between the two furthest points
@@ -161,6 +172,8 @@ namespace core
             // Perpendicular unit vector
             double vx = -uy;
             double vy = ux;
+
+            spdlog::debug("PointCluster: furthest points are {} (x={}, y={}) and {} (x={}, y={}), unit vector ({}, {}), perpendicular ({}, {})", idx1, x1, y1, idx2, x2, y2, ux, uy, vx, vy);
 
             // Project points into this coordinate system (origin at centroid)
             double min_u = std::numeric_limits<double>::infinity();
