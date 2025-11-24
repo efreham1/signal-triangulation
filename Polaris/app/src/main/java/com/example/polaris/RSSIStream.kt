@@ -10,8 +10,11 @@ import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.*
+import java.lang.ref.WeakReference
+import kotlin.coroutines.resume
 import kotlin.math.abs
 
+@Suppress("DEPRECATION")
 object RSSIStream {
     data class ScanBatch(val timestamp: Long, val results: List<ScanResult>)
 
@@ -20,12 +23,12 @@ object RSSIStream {
     private var wifiManager: WifiManager? = null
     private var scanReceiver: BroadcastReceiver? = null
     private var started = false
-    private var context: Context? = null
+    private var contextRef: WeakReference<Context>? = null
 
     // Scanning loop
     private var scanJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.Main)
-    private const val SCAN_INTERVAL_MS = 10000L // 10s throttle
+    private const val SCAN_INTERVAL_MS = 100L // request scans aggressively
 
     // Listeners for new data
     private val listeners = mutableListOf<(ScanBatch) -> Unit>()
@@ -37,8 +40,9 @@ object RSSIStream {
                       ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
         if (!hasPerm) return
 
-        context = ctx.applicationContext
-        wifiManager = context?.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+        val appContext = ctx.applicationContext
+        contextRef = WeakReference(appContext)
+        wifiManager = appContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
 
         scanReceiver = object : BroadcastReceiver() {
             override fun onReceive(c: Context, intent: Intent) {
@@ -50,7 +54,7 @@ object RSSIStream {
         }
 
         val filter = IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION)
-        context?.registerReceiver(scanReceiver, filter)
+        appContext.registerReceiver(scanReceiver, filter)
         started = true
 
         startScanningLoop()
@@ -60,13 +64,13 @@ object RSSIStream {
         if (!started) return
         scanJob?.cancel()
         try {
-            context?.unregisterReceiver(scanReceiver)
-        } catch (e: Exception) {
+            contextRef?.get()?.unregisterReceiver(scanReceiver)
+        } catch (_: Exception) {
             // ignore
         }
         scanReceiver = null
         wifiManager = null
-        context = null
+        contextRef = null
         started = false
         synchronized(buffer) { buffer.clear() }
     }
@@ -79,13 +83,28 @@ object RSSIStream {
         synchronized(listeners) { listeners.remove(listener) }
     }
 
+    fun requestImmediateScan() {
+        if (!started) return
+        scope.launch {
+            @Suppress("DEPRECATION")
+            wifiManager?.startScan()
+        }
+    }
+
     private fun startScanningLoop() {
         scanJob?.cancel()
         scanJob = scope.launch {
             while (isActive && started) {
                 @Suppress("DEPRECATION")
-                wifiManager?.startScan()
-                delay(SCAN_INTERVAL_MS)
+                val success = wifiManager?.startScan() ?: false
+                
+                // If the scan request failed (e.g. throttling), wait a bit longer before retrying
+                // otherwise wait the minimal interval
+                if (success) {
+                    delay(SCAN_INTERVAL_MS)
+                } else {
+                    delay(2000L) // Back off slightly if throttled
+                }
             }
         }
     }
@@ -103,19 +122,68 @@ object RSSIStream {
             }
 
             synchronized(listeners) {
-                listeners.forEach { it(batch) }
+                listeners.toList().forEach { it(batch) }
             }
-        } catch (e: SecurityException) {
+        } catch (_: SecurityException) {
             // Permission might have been revoked
         }
     }
 
     fun latest(): ScanBatch? = synchronized(buffer) { buffer.firstOrNull() }
 
+    /**
+     * Currently unused
+     */
     fun nearestByWallClock(targetTimeMs: Long, maxDeltaMs: Long = 5000L): ScanBatch? =
         synchronized(buffer) {
             val best = buffer.minByOrNull { abs(it.timestamp - targetTimeMs) } ?: return null
             val delta = abs(best.timestamp - targetTimeMs)
             if (delta <= maxDeltaMs) best else null
         }
+
+    /**
+     * Returns the first RSSI measurement for the given SSID that occurs after [afterTimeMs].
+     * This is used to wait for a fresh RSSI reading after the user presses the measurement button.
+     */
+    fun getFirstRSSIAfter(ssid: String, afterTimeMs: Long): Pair<Int, Long>? =
+        synchronized(buffer) {
+            buffer.firstOrNull { batch ->
+                batch.timestamp >= afterTimeMs && batch.results.any { it.SSID == ssid }
+            }?.let { batch ->
+                val rssi = batch.results.first { it.SSID == ssid }.level
+                rssi to batch.timestamp
+            }
+        }
+
+    /**
+     * Suspends until a fresh RSSI reading for [ssid] is available after [afterTimeMs].
+     */
+    suspend fun awaitFirstRSSIAfter(ssid: String, afterTimeMs: Long): Pair<Int, Long> = suspendCancellableCoroutine { cont ->
+        // 1. Check if we already have it in buffer
+        val existing = getFirstRSSIAfter(ssid, afterTimeMs)
+        if (existing != null) {
+            cont.resume(existing)
+            return@suspendCancellableCoroutine
+        }
+
+        // 2. If not, listen for new batches
+        val listener = object : (ScanBatch) -> Unit {
+            override fun invoke(batch: ScanBatch) {
+                if (batch.timestamp >= afterTimeMs) {
+                    val match = batch.results.firstOrNull { it.SSID == ssid }
+                    if (match != null) {
+                        removeListener(this)
+                        if (cont.isActive) {
+                            cont.resume(match.level to batch.timestamp)
+                        }
+                    }
+                }
+            }
+        }
+        addListener(listener)
+
+        cont.invokeOnCancellation {
+            removeListener(listener)
+        }
+    }
 }

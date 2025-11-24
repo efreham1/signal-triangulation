@@ -3,7 +3,6 @@
     <string name="ssid_prompt">Select SSID:</string>
     <string name="placeholder_db">Database entries will appear here</string>
     <string name="exported_to">Exported to:\n%1$s</string>
-    <string name="no_data_export">No data to export.</string>
     <string name="clean_records">Delete Recordings</string>
     <string name="export_json">Export to JSON</string>
     <string name="choose_ssid">Choose SSID</string>
@@ -17,13 +16,7 @@
     <string name="prompt_select_ssid_first">Please choose an SSID first</string>
     <string name="rssi_updated">RSSI updated: %1$d dBm @ %2$s</string>
 
-    <string name="network_unavailable_message">The selected network "%1$s" is not available right now, retrying…</string>
-
     <string name="record_item">SSID: %1$s, Lat: %2$.6f, Lon: %3$.6f, RSSI: %4$d, Time: %5$s</string>
-    <string name="start_recording">Start Recording</string>
-    <string name="stop_recording">Stop Recording</string>
-    <string name="recording_started">Recording started</string>
-    <string name="recording_stopped">Recording stopped</string>
 
     <string name="source_position_placeholder">Source pos: (empty)\n\n</string>
     <string name="source_position_label">Source pos: Lat %1$.6f, Lon %2$.6f\n\n</string>
@@ -35,7 +28,6 @@
     <string name="measuring_done">Done (%1$d samples)</string>
     <string name="measurement_result">Mean: lat=%1$.6f lon=%2$.6f\nStd dev: lat=%3$.6f lon=%4$.6f</string>
     <string name="measurement_saved">Measurement saved as source position</string>
-    <string name="source_position">Source pos: lat=%1$.6f lon=%2$.6f\n\n</string>
 
     <string name="placeholder_source">No source selected</string>
     <string name="selected_source">Selected Source: %1$s</string>
@@ -48,13 +40,18 @@
     <string name="start_measurement_legacy">Start measurement (legacy)</string>
     <string name="back_to_main">Back to main</string>
     <string name="ready">Ready</string>
-    <string name="measuring_incomplete">Measurement incomplete: obtained %1$d out of %2$d samples</string>
 
     <string name="free_text_hint">Enter text here (Optional)</string>
     <string name="free_text_title">Add free text:</string>
     <string name="free_text_positive">Add</string>
 
     <string name="open_accuracy_test">Open Location Accuracy Test</string>
+    <string name="take_measurement">Measure</string>
+    <string name="status_ready">Ready for new measurement</string>
+    <string name="status_no_ssid">Select a network first</string>
+    <string name="status_waiting_rssi">Stand still, waiting for RSSI…</string>
+    <string name="status_measurement_taken">Measurement complete! Move to the next location.</string>
+    <string name="status_measurement_failed">No GPS data for this measurement</string>
     <string name="accuracy_test_title">Location Accuracy Test</string>
     <string name="accuracy_test_body">This page will run accuracy experiments</string>
     <string name="close">Close</string>
@@ -86,8 +83,6 @@
     <string name="invalid_number">Invalid number</string>
 
     <!-- Start measurement sampling -->
-    <string name="measuring_collected">Measuring start position…\nCollected %1$d / %2$d</string>
-    <string name="waiting_unique_fix">Waiting for unique GPS fix…</string>
     <string name="sample_line">%1$2d) lat=%2$.6f  lon=%3$.6f  acc=%4$s m  t=%5$s</string>
     <string name="mean_line">&#10;Mean: lat=%1$.6f  lon=%2$.6f&#10;</string>
 

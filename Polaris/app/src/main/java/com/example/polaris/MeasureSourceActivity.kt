@@ -138,7 +138,7 @@ class MeasureSourceActivity : AppCompatActivity() {
             while (isActive && samples.size < sampleCount && attempts < maxAttempts) {
                 progressTv.text = getString(R.string.measuring_progress, samples.size + 1, sampleCount)
 
-                val loc = waitForUniqueLocation(singleTimeoutMs, seenFixIds)
+                val loc = waitForUniqueLocation(seenFixIds)
                 if (loc != null) {
                     val fixId = if (loc.elapsedRealtimeNanos != 0L) loc.elapsedRealtimeNanos else loc.time * 1_000_000L
                     seenFixIds.add(fixId)
@@ -194,10 +194,10 @@ class MeasureSourceActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun waitForUniqueLocation(timeoutMs: Long, seen: Set<Long>): Location? {
+    private suspend fun waitForUniqueLocation(seen: Set<Long>): Location? {
         val start = System.currentTimeMillis()
         var lastCandidateId: Long? = null
-        while (System.currentTimeMillis() - start < timeoutMs) {
+        while (System.currentTimeMillis() - start < singleTimeoutMs) {
             val loc = LocationStream.latest()
             if (loc != null) {
                 val fixId = if (loc.elapsedRealtimeNanos != 0L) loc.elapsedRealtimeNanos else loc.time * 1_000_000L
