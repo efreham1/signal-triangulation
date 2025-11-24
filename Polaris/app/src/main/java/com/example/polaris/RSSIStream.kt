@@ -159,32 +159,38 @@ object RSSIStream {
     /**
      * Suspends until a fresh RSSI reading for [ssid] is available after [afterTimeMs].
      */
-    suspend fun awaitFirstRSSIAfter(ssid: String, afterTimeMs: Long): Pair<Int, Long> = suspendCancellableCoroutine { cont ->
-        // 1. Check if we already have it in buffer
-        val existing = getFirstRSSIAfter(ssid, afterTimeMs)
-        if (existing != null) {
-            cont.resume(existing)
-            return@suspendCancellableCoroutine
-        }
+    suspend fun awaitFirstRSSIAfter(
+        ssid: String,
+        afterTimeMs: Long,
+        timeoutMs: Long = 10_000L // default timeout 10 seconds
+    ): Pair<Int, Long> = withTimeout(timeoutMs) {
+        suspendCancellableCoroutine { cont ->
+            // 1. Check if we already have it in buffer
+            val existing = getFirstRSSIAfter(ssid, afterTimeMs)
+            if (existing != null) {
+                cont.resume(existing)
+                return@suspendCancellableCoroutine
+            }
 
-        // 2. If not, listen for new batches
-        val listener = object : (ScanBatch) -> Unit {
-            override fun invoke(batch: ScanBatch) {
-                if (batch.timestamp >= afterTimeMs) {
-                    val match = batch.results.firstOrNull { it.SSID == ssid }
-                    if (match != null) {
-                        removeListener(this)
-                        if (cont.isActive) {
-                            cont.resume(match.level to batch.timestamp)
+            // 2. If not, listen for new batches
+            val listener = object : (ScanBatch) -> Unit {
+                override fun invoke(batch: ScanBatch) {
+                    if (batch.timestamp >= afterTimeMs) {
+                        val match = batch.results.firstOrNull { it.SSID == ssid }
+                        if (match != null) {
+                            removeListener(this)
+                            if (cont.isActive) {
+                                cont.resume(match.level to batch.timestamp)
+                            }
                         }
                     }
                 }
             }
-        }
-        addListener(listener)
+            addListener(listener)
 
-        cont.invokeOnCancellation {
-            removeListener(listener)
+            cont.invokeOnCancellation {
+                removeListener(listener)
+            }
         }
     }
 }
