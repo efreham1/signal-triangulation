@@ -26,7 +26,7 @@
     <string name="sample_timed_out">Sample %1$d timed out</string>
     <string name="no_location_samples">No location samples obtained.</string>
     <string name="measuring_done">Done (%1$d samples)</string>
-    <string name="measurement_result">Mean: lat=%1$.6f lon=%2$.6f\nStd dev: lat=%3$.6f lon=%4$.6f</string>
+    <string name="measurement_result">Mean: lat=%1$.6f lon=%2$.6f\n</string>
     <string name="measurement_saved">Measurement saved as source position</string>
 
     <string name="placeholder_source">No source selected</string>
@@ -50,7 +50,7 @@
     <string name="status_ready">Ready for new measurement</string>
     <string name="status_no_ssid">Select a network first</string>
     <string name="status_waiting_rssi">Stand still, waiting for RSSI…</string>
-    <string name="status_measurement_taken">Measurement complete! Move to the next location.</string>
+    <string name="status_measurement_taken">Measurement complete (%1$d)! Move to the next location.</string>
     <string name="status_measurement_failed">No GPS data for this measurement</string>
     <string name="accuracy_test_title">Location Accuracy Test</string>
     <string name="accuracy_test_body">This page will run accuracy experiments</string>

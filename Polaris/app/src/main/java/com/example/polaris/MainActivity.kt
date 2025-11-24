@@ -130,6 +130,7 @@ class MainActivity : AppCompatActivity() {
     // Session-only name for the source position
     private var sessionSourceName: String? = null
     private var isMeasuringSource = false
+    private var measurementOffsetMs = 5_000L
 
     private val deviceID: String by lazy {
         Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID) ?: "unknown"
@@ -170,8 +171,6 @@ class MainActivity : AppCompatActivity() {
         RSSIStream.requestImmediateScan()
         
         startMeasurementLoop() // Start the smooth timer and measurement logic
-
-        
     }
 
     private fun startMeasurementLoop() {
@@ -180,7 +179,7 @@ class MainActivity : AppCompatActivity() {
             statusText.text = getString(R.string.status_waiting_rssi)
             try {
                 val target = measurementTargetSsid ?: return@launch
-                val (rssi, timestamp) = RSSIStream.awaitFirstRSSIAfter(target, measurementStartTime + 3_000L)
+                val (rssi, timestamp) = RSSIStream.awaitFirstRSSIAfter(target, measurementStartTime + measurementOffsetMs)
                 completeMeasurement(target, rssi, timestamp, timestamp - measurementStartTime)
             } catch (_: CancellationException) {
                 // cancelled
@@ -219,7 +218,7 @@ class MainActivity : AppCompatActivity() {
             signalDao.insert(record)
 
             withContext(Dispatchers.Main) {
-                statusText.text = getString(R.string.status_measurement_taken)
+                statusText.text = getString(R.string.status_measurement_taken, avgPair.second.size)
                 takeMeasurementBtn.isEnabled = true
                 Toast.makeText(
                     this@MainActivity,
