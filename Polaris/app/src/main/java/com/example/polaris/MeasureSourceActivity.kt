@@ -102,7 +102,7 @@ class MeasureSourceActivity : AppCompatActivity() {
             val avgLoc = LocationStream.getAveragedLocation(durationMs)
 
             if (avgLoc != null) {
-                launch { db.sourcePositionDao().upsert(SourcePosition(id = 0, latitude = avgLoc.latitude, longitude = avgLoc.longitude)) }
+                launch(Dispatchers.IO) { db.sourcePositionDao().upsert(SourcePosition(id = 0, latitude = avgLoc.latitude, longitude = avgLoc.longitude)) }
                 
                 progressTv.text = getString(R.string.measuring_done, sampleCount)
                 // Note: std dev is not calculated in the stream method currently, passing 0.0
