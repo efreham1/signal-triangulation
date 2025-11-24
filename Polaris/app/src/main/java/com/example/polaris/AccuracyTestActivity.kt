@@ -15,9 +15,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.delay
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @Suppress("DEPRECATION")
 class AccuracyTestActivity : AppCompatActivity() {
@@ -35,10 +32,7 @@ class AccuracyTestActivity : AppCompatActivity() {
     private lateinit var summaryBtn: Button
 
     // Sampling config
-    private val startSampleCount = 10
-    private val sampleIntervalMs = 1000L
-    private val retryDelayMs = 250L
-    private val perSampleMaxRetries = 8
+    private val sampleDurationMs = 10000L
 
     private data class MovementTestSample(
         val timestampMs: Long,
@@ -46,6 +40,7 @@ class AccuracyTestActivity : AppCompatActivity() {
         val refLon: Double,
         val measLat: Double,
         val measLon: Double,
+        val measAcc: Float?,
         val userDistanceM: Double,
         val gpsDistanceM: Double,
         val errorM: Double,
@@ -71,7 +66,8 @@ class AccuracyTestActivity : AppCompatActivity() {
 
         // Button: Measure Start (averages N samples at the same spot)
         val measureStartBtn = Button(this).apply {
-            text = getString(R.string.measure_start_button, startSampleCount)
+            val durationSeconds = sampleDurationMs / 1000
+            text = getString(R.string.measure_start_button, durationSeconds)
             setOnClickListener {
                 if (!hasLocationPerm()) {
                     Toast.makeText(this@AccuracyTestActivity, getString(R.string.location_perm_required), Toast.LENGTH_SHORT).show()
@@ -79,7 +75,7 @@ class AccuracyTestActivity : AppCompatActivity() {
                 }
                 lifecycleScope.launchWhenStarted {
                     samplesTv.text = getString(R.string.accuracy_samples_header)
-                    info.text = getString(R.string.measuring_start_collecting, startSampleCount)
+                    info.text = getString(R.string.measuring_start_collecting, durationSeconds)
                     val avg = measureStartPosition(info, samplesTv)
                     if (avg != null) {
                         startLat = avg.first
@@ -143,10 +139,13 @@ class AccuracyTestActivity : AppCompatActivity() {
                         distanceMeters(startLat!!, startLon!!, best.latitude, best.longitude)
                     else null
 
+                    val accStr = if (best.hasAccuracy()) "%.1f".format(best.accuracy) else "n/a"
+
                     val sb = StringBuilder()
                         .appendLine(getString(R.string.user_distance_line, userMeters))
                         .appendLine(getString(R.string.gps_distance_line, gpsMeters))
                         .appendLine(getString(R.string.error_line, error))
+                        .appendLine("Accuracy: $accStr m")
                         .appendLine(getString(R.string.from_line, refLat, refLon))
                         .appendLine(getString(R.string.to_line, best.latitude, best.longitude))
                         .appendLine(getString(R.string.cumulative_user_line, cumulativeUserM))
@@ -166,6 +165,7 @@ class AccuracyTestActivity : AppCompatActivity() {
                         refLon = refLon,
                         measLat = best.latitude,
                         measLon = best.longitude,
+                        measAcc = if (best.hasAccuracy()) best.accuracy else null,
                         userDistanceM = userMeters,
                         gpsDistanceM = gpsMeters,
                         errorM = error,
@@ -200,64 +200,35 @@ class AccuracyTestActivity : AppCompatActivity() {
     }
 
     private suspend fun measureStartPosition(info: TextView, samplesTv: TextView): Pair<Double, Double>? {
-        val lats = mutableListOf<Double>()
-        val lons = mutableListOf<Double>()
-        val seenFixTimesNs = mutableSetOf<Long>() // enforce uniqueness by monotonic clock
-        val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+        val startTime = System.currentTimeMillis()
 
-        var collected = 0
-        while (collected < startSampleCount) {
-            var uniqueLoc: android.location.Location? = null
-            var tries = 0
-
-            // keep trying until we get a unique fix (by elapsedRealtimeNanos) or we exhaust retries
-            while (tries < perSampleMaxRetries) {
-                val loc = LocationStream.latest()
-                if (loc != null) {
-                    val tNs = loc.elapsedRealtimeNanos
-                    if (tNs !in seenFixTimesNs) {
-                        uniqueLoc = loc
-                        break
-                    }
-                }
-                tries++
-                delay(retryDelayMs)
-            }
-
-            if (uniqueLoc != null) {
-                seenFixTimesNs.add(uniqueLoc.elapsedRealtimeNanos)
-                lats.add(uniqueLoc.latitude)
-                lons.add(uniqueLoc.longitude)
-                collected++
-
-                val accStr = if (uniqueLoc.hasAccuracy()) "%s".format(Locale.getDefault(), "%.1f".format(uniqueLoc.accuracy)) else "n/a"
-                val tStr = sdf.format(Date(uniqueLoc.time))
-                samplesTv.append(
-                    getString(
-                        R.string.sample_line,
-                        collected,
-                        uniqueLoc.latitude,
-                        uniqueLoc.longitude,
-                        accStr,
-                        tStr
-                    )
-                )
-                samplesTv.append("\n")
-                info.text = getString(R.string.measuring_collected, collected, startSampleCount)
-
-                // wait 1s before attempting the next unique sample
-                delay(sampleIntervalMs)
-            } else {
-                // we couldn't obtain a unique fix within retries; keep looping until we do
-                info.text = getString(R.string.waiting_unique_fix)
-            }
+        // Wait for data to accumulate in the stream buffer
+        while (System.currentTimeMillis() - startTime < sampleDurationMs) {
+            val remaining = ((sampleDurationMs - (System.currentTimeMillis() - startTime)) / 1000).coerceAtLeast(0)
+            info.text = getString(R.string.collecting_stream_samples_s, remaining)
+            delay(250)
         }
 
-        if (lats.isEmpty()) return null
-        val meanLat = lats.average()
-        val meanLon = lons.average()
-        samplesTv.append(getString(R.string.mean_line, meanLat, meanLon))
-        return meanLat to meanLon
+        // Use LocationStream's weighted averaging.
+        val result = LocationStream.getAveragedLocationAndSamples(sampleDurationMs) ?: return null
+        val avgLoc = result.first
+        val samples = result.second
+
+        samplesTv.text = getString(R.string.accuracy_samples_header)
+        val dateFormat = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
+
+        samples.forEachIndexed { i, loc ->
+            val accStr = if (loc.hasAccuracy()) "%.1f".format(loc.accuracy) else "n/a"
+            val timeStr = dateFormat.format(java.util.Date(loc.time))
+            samplesTv.append(getString(R.string.sample_line, i + 1, loc.latitude, loc.longitude, accStr, timeStr))
+            samplesTv.append("\n")
+        }
+
+        val accStr = if (avgLoc.hasAccuracy()) "%.1f".format(avgLoc.accuracy) else "n/a"
+        samplesTv.append(getString(R.string.mean_line, avgLoc.latitude, avgLoc.longitude))
+        samplesTv.append(" (Acc: ${accStr}m)")
+
+        return avgLoc.latitude to avgLoc.longitude
     }
 
     override fun onResume() {
@@ -337,7 +308,8 @@ class AccuracyTestActivity : AppCompatActivity() {
         sb.appendLine(getString(R.string.summary_samples_header))
         testSamples.forEachIndexed { idx, s ->
             val directSuffix = s.directFromStartGpsM?.let { getString(R.string.summary_direct_suffix, it) } ?: ""
-            sb.appendLine(
+            val accStr = s.measAcc?.let { "%.1f".format(it) } ?: "n/a"
+            sb.append(
                 getString(
                     R.string.summary_sample_line,
                     idx + 1,
@@ -353,6 +325,8 @@ class AccuracyTestActivity : AppCompatActivity() {
                     s.measLon
                 )
             )
+            sb.append(" (Acc: ${accStr}m)")
+            sb.appendLine()
         }
         return sb.toString()
     }
