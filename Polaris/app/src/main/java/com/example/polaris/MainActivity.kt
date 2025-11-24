@@ -116,7 +116,7 @@ class MainActivity : AppCompatActivity() {
     )
 
     private var isMeasuring = false
-    private var timerJob: Job? = null // Added to track the timer coroutine
+    private var timerJob: Job? = null // Tracks the coroutine responsible for timing the measurement window
     private var measurementStartTime = 0L
     private var measurementTargetSsid: String? = null
     private val timeFormat = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
