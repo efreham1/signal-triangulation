@@ -44,7 +44,7 @@ namespace core
             static void hash_combine(std::size_t &seed, std::size_t value)
             {
                 // Golden ratio hash combination
-                int golden_ratio_const = 0x9e3779b9;
+                constexpr std::size_t golden_ratio_const = 0x9e3779b9;
                 seed ^= value + golden_ratio_const + (seed << 6) + (seed >> 2);
             }
 
