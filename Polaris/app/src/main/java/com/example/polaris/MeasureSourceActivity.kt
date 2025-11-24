@@ -10,17 +10,12 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
 import androidx.lifecycle.lifecycleScope
 import androidx.room.Room
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlin.coroutines.resume
 import kotlin.math.sqrt
 import kotlinx.coroutines.isActive
 
@@ -28,18 +23,12 @@ import kotlinx.coroutines.isActive
 class MeasureSourceActivity : AppCompatActivity() {
 
     private lateinit var startBtn: Button
+    private lateinit var startLegacyBtn: Button
     private lateinit var cancelBtn: Button
     private lateinit var progressTv: TextView
     private lateinit var resultTv: TextView
 
-    private val fusedLocationClient by lazy { LocationServices.getFusedLocationProviderClient(this) }
-
     private val locationPermissionRequestCode = 1001
-    private val requiredPermissions = arrayOf(
-        Manifest.permission.ACCESS_FINE_LOCATION,
-        Manifest.permission.ACCESS_COARSE_LOCATION,
-        Manifest.permission.ACCESS_WIFI_STATE
-    )
 
     private data class ReceivedSample(
         val latitude: Double,
@@ -63,11 +52,13 @@ class MeasureSourceActivity : AppCompatActivity() {
         setContentView(R.layout.activity_measure_source)
 
         startBtn = findViewById(R.id.startMeasureBtn)
+        startLegacyBtn = findViewById(R.id.startMeasureBtnLegacy)
         cancelBtn = findViewById(R.id.cancelMeasureBtn)
         progressTv = findViewById(R.id.measureProgress)
         resultTv = findViewById(R.id.measureResult)
 
         startBtn.setOnClickListener { startMeasurements() }
+        startLegacyBtn.setOnClickListener { startMeasurementsLegacy() }
         cancelBtn.setOnClickListener { finish() }
         db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "signal-db").fallbackToDestructiveMigration().build()
     }
@@ -86,13 +77,49 @@ class MeasureSourceActivity : AppCompatActivity() {
         LocationStream.stop()
     }
 
+    // New strategy: Uses LocationStream's weighted average
     private fun startMeasurements() {
         if (!hasLocationPermission()) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
-                locationPermissionRequestCode
-            )
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), locationPermissionRequestCode)
+            return
+        }
+
+        startBtn.isEnabled = false
+        resultTv.text = ""
+        progressTv.text = getString(R.string.measuring)
+
+        lifecycleScope.launchWhenStarted {
+            val durationMs = sampleCount * sampleDelayMs
+            val startTime = System.currentTimeMillis()
+
+            // Wait for data to accumulate in the stream buffer
+            while (isActive && System.currentTimeMillis() - startTime < durationMs) {
+                val remaining = ((durationMs - (System.currentTimeMillis() - startTime)) / 1000).coerceAtLeast(0)
+                progressTv.text = getString(R.string.collecting_stream_samples_s, remaining)
+                delay(500)
+            }
+
+            val avgLoc = LocationStream.getAveragedLocation(durationMs)
+
+            if (avgLoc != null) {
+                launch(Dispatchers.IO) { db.sourcePositionDao().upsert(SourcePosition(id = 0, latitude = avgLoc.latitude, longitude = avgLoc.longitude)) }
+                
+                progressTv.text = getString(R.string.measuring_done, sampleCount)
+                // Note: std dev is not calculated in the stream method currently, passing 0.0
+                resultTv.text = getString(R.string.measurement_result, avgLoc.latitude, avgLoc.longitude, 0.0, 0.0)
+                Toast.makeText(this@MeasureSourceActivity, getString(R.string.measurement_saved), Toast.LENGTH_SHORT).show()
+                setResult(RESULT_OK)
+            } else {
+                progressTv.text = getString(R.string.no_location_samples)
+            }
+            startBtn.isEnabled = true
+        }
+    }
+
+    // Old strategy: Manual sampling loop (Renamed, kept for comparison)
+    private fun startMeasurementsLegacy() {
+        if (!hasLocationPermission()) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), locationPermissionRequestCode)
             return
         }
 
@@ -114,6 +141,7 @@ class MeasureSourceActivity : AppCompatActivity() {
                 val loc = waitForUniqueLocation(singleTimeoutMs, seenFixIds)
                 if (loc != null) {
                     val fixId = if (loc.elapsedRealtimeNanos != 0L) loc.elapsedRealtimeNanos else loc.time * 1_000_000L
+                    seenFixIds.add(fixId)
                     samples.add(
                         ReceivedSample(
                             latitude = loc.latitude,
@@ -183,32 +211,6 @@ class MeasureSourceActivity : AppCompatActivity() {
             delay(250L)
         }
         return null
-    }
-
-    private suspend fun getCurrentLocationSuspend(timeoutMs: Long = 3000L): Location? {
-        return withTimeoutOrNull(timeoutMs) {
-            suspendCancellableCoroutine { cont ->
-                if (!hasLocationPermission()) {
-                    cont.resume(null)
-                    return@suspendCancellableCoroutine
-                }
-
-                if (ContextCompat.checkSelfPermission(this@MeasureSourceActivity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-                    ContextCompat.checkSelfPermission(this@MeasureSourceActivity, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                    ActivityCompat.requestPermissions(
-                        this@MeasureSourceActivity,
-                        requiredPermissions,
-                        locationPermissionRequestCode
-                    )
-                    cont.resume(null)
-                    return@suspendCancellableCoroutine
-                }
-                val task = fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
-                task.addOnSuccessListener { loc -> if (!cont.isCompleted) cont.resume(loc) }
-                task.addOnFailureListener { _ -> if (!cont.isCompleted) cont.resume(null) }
-                cont.invokeOnCancellation { }
-            }
-        }
     }
 
     private fun hasLocationPermission(): Boolean {

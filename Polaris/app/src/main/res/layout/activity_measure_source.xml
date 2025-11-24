@@ -20,6 +20,12 @@
         android:text="@string/start_measurement" />
 
     <Button
+        android:id="@+id/startMeasureBtnLegacy"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/start_measurement_legacy" />
+
+    <Button
         android:id="@+id/cancelMeasureBtn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
