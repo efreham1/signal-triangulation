@@ -53,6 +53,7 @@ namespace core
         int64_t timestamp_ms;  ///< Measurement timestamp in milliseconds
         std::string ssid;      ///< Optional SSID identifier for the measured network
         std::string dev_id;    ///< Optional device identifier
+        int point_id;          ///< Unique point identifier
 
         // Default constructor
         DataPoint();

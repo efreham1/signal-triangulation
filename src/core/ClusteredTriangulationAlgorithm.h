@@ -8,6 +8,7 @@
 #include <vector>
 #include <cmath>
 #include <limits>
+#include <unordered_map>
 
 namespace core
 {
@@ -40,17 +41,25 @@ namespace core
         // Memoization setup
         struct PairHash
         {
+            static void hash_combine(std::size_t &seed, std::size_t value)
+            {
+                seed ^= value + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+            }
+
             inline std::size_t operator()(const std::pair<int64_t, int64_t> &v) const
             {
-                return std::hash<int64_t>()(v.first) ^ (std::hash<int64_t>()(v.second) << 1);
+                std::size_t seed = 0;
+                hash_combine(seed, std::hash<int64_t>()(v.first));
+                hash_combine(seed, std::hash<int64_t>()(v.second));
+                return seed;
             }
         };
         std::unordered_map<std::pair<int64_t, int64_t>, double, PairHash> distance_cache;
 
-        // Internal helpers (stubs)
+        // Internal helpers
         void clusterData();
         void estimateAoAForClusters();
-        void addToDistanceCache(const DataPoint &p1, const DataPoint &p2, double distance, std::unordered_map<std::pair<int64_t, int64_t>, double, PairHash> &cache);
+        void addToDistanceCache(const DataPoint &p1, const DataPoint &p2, double distance);
         void reorderDataPointsByDistance();
         double getCost(double x, double y);
         void gradientDescent(double &out_x, double &out_y, std::vector<std::pair<double, double>> intersections);
