@@ -83,7 +83,7 @@ namespace core
 
 		global_best_x = 0.0;
 		global_best_y = 0.0;
-		double global_best_cost = std::numeric_limits<double>::max();
+		double global_best_cost = getCost(global_best_x, global_best_y);
 
 		double zone_x = -precision * HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS;
 		double zone_y = -precision * HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS;
@@ -110,9 +110,9 @@ namespace core
 				}
 			}
 
-			double best_x = 0.0;
-			double best_y = 0.0;
-			double best_cost = std::numeric_limits<double>::max();
+			double best_x = global_best_x;
+			double best_y = global_best_y;
+			double best_cost = global_best_cost;
 
 			for (int q = 0; q < 4; ++q)
 			{
@@ -129,8 +129,8 @@ namespace core
 				{
 					for (int iy = 0; iy < HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS; ++iy)
 					{
-						double x = zone_x + (q % 2) * HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS * precision + ix * precision;
-						double y = zone_y + (q / 2) * HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS * precision + iy * precision;
+						double x = quadrant_x + ix * precision;
+						double y = quadrant_y + iy * precision;
 						double cost = getCost(x, y);
 						if (cost < best_cost)
 						{
@@ -157,8 +157,8 @@ namespace core
 				global_best_x = best_x;
 				global_best_y = best_y;
 
-				zone_x += precision * HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS * (best_x > zone_x + precision * HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS ? 1.0 : -1.0);
-				zone_y += precision * HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS * (best_y > zone_y + precision * HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS ? 1.0 : -1.0);
+				zone_x += precision * HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS * (best_x < zone_x + precision * HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS ? -1.0 : 1.0);
+				zone_y += precision * HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS * (best_y < zone_y + precision * HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS ? -1.0 : 1.0);
 			}
 			else
 			{

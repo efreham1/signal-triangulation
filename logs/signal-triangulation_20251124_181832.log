@@ -1,0 +1,24 @@
+[2025-11-24 18:18:32.359] [file_logger] [info] Logging initialized. level=info
+[2025-11-24 18:18:32.360] [file_logger] [info] ClusteredTriangulationAlgorithm2: formed 19 clusters from 165 data points
+[2025-11-24 18:18:32.360] [file_logger] [warning] ClusteredTriangulationAlgorithm2: last cluster formed does not meet requirements
+[2025-11-24 18:18:32.360] [file_logger] [info] ClusteredTriangulationAlgorithm2: cluster AoA estimated at 83.1846823272456 degrees (grad_x=0.0973989436622249, grad_y=0.8149588923768123)
+[2025-11-24 18:18:32.360] [file_logger] [info] ClusteredTriangulationAlgorithm2: cluster AoA estimated at -3.0938038570391106 degrees (grad_x=0.25534203341071304, grad_y=-0.01380113590075549)
+[2025-11-24 18:18:32.360] [file_logger] [info] ClusteredTriangulationAlgorithm2: cluster AoA estimated at -176.19738499115206 degrees (grad_x=-1.3135312026168435, grad_y=-0.08730486111475466)
+[2025-11-24 18:18:32.360] [file_logger] [info] ClusteredTriangulationAlgorithm2: cluster AoA estimated at -71.39261216411644 degrees (grad_x=0.10270388324102875, grad_y=-0.30504829378759135)
+[2025-11-24 18:18:32.360] [file_logger] [info] ClusteredTriangulationAlgorithm2: cluster AoA estimated at -18.986028059238052 degrees (grad_x=1.6486631504214948, grad_y=-0.5672305823282144)
+[2025-11-24 18:18:32.360] [file_logger] [info] ClusteredTriangulationAlgorithm2: cluster AoA estimated at -47.05470440119417 degrees (grad_x=2.132477022323686, grad_y=-2.2911835325106993)
+[2025-11-24 18:18:32.360] [file_logger] [info] ClusteredTriangulationAlgorithm2: cluster AoA estimated at -77.49488619567352 degrees (grad_x=0.5844789405818241, grad_y=-2.635301007374144)
+[2025-11-24 18:18:32.360] [file_logger] [info] ClusteredTriangulationAlgorithm2: cluster AoA estimated at 84.66075479625485 degrees (grad_x=0.09400497459335933, grad_y=1.0058516364842562)
+[2025-11-24 18:18:32.360] [file_logger] [info] ClusteredTriangulationAlgorithm2: cluster AoA estimated at 79.84454780447896 degrees (grad_x=0.03841230247687477, grad_y=0.21444311821588433)
+[2025-11-24 18:18:32.360] [file_logger] [info] ClusteredTriangulationAlgorithm2: cluster AoA estimated at -36.26955519554885 degrees (grad_x=0.28064496099350844, grad_y=-0.20592471732248896)
+[2025-11-24 18:18:32.360] [file_logger] [info] ClusteredTriangulationAlgorithm2: cluster AoA estimated at -121.05156102301719 degrees (grad_x=-0.5259085308603577, grad_y=-0.8734772989562715)
+[2025-11-24 18:18:32.360] [file_logger] [info] ClusteredTriangulationAlgorithm2: cluster AoA estimated at -76.28503555950827 degrees (grad_x=0.1606347124946801, grad_y=-0.6582029207930531)
+[2025-11-24 18:18:32.360] [file_logger] [info] ClusteredTriangulationAlgorithm2: cluster AoA estimated at -35.0138206431503 degrees (grad_x=0.20606642624706217, grad_y=-0.14436335461972138)
+[2025-11-24 18:18:32.360] [file_logger] [info] ClusteredTriangulationAlgorithm2: cluster AoA estimated at 129.25869749632693 degrees (grad_x=-2.3920290245431945, grad_y=2.926790408712438)
+[2025-11-24 18:18:32.360] [file_logger] [info] ClusteredTriangulationAlgorithm2: cluster AoA estimated at 13.245811763228104 degrees (grad_x=0.23933855942930293, grad_y=0.056338284843004405)
+[2025-11-24 18:18:32.360] [file_logger] [info] ClusteredTriangulationAlgorithm2: cluster AoA estimated at -93.09841337525711 degrees (grad_x=-0.04164380023446235, grad_y=-0.7693252595448241)
+[2025-11-24 18:18:32.360] [file_logger] [info] ClusteredTriangulationAlgorithm2: cluster AoA estimated at 46.38036301448157 degrees (grad_x=1.372119794493595, grad_y=1.4398792466007642)
+[2025-11-24 18:18:32.360] [file_logger] [info] ClusteredTriangulationAlgorithm2: cluster AoA estimated at -159.56490655696186 degrees (grad_x=-2.188629837333524, grad_y=-0.8154704200155632)
+[2025-11-24 18:18:35.593] [file_logger] [info] ClusteredTriangulationAlgorithm2: brute force search iteration found best point (x=1.4000000000000001, y=1.8) with cost 259.64556483407745
+[2025-11-24 18:18:37.216] [file_logger] [info] ClusteredTriangulationAlgorithm2: brute force search iteration found best point (x=1.4000000000000001, y=1.8) with cost 259.64556483407745
+[2025-11-24 18:18:37.216] [file_logger] [info] ClusteredTriangulationAlgorithm2: brute force search completed with best point (x=1.4000000000000001, y=1.8) and cost 259.64556483407745
