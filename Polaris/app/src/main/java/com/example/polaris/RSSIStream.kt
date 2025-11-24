@@ -73,6 +73,7 @@ object RSSIStream {
         contextRef = null
         started = false
         synchronized(buffer) { buffer.clear() }
+        synchronized(listeners) { listeners.clear() }
     }
 
     fun addListener(listener: (ScanBatch) -> Unit) {
