@@ -59,6 +59,7 @@ namespace core
         // Internal helpers
         void clusterData();
         void estimateAoAForClusters();
+        std::pair<int64_t, int64_t> makeDistanceKey(int64_t id1, int64_t id2) const;
         void addToDistanceCache(const DataPoint &p1, const DataPoint &p2, double distance);
         void reorderDataPointsByDistance();
         double getCost(double x, double y);

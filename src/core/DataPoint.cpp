@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 #include <iostream>
+#include <atomic>
 namespace core
 {
     DataPoint::DataPoint()
@@ -12,8 +13,7 @@ namespace core
     DataPoint::DataPoint(double lat, double lon, double zero_lat, double zero_lon, int signal_strength, int64_t time, const std::string &ssid_in, const std::string &dev_id)
         : latitude(lat), longitude(lon), x(0.0), y(0.0), x_computed(false), y_computed(false), lat_computed(true), lon_computed(true), zero_latitude(zero_lat), zero_longitude(zero_lon), rssi(signal_strength), timestamp_ms(time), ssid(ssid_in), dev_id(dev_id)
     {
-        // Calculate point ID from an integer counting up
-        int static next_point_id = 1;
+        static std::atomic<int> next_point_id{1};
         point_id = next_point_id++;
 
         // compute x/y from provided latitude/longitude

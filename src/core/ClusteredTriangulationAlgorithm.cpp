@@ -48,10 +48,21 @@ namespace core
 		spdlog::debug("ClusteredTriangulationAlgorithm: added DataPoint (x={}, y={}, rssi={}, timestamp={})", point.getX(), point.getY(), point.rssi, point.timestamp_ms);
 	}
 
+	std::pair<int64_t, int64_t> ClusteredTriangulationAlgorithm::makeDistanceKey(int64_t id1, int64_t id2) const
+	{
+		if (id1 < id2)
+		{
+			return {id1, id2};
+		}
+		return {id2, id1};
+	}
+
 	void ClusteredTriangulationAlgorithm::addToDistanceCache(const DataPoint &p1, const DataPoint &p2, double distance)
 	{
-		distance_cache.try_emplace({p1.point_id, p2.point_id}, distance);
-		distance_cache.try_emplace({p2.point_id, p1.point_id}, distance);
+		std::pair<int64_t, int64_t> key = makeDistanceKey(p1.point_id, p2.point_id);
+		distance_cache.try_emplace(key, distance);
+
+		std::cout << "Cached distance between point " << p1.point_id << " and point " << p2.point_id << ": " << distance << " meters" << std::endl;
 	}
 
 	void ClusteredTriangulationAlgorithm::reorderDataPointsByDistance()
@@ -63,7 +74,7 @@ namespace core
 
 		auto getDistance = [&](const DataPoint &p1, const DataPoint &p2) -> double
 		{
-			auto it = distance_cache.find({p1.point_id, p2.point_id});
+			auto it = distance_cache.find(makeDistanceKey(p1.point_id, p2.point_id));
 			if (it != distance_cache.end())
 			{
 				return it->second;
@@ -94,7 +105,6 @@ namespace core
 			for (size_t i = 0; i < remaining.size(); ++i)
 			{
 				double d = getDistance(last, remaining[i]);
-				addToDistanceCache(last, remaining[i], d);
 				if (d < best_dist)
 				{
 					best_dist = d;
