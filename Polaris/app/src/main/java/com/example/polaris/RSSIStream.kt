@@ -27,7 +27,7 @@ object RSSIStream {
 
     // Scanning loop
     private var scanJob: Job? = null
-    private val scope = CoroutineScope(Dispatchers.Main)
+    private var scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private const val SCAN_INTERVAL_MS = 100L // request scans aggressively
 
     // Listeners for new data
@@ -35,6 +35,10 @@ object RSSIStream {
 
     fun start(ctx: Context) {
         if (started) return
+        
+        if (!scope.isActive) {
+            scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+        }
         
         val hasPerm = ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
                       ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
@@ -63,6 +67,7 @@ object RSSIStream {
     fun stop() {
         if (!started) return
         scanJob?.cancel()
+        scope.cancel()
         try {
             contextRef?.get()?.unregisterReceiver(scanReceiver)
         } catch (_: Exception) {

@@ -29,8 +29,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import androidx.activity.result.contract.ActivityResultContracts
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -121,8 +119,6 @@ class MainActivity : AppCompatActivity() {
     private var measurementTargetSsid: String? = null
     private val timeFormat = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
 
-    private val measurementWindowMs = 20_000L
-
     private val rssiListener: (RSSIStream.ScanBatch) -> Unit = { batch ->
         handleScanBatch(batch)
     }
@@ -167,7 +163,7 @@ class MainActivity : AppCompatActivity() {
         measurementTargetSsid = target
         measurementStartTime = System.currentTimeMillis()
         takeMeasurementBtn.isEnabled = false
-        statusText.text = getString(R.string.status_waiting_rssi)
+
         RSSIStream.requestImmediateScan()
         
         startMeasurementLoop() // Start the smooth timer and measurement logic

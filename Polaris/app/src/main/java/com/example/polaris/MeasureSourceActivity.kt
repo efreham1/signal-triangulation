@@ -104,7 +104,9 @@ class MeasureSourceActivity : AppCompatActivity() {
                 val avgLoc = result.first
                 val samples = result.second
 
-                launch(Dispatchers.IO) { db.sourcePositionDao().upsert(SourcePosition(id = 0, latitude = avgLoc.latitude, longitude = avgLoc.longitude)) }
+                withContext(Dispatchers.IO) {
+                    db.sourcePositionDao().upsert(SourcePosition(id = 0, latitude = avgLoc.latitude, longitude = avgLoc.longitude))
+                }
 
                 progressTv.text = getString(R.string.measuring_done, samples.size)
                 resultTv.text = getString(R.string.measurement_result, avgLoc.latitude, avgLoc.longitude)
