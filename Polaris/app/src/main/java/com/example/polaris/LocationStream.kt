@@ -83,7 +83,7 @@ object LocationStream {
     fun getAveragedLocationAndSamples(durationMs: Long): Pair<Location, List<Location>>? {
         val now = System.currentTimeMillis()
         val samples = synchronized(buffer) {
-            buffer.filter { abs(it.time - now) <= durationMs }
+            buffer.filter { (now - it.time) <= durationMs && (now - it.time) >= 0 }
         }
 
         if (samples.isEmpty()) return null
