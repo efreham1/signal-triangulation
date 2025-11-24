@@ -142,6 +142,8 @@ class MeasureSourceActivity : AppCompatActivity() {
 
                 val loc = waitForUniqueLocation(singleTimeoutMs, seenFixIds)
                 if (loc != null) {
+                    val fixId = if (loc.elapsedRealtimeNanos != 0L) loc.elapsedRealtimeNanos else loc.time * 1_000_000L
+                    seenFixIds.add(fixId)
                     samples.add(
                         ReceivedSample(
                             latitude = loc.latitude,
