@@ -200,10 +200,9 @@ class AccuracyTestActivity : AppCompatActivity() {
     }
 
     private suspend fun measureStartPosition(info: TextView, samplesTv: TextView): Pair<Double, Double>? {
-        val lats = mutableListOf<Double>()
-        val lons = mutableListOf<Double>()
         val seenFixTimesNs = mutableSetOf<Long>() // enforce uniqueness by monotonic clock
         val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+        val startCollectionTime = System.currentTimeMillis()
 
         var collected = 0
         while (collected < startSampleCount) {
@@ -226,8 +225,6 @@ class AccuracyTestActivity : AppCompatActivity() {
 
             if (uniqueLoc != null) {
                 seenFixTimesNs.add(uniqueLoc.elapsedRealtimeNanos)
-                lats.add(uniqueLoc.latitude)
-                lons.add(uniqueLoc.longitude)
                 collected++
 
                 val accStr = if (uniqueLoc.hasAccuracy()) "%s".format(Locale.getDefault(), "%.1f".format(uniqueLoc.accuracy)) else "n/a"
@@ -253,11 +250,14 @@ class AccuracyTestActivity : AppCompatActivity() {
             }
         }
 
-        if (lats.isEmpty()) return null
-        val meanLat = lats.average()
-        val meanLon = lons.average()
-        samplesTv.append(getString(R.string.mean_line, meanLat, meanLon))
-        return meanLat to meanLon
+        val durationMs = System.currentTimeMillis() - startCollectionTime
+        // Use LocationStream's weighted averaging. Add a small buffer to ensure we cover the start time.
+        val avgLoc = LocationStream.getAveragedLocation(durationMs + 1000)
+
+        if (avgLoc == null) return null
+
+        samplesTv.append(getString(R.string.mean_line, avgLoc.latitude, avgLoc.longitude))
+        return avgLoc.latitude to avgLoc.longitude
     }
 
     override fun onResume() {
