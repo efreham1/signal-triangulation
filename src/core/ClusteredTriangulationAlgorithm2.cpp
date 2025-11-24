@@ -362,7 +362,7 @@ namespace core
 
 	void ClusteredTriangulationAlgorithm2::estimateAoAForClusters()
 	{
-		// column-major order: [x1, y1, rssi1, x2, y2, rssi2, ...]
+		// X, Y, and Z are separate parallel arrays containing x coordinates, y coordinates, and rssi values respectively.
 		std::vector<double> X;
 		std::vector<double> Y;
 		std::vector<double> Z;
