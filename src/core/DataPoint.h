@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string>
 #include <cmath>
+#include <atomic>
 
 #define EARTH_RADIUS_METERS 6362475.0 // Earth radius in meters in Uppsala
 
@@ -46,6 +47,7 @@ namespace core
         bool y_computed;   ///< Flag: y coordinate computed
         bool lat_computed; ///< Flag: latitude value is valid/available
         bool lon_computed; ///< Flag: longitude value is valid/available
+        std::atomic<int> static next_point_id; ///< Static atomic counter for unique point IDs
     public:
         double zero_latitude;  ///< Latitude that represents zero point in the euclidean space
         double zero_longitude; ///< Longitude that represents zero point in the euclidean space

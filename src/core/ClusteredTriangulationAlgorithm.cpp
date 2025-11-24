@@ -61,8 +61,6 @@ namespace core
 	{
 		std::pair<int64_t, int64_t> key = makeDistanceKey(p1.point_id, p2.point_id);
 		distance_cache.try_emplace(key, distance);
-
-		std::cout << "Cached distance between point " << p1.point_id << " and point " << p2.point_id << ": " << distance << " meters" << std::endl;
 	}
 
 	void ClusteredTriangulationAlgorithm::reorderDataPointsByDistance()
