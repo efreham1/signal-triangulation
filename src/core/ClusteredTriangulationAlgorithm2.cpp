@@ -6,6 +6,7 @@
 #include <cmath>
 #include <set>
 #include <spdlog/spdlog.h>
+#include <chrono>
 
 // File-local tunable constants (avoid magic numbers in code)
 namespace
