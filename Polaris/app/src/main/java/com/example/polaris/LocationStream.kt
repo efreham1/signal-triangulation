@@ -78,9 +78,9 @@ object LocationStream {
 
     /**
      * Calculates a weighted average location from samples collected in the last [durationMs].
-     * Weights are inversely proportional to the square of the accuracy (1/acc^2).
+     * Returns the average location and the list of samples used.
      */
-    fun getAveragedLocation(durationMs: Long): Location? {
+    fun getAveragedLocationAndSamples(durationMs: Long): Pair<Location, List<Location>>? {
         val now = System.currentTimeMillis()
         val samples = synchronized(buffer) {
             buffer.filter { abs(it.time - now) <= durationMs }
@@ -105,7 +105,7 @@ object LocationStream {
             if (acc < bestAcc) bestAcc = acc
         }
 
-        if (sumWeights == 0.0) return samples.first()
+        if (sumWeights == 0.0) return samples.first() to samples
 
         val avgLat = sumLat / sumWeights
         val avgLon = sumLon / sumWeights
@@ -117,6 +117,14 @@ object LocationStream {
         // Estimate resulting accuracy (heuristic: best sample accuracy / sqrt(N))
         result.accuracy = (bestAcc / sqrt(samples.size.toFloat()))
 
-        return result
+        return result to samples
+    }
+
+    /**
+     * Calculates a weighted average location from samples collected in the last [durationMs].
+     * Weights are inversely proportional to the square of the accuracy (1/acc^2).
+     */
+    fun getAveragedLocation(durationMs: Long): Location? {
+        return getAveragedLocationAndSamples(durationMs)?.first
     }
 }

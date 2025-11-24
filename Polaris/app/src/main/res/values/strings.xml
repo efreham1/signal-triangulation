@@ -60,7 +60,7 @@
     <string name="close">Close</string>
 
     <string name="accuracy_samples_header">Samples:\n</string>
-    <string name="measure_start_button">Measure Start (%1$d samples)</string>
+    <string name="measure_start_button">Measure Start (%1$d seconds)</string>
     <string name="location_perm_required">Location permission required</string>
     <string name="measuring_start_collecting">Measuring start position…\nCollecting %1$d samples</string>
     <string name="start_set">Start set:\nlat=%1$.6f  lon=%2$.6f</string>
