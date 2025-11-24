@@ -1,5 +1,5 @@
-#ifndef CLUSTERED_TRIANGULATION_ALGORITHM_H
-#define CLUSTERED_TRIANGULATION_ALGORITHM_H
+#ifndef CLUSTERED_TRIANGULATION_ALGORITHM1_H
+#define CLUSTERED_TRIANGULATION_ALGORITHM1_H
 
 #include "ITriangulationAlgorithm.h"
 #include "DataPoint.h"
@@ -14,21 +14,21 @@ namespace core
 {
 
     /**
-     * @class ClusteredTriangulationAlgorithm
+     * @class ClusteredTriangulationAlgorithm1
      * @brief Skeleton for the cluster-based triangulation algorithm described in the
      * design notes. This file provides method stubs and a minimal data model so the
      * class can be compiled and integrated; algorithmic details should be implemented
      * in subsequent iterations.
      */
-    class ClusteredTriangulationAlgorithm : public ITriangulationAlgorithm
+    class ClusteredTriangulationAlgorithm1 : public ITriangulationAlgorithm
     {
     public:
-        ClusteredTriangulationAlgorithm();
-        ~ClusteredTriangulationAlgorithm() override;
+        ClusteredTriangulationAlgorithm1();
+        ~ClusteredTriangulationAlgorithm1() override;
 
         // ITriangulationAlgorithm interface
         void processDataPoint(const DataPoint &point) override;
-        void calculatePosition(double &out_latitude, double &out_longitude) override;
+        void calculatePosition(double &out_latitude, double &out_longitude, double precision, double timeout) override;
         void reset() override;
         
         private:
@@ -65,7 +65,7 @@ namespace core
         void addToDistanceCache(const DataPoint &p1, const DataPoint &p2, double distance);
         void reorderDataPointsByDistance();
         double getCost(double x, double y);
-        void gradientDescent(double &out_x, double &out_y, std::vector<std::pair<double, double>> intersections);
+        void gradientDescent(double &out_x, double &out_y, std::vector<std::pair<double, double>> intersections, double precision, double timeout);
         std::vector<std::pair<double, double>> findIntersections();
     };
 
@@ -73,4 +73,4 @@ namespace core
 
 } // namespace core
 
-#endif // CLUSTERED_TRIANGULATION_ALGORITHM_H
+#endif // CLUSTERED_TRIANGULATION_ALGORITHM1_H

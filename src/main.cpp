@@ -1,5 +1,6 @@
 #include "core/ITriangulationAlgorithm.h"
-#include "core/ClusteredTriangulationAlgorithm.h"
+#include "core/ClusteredTriangulationAlgorithm1.h"
+#include "core/ClusteredTriangulationAlgorithm2.h"
 #include "core/JsonSignalParser.h"
 
 #include <iostream>
@@ -20,24 +21,25 @@ int main(int argc, char *argv[])
     // Default logging configuration (can be overridden via command-line)
     std::string log_level_str = "info";
     std::string signalsFile = "signals.json";
-    std::string algorithmType = "CTA1";
+    std::string algorithmType = "CTA2";
     bool plottingEnabled = false;
+    double precision = 0.1; // default precision for algorithms that use it
+    double timeout = 0.0; // default timeout (0 = no timeout)
 
     // Simple argument scan for --log-level=LEVEL, --signals-file=FILE, --algorithm=TYPE, and --plotting-output
     for (int i = 1; i < argc; ++i)
     {
         std::string a = argv[i];
-        const std::string lvl_prefix = "--log-level";
-        if (a.rfind(lvl_prefix, 0) == 0)
+        if (a == "--log-level" || a == "-l")
         {
             if (i + 1 >= argc)
             {
-                std::cout << "Missing value for " << lvl_prefix << std::endl;
+                std::cout << "Missing value for --log-level" << std::endl;
                 return 1;
             }
             log_level_str = argv[++i];
         }
-        else if (a.rfind("--signals-file", 0) == 0)
+        else if (a == "--signals-file" || a == "-s")
         {
             if (i + 1 >= argc)
             {
@@ -46,7 +48,7 @@ int main(int argc, char *argv[])
             }
             signalsFile = argv[++i];
         }
-        else if (a.rfind("--algorithm", 0) == 0)
+        else if (a == "--algorithm" || a == "-a")
         {
             if (i + 1 >= argc)
             {
@@ -55,9 +57,56 @@ int main(int argc, char *argv[])
             }
             algorithmType = argv[++i];
         }
-        else if (a == "--plotting-output")
+        else if (a == "--plotting-output" || a == "-o")
         {
             plottingEnabled = true;
+        }
+        else if (a == "--precision" || a == "-p")
+        {
+            if (i + 1 >= argc)
+            {
+                std::cout << "Missing value for --precision" << std::endl;
+                return 1;
+            }
+            try
+            {
+                precision = std::stod(argv[++i]);
+            }
+            catch (const std::exception &ex)
+            {
+                std::cout << "Invalid value for --precision: " << argv[i] << std::endl;
+                return 1;
+            }
+        }
+        else if (a == "--timeout" || a == "-t")
+        {
+            if (i + 1 >= argc)
+            {
+                std::cout << "Missing value for --timeout" << std::endl;
+                return 1;
+            }
+            try
+            {
+                timeout = std::stod(argv[++i]);
+            }
+            catch (const std::exception &ex)
+            {
+                std::cout << "Invalid value for --timeout: " << argv[i] << std::endl;
+                return 1;
+            }
+        }
+        else if (a == "--help" || a == "-h")
+        {
+            std::cout << "Usage: " << argv[0] << " [options]\n"
+                      << "Options:\n"
+                      << "  --log-level, -l LEVEL        Set log level (trace, debug, info, warn, err, critical, off)\n"
+                      << "  --signals-file, -s FILE      Path to signals JSON file\n"
+                      << "  --algorithm, -a TYPE         Triangulation algorithm type (CTA1, CTA2)\n"
+                      << "  --precision, -p VALUE        Precision for triangulation algorithms (default: 0.1)\n"
+                      << "  --timeout, -t VALUE          Timeout in seconds for triangulation algorithms (default: 0 = no timeout)\n"
+                      << "  --plotting-output, -o        Enable plotting output\n"
+                      << "  --help, -h                   Show this help message\n";
+            return 0;
         }
     }
 
@@ -114,7 +163,11 @@ int main(int argc, char *argv[])
 
     if (algorithmType == "CTA1")
     {
-        algorithm = std::make_unique<core::ClusteredTriangulationAlgorithm>();
+        algorithm = std::make_unique<core::ClusteredTriangulationAlgorithm1>();
+    }
+    else if (algorithmType == "CTA2")
+    {
+        algorithm = std::make_unique<core::ClusteredTriangulationAlgorithm2>();
     }
     else
     {
@@ -158,7 +211,7 @@ int main(int argc, char *argv[])
 
     try
     {
-        algorithm->calculatePosition(latitude, longitude);
+        algorithm->calculatePosition(latitude, longitude, precision, timeout);
     }
     catch (const std::exception &ex)
     {
