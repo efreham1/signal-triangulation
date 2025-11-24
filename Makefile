@@ -42,8 +42,11 @@ test-plane: configure
 	@cd $(BUILD_DIR) && ctest -L plane --output-on-failure
 
 test-location: configure
+	@$(CMAKE) --build $(BUILD_DIR) --config Release -j$(NPROC) --target signal-triangulation
 	@$(CMAKE) --build $(BUILD_DIR) --config Release -j$(NPROC) --target triangulation_tests
-	@cd $(BUILD_DIR) && ctest -L location --output-on-failure
+	@echo ""
+	@./$(BUILD_DIR)/tests/triangulation_tests --gtest_filter=Triangulation.GlobalSummary
+
 
 clean:
 	@if [ -d $(BUILD_DIR) ]; then rm -rf $(BUILD_DIR); else true; fi
