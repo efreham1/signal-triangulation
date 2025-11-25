@@ -45,7 +45,7 @@ namespace core
 		spdlog::debug("ClusteredTriangulationAlgorithm1: added DataPoint (x={}, y={}, rssi={}, timestamp={})", point.getX(), point.getY(), point.rssi, point.timestamp_ms);
 	}
 
-	std::pair<int64_t, int64_t> ClusteredTriangulationAlgorithm::makeDistanceKey(int64_t id1, int64_t id2) const
+	std::pair<int64_t, int64_t> ClusteredTriangulationAlgorithm1::makeDistanceKey(int64_t id1, int64_t id2) const
 	{
 		if (id1 < id2)
 		{
@@ -54,13 +54,13 @@ namespace core
 		return {id2, id1};
 	}
 
-	void ClusteredTriangulationAlgorithm::addToDistanceCache(const DataPoint &p1, const DataPoint &p2, double distance)
+	void ClusteredTriangulationAlgorithm1::addToDistanceCache(const DataPoint &p1, const DataPoint &p2, double distance)
 	{
 		std::pair<int64_t, int64_t> key = makeDistanceKey(p1.point_id, p2.point_id);
 		distance_cache.try_emplace(key, distance);
 	}
 
-	void ClusteredTriangulationAlgorithm::reorderDataPointsByDistance()
+	void ClusteredTriangulationAlgorithm1::reorderDataPointsByDistance()
 	{
 		if (m_points.size() < 3)
 		{
