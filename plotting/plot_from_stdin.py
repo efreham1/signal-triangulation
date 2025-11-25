@@ -103,7 +103,7 @@ def plot_3d_surface(X, Y, Z, out_dir=None, show=True):
     if show:
         plt.show()
 
-def plot_composite_heatmap(X, Y, Z, data_x, data_y, centroids=None, aoas=None, result_point=None, source_point=None, out_dir=None, show=True):
+def plot_composite_heatmap(X, Y, Z, data_x, data_y, centroids=None, aoas=None, weights=None, result_point=None, source_point=None, out_dir=None, show=True):
     fig, ax = plt.subplots(figsize=(12, 10))
     
     # 1. The Cost Heatmap
@@ -136,6 +136,11 @@ def plot_composite_heatmap(X, Y, Z, data_x, data_y, centroids=None, aoas=None, r
             
             # Quiver for AoA
             ax.quiver(cx, cy, dxs, dys, angles='xy', scale_units='xy', scale=1, color='red', width=0.006, headwidth=4, zorder=4)
+
+        if weights is not None:
+            for i, w in enumerate(weights):
+                if w is not None:
+                    ax.text(cx[i], cy[i], f"{w:.2f}", fontsize=9, color='black', fontweight='bold', zorder=6)
 
     # 4. Result Point
     if result_point is not None:
@@ -271,7 +276,7 @@ def parse_clusters_from_text(text: str):
             cid = int(m.group(1))
             rest = m.group(2)
             cur = {'id': cid, 'centroid_x': 0.0, 'centroid_y': 0.0,
-                   'avg_rssi': None, 'estimated_aoa': None, 'ratio': None, 'num_points': None}
+                   'avg_rssi': None, 'estimated_aoa': None, 'ratio': None, 'num_points': None, 'weight': None}
             for kv in kv_re.finditer(rest):
                 k = kv.group(1)
                 v = kv.group(2)
@@ -284,6 +289,7 @@ def parse_clusters_from_text(text: str):
                 elif k == 'avg_rssi': cur['avg_rssi'] = fv
                 elif k == 'estimated_aoa': cur['estimated_aoa'] = fv
                 elif k == 'ratio': cur['ratio'] = fv
+                elif k == 'weight': cur['weight'] = fv
                 elif k == 'num_points': cur['num_points'] = int(fv)
             continue
 
@@ -386,7 +392,7 @@ def extract_source_point_from_text(text: str):
     return None
 
 
-def plot_2d(x, y, centroids=None, aoas=None, result_point=None, out_dir=None, show=True, source_point=None):
+def plot_2d(x, y, centroids=None, aoas=None, weights=None, result_point=None, out_dir=None, show=True, source_point=None):
     fig, ax = plt.subplots(figsize=(8, 6))
     ax.scatter(x, y, c='C0', label='points')
     ax.plot(x, y, c='C1', linestyle='-', linewidth=1, label='path')
@@ -412,6 +418,11 @@ def plot_2d(x, y, centroids=None, aoas=None, result_point=None, out_dir=None, sh
             dxs = arrow_len * np.cos(rads)
             dys = arrow_len * np.sin(rads)
             ax.quiver(cx, cy, dxs, dys, angles='xy', scale_units='xy', scale=1, color='C3', width=0.005)
+
+        if weights is not None:
+            for i, w in enumerate(weights):
+                if w is not None:
+                    ax.text(cx[i], cy[i], f"{w:.2f}", fontsize=9, color='black', fontweight='bold')
 
     # plot resulting gradient-descent point if provided
     if result_point is not None:
@@ -502,7 +513,7 @@ def plot_clusters(clusters, result_point=None, out_dir=None, show=True, source_p
                 cx = c.get('centroid_x', 0.0)
                 cy = c.get('centroid_y', 0.0)
                 ax.scatter([cx], [cy], marker='x', color='k')
-                ax.text(cx, cy, f'c{c.get("id")} r={c.get("ratio",0.0):.2f}', fontsize=9)
+                ax.text(cx, cy, f'c{c.get("id")} r={c.get("ratio",0.0):.2f}\nw={c.get("weight",0.0):.2f}', fontsize=9)
             if result_point is not None:
                 rx, ry = result_point
                 ax.scatter([rx], [ry], marker='*', c='gold', s=140, label='result')
@@ -556,6 +567,7 @@ def main():
     clusterx = [c.get('centroid_x') for c in clusters] if clusters else None
     clustery = [c.get('centroid_y') for c in clusters] if clusters else None
     aoas = [c.get('estimated_aoa') for c in clusters] if clusters else None
+    weights = [c.get('weight') for c in clusters] if clusters else None
 
     show = not args.no_show
     if args.out_dir is None and args.save_images:
@@ -572,7 +584,7 @@ def main():
     source_point = extract_source_point_from_text(text)
 
     # Always save the core plots
-    plot_2d(x, y, centroids=centroids, aoas=aoas, result_point=result_point, out_dir=args.out_dir, show=show, source_point=source_point)
+    plot_2d(x, y, centroids=centroids, aoas=aoas, weights=weights, result_point=result_point, out_dir=args.out_dir, show=show, source_point=source_point)
 
     # 3D plot if rssi present
     if rssi is not None:
@@ -590,7 +602,7 @@ def main():
         plot_3d_surface(X, Y, Z, out_dir=args.out_dir, show=show)
         
         # Composite plots
-        plot_composite_heatmap(X, Y, Z, x, y, centroids=centroids, aoas=aoas, result_point=result_point, source_point=source_point, out_dir=args.out_dir, show=show)
+        plot_composite_heatmap(X, Y, Z, x, y, centroids=centroids, aoas=aoas, weights=weights, result_point=result_point, source_point=source_point, out_dir=args.out_dir, show=show)
         plot_composite_3d_surface(X, Y, Z, result_point=result_point, source_point=source_point, out_dir=args.out_dir, show=show)
 
 if __name__ == '__main__':

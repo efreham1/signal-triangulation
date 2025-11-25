@@ -6,6 +6,7 @@
 #include <limits>
 #include <utility>
 #include <vector>
+#include <cmath>
 #include <spdlog/spdlog.h>
 
 namespace core
@@ -201,6 +202,34 @@ namespace core
             double range_v = max_v - min_v;
             ratio = range_v / range_u;
             return ratio;
+        }
+
+        double varianceRSSI() const
+        {
+            if (points.size() < 2)
+            {
+                return 0.0;
+            }
+            double mean = avg_rssi;
+            double sum_sq_diff = 0.0;
+            for (const auto &p : points)
+            {
+                double diff = p.rssi - mean;
+                sum_sq_diff += diff * diff;
+            }
+            return sum_sq_diff / static_cast<double>(points.size() - 1);
+        }
+
+        double getWeight(double variance_weight, double rssi_weight, double bottom_rssi) const
+        {
+            double variance_component = varianceRSSI();
+            
+            if (avg_rssi < bottom_rssi)
+            {
+                return variance_weight * variance_component;
+            }
+            
+            return variance_weight * variance_component - (bottom_rssi-avg_rssi) * rssi_weight;
         }
     };
 

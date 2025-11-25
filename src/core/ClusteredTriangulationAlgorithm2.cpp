@@ -16,7 +16,13 @@ namespace
 	static constexpr unsigned int CLUSTER_MIN_POINTS = 3u;			 // minimum points to form a cluster (3 points needed for AoA estimation)
 	static constexpr double CLUSTER_RATIO_SPLIT_THRESHOLD = 0.25;	 // geometric ratio threshold to split cluster
 
-	
+	// cluster weighting
+	static constexpr double VARIANCE_WEIGHT = 0.3; // weight for variance in cluster weighting
+	static constexpr double RSSI_WEIGHT = 0.1;	 // weight for RSSI component in cluster weighting
+	static constexpr double BOTTOM_RSSI = -90.0;	 // bottom RSSI threshold for cluster weighting
+	static constexpr double EXTRA_WEIGHT = 1.0;		 // extra weight multiplier for cluster weighting
+
+
 	// brute force search
 	static constexpr int HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS = 500; // half the number of discrete steps per axis in brute force search
 
@@ -63,11 +69,13 @@ namespace core
 		{
 			auto &cluster = clusters[i];
 			double ratio = cluster.geometricRatio();
+			double weight = cluster.getWeight(VARIANCE_WEIGHT, RSSI_WEIGHT, BOTTOM_RSSI);
 			std::cout << "  Cluster " << i << ": centroid_x: " << cluster.centroid_x
 					  << ", centroid_y: " << cluster.centroid_y
 					  << ", avg_rssi: " << cluster.avg_rssi
 					  << ", estimated_aoa: " << cluster.estimated_aoa
 					  << ", ratio: " << ratio
+					  << ", weight: " << weight
 					  << ", num_points: " << cluster.points.size() << std::endl;
 			// Print points belonging to this cluster: one per line prefixed with 'p' (x y)
 			for (const auto &p : cluster.points)
@@ -431,12 +439,14 @@ namespace core
 			{
 				// total_cost += projection_length + point_to_centroid_mag
 				double cluster_cost = -dot_prod / cluster_grad_mag + std::sqrt(point_to_centroid[0] * point_to_centroid[0] + point_to_centroid[1] * point_to_centroid[1]);
+				cluster_cost *= cluster.getWeight(VARIANCE_WEIGHT, RSSI_WEIGHT, BOTTOM_RSSI) + EXTRA_WEIGHT;
 				spdlog::debug("ClusteredTriangulationAlgorithm2: cost for cluster at (centroid_x={}, centroid_y={}) with AoA ({}, {}) is {} (behind centroid)", cluster.centroid_x, cluster.centroid_y, cluster.aoa_x, cluster.aoa_y, cluster_cost);
 				total_cost += cluster_cost;
 			}
 			else
 			{
 				double cluster_cost = cross_prod_mag / cluster_grad_mag;
+				cluster_cost *= cluster.getWeight(VARIANCE_WEIGHT, RSSI_WEIGHT, BOTTOM_RSSI)  + EXTRA_WEIGHT;
 				spdlog::debug("ClusteredTriangulationAlgorithm2: cost for cluster at (centroid_x={}, centroid_y={}) with AoA ({}, {}) is {} (in front of centroid)", cluster.centroid_x, cluster.centroid_y, cluster.aoa_x, cluster.aoa_y, cluster_cost);
 				total_cost += cluster_cost;
 			}
