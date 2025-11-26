@@ -23,7 +23,7 @@ namespace fs = std::filesystem;
 
 static std::string runAppAndCapture(const std::string &exe, const std::string &arg1, const std::string &arg2)
 {
-    std::string cmd = std::string("\"") + exe + "\" " + arg1 + " " + arg2;
+    std::string cmd = "\"" + exe + "\" " + arg1 + " " + arg2;
     std::string output;
     FILE *pipe = popen(cmd.c_str(), "r");
     if (!pipe)
@@ -42,7 +42,7 @@ static std::string runAppAndCapture(const std::string &exe, const std::string &a
 
 // Helper to calculate error for a single file
 // Returns -1.0 on failure (parsing/running)
-double calculateErrorForFile(const std::string &filePath)
+double calculateErrorForFile(const std::string &filePath, const std::string &arg2)
 {
     if (!fs::exists(filePath))
     {
@@ -74,7 +74,9 @@ double calculateErrorForFile(const std::string &filePath)
     double srcLon = j["source_pos"]["y"].get<double>();
 
     // Run app and capture stdout (expects the line: "New position calculated: Lat=..., Lon=...")
-    std::string out = runAppAndCapture(APP_BIN_PATH, std::string("--signals-file"), std::string("\"" + filePath + "\""));
+    std::string signals_file_arg = "--signals-file \"" + filePath + "\"";
+    std::string out = runAppAndCapture(APP_BIN_PATH, signals_file_arg, arg2);
+    
     std::regex re(R"(Calculated Position: Latitude\s*=\s*([0-9\.\-eE]+)\s*,\s*Longitude\s*=\s*([0-9\.\-eE]+))");
     std::smatch m;
     if (!std::regex_search(out, m, re) || m.size() < 3)
@@ -88,6 +90,26 @@ double calculateErrorForFile(const std::string &filePath)
     double lon = std::stod(m[2].str());
 
     return core::distanceBetween(srcLat, srcLon, lat, lon);
+}
+
+std::string g_single_file_path;
+std::string g_algorithm_arg;
+
+TEST(Triangulation, SingleFileErrorCheck)
+{
+
+    if (g_single_file_path.empty())
+    {
+        GTEST_SKIP() << "g_single_file_path not set";
+    }
+
+    double err = calculateErrorForFile(g_single_file_path, g_algorithm_arg);
+
+    ASSERT_GE(err, 0.0) << "Failed to calculate error for file: " << g_single_file_path;
+
+    std::cout << "Global Average Error: " << std::fixed << std::setprecision(4) << err << " m\n";
+
+    // EXPECT_LT(err, MAX_ALLOWED_ERROR_METERS) << "Error is too high!";
 }
 
 // New Global Summary Test
@@ -114,7 +136,7 @@ TEST(Triangulation, GlobalSummary)
     {
         if (entry.path().extension() == ".json")
         {
-            double err = calculateErrorForFile(entry.path().string());
+            double err = calculateErrorForFile(entry.path().string(), "");
             if (err >= 0.0)
             {
                 results.push_back({entry.path().filename().string(), err});
@@ -162,4 +184,25 @@ TEST(Triangulation, GlobalSummary)
     std::cout << std::string(60, '-') << "\n";
 
     EXPECT_LT(avg, MAX_ALLOWED_ERROR_METERS) << "Global average error is too high!";
+}
+
+int main (int argc, char **argv)
+{
+    ::testing::InitGoogleTest(&argc, argv);
+
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "--run-single-file") {
+            if (i + 1 < argc) {
+                g_single_file_path = argv[++i];
+            }
+        }
+        else if (arg.rfind("--cta-", 0) == 0) {
+            if (i + 1 < argc) {
+                g_algorithm_arg += std::string(argv[i]) + " " + std::string(argv[i+1]) + " ";
+                i++;
+            }
+        }
+    }
+    return RUN_ALL_TESTS();
 }

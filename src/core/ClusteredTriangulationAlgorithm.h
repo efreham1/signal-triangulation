@@ -8,6 +8,7 @@
 #include <vector>
 #include <cmath>
 #include <limits>
+#include <optional>
 
 namespace core
 {
@@ -28,6 +29,14 @@ namespace core
         // ITriangulationAlgorithm interface
         void processDataPoint(const DataPoint &point) override;
         void calculatePosition(double &out_latitude, double &out_longitude) override;
+        void setHyperparameters(
+            std::optional<double> coalition_dist_meters,
+            std::optional<int> cluster_min_points,
+            std::optional<double> cluster_ratio_split_threshold,
+            std::optional<double> gradient_descent_step_meters,
+            std::optional<double> normal_regularization_eps, 
+            std::optional<double> gauss_elim_pivot_eps       
+        );
         void reset() override;
 
     private:
