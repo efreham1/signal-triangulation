@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
         localtime_r(&tnow, &tmnow);
 #endif
         char buf[64];
-        std::strftime(buf, sizeof(buf), "%Y%m%d_%H%M%S", &tmnow);
+        std::strftime(buf, sizeof(buf), "%Y%m%d", &tmnow);
         std::string filename = std::string("signal-triangulation_") + buf + ".log";
         std::filesystem::path log_file_path = (std::filesystem::path(LOG_FILE_PATH) / filename).string();
 
@@ -159,6 +159,12 @@ int main(int argc, char *argv[])
         std::cerr << "spdlog init failed: " << ex.what() << std::endl;
     }
 
+    // Log the resolved command-line configuration
+    spdlog::info(
+        "Command-line config: signals_file='{}', algorithm='{}', plotting_enabled={}, precision={}, timeout={}"
+        , signalsFile, algorithmType, plottingEnabled ? "true" : "false", precision, timeout);
+
+
     std::unique_ptr<core::ITriangulationAlgorithm> algorithm;
 
     if (algorithmType == "CTA1")
@@ -172,7 +178,6 @@ int main(int argc, char *argv[])
     else
     {
         spdlog::error("Unknown algorithm type: {}", algorithmType);
-        std::cout << "Unknown algorithm type: " << algorithmType << std::endl;
         return 1;
     }
 
@@ -180,6 +185,7 @@ int main(int argc, char *argv[])
     {
         algorithm->plottingEnabled = true;
     }
+
     std::vector<core::DataPoint> dps;
     try
     {
@@ -188,7 +194,6 @@ int main(int argc, char *argv[])
     catch (const std::exception &ex)
     {
         spdlog::error("Failed to parse signals file '{}': {}", signalsFile, ex.what());
-        std::cout << "Failed to parse signals file '" << signalsFile << "': " << ex.what() << std::endl;
         return 1;
     }
     try
@@ -202,7 +207,6 @@ int main(int argc, char *argv[])
     catch (const std::exception &ex)
     {
         spdlog::error("Error processing data points: {}", ex.what());
-        std::cout << "Error processing data points: " << ex.what() << std::endl;
         return 1;
     }
 
@@ -216,7 +220,6 @@ int main(int argc, char *argv[])
     catch (const std::exception &ex)
     {
         spdlog::error("Error calculating position: {}", ex.what());
-        std::cout << "Error calculating position: " << ex.what() << std::endl;
         return 1;
     }
 

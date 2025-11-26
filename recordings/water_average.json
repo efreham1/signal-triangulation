@@ -1,0 +1,208 @@
+{
+  "source_pos": {
+    "x": 59.84192323,
+    "y": 17.643182810000003
+  },
+  "measurements": [
+    {
+      "id": 1,
+      "latitude": 59.8419517,
+      "longitude": 17.6438195,
+      "rssi": -69.66666666666667,
+      "ssid": "Sample_Network",
+      "timestamp": 1762940971600
+    },
+    {
+      "id": 2,
+      "latitude": 59.8420276,
+      "longitude": 17.6437703,
+      "rssi": -70.33333333333333,
+      "ssid": "Sample_Network",
+      "timestamp": 1762940971601
+    },
+    {
+      "id": 3,
+      "latitude": 59.8420481,
+      "longitude": 17.6435644,
+      "rssi": -71.0,
+      "ssid": "Sample_Network",
+      "timestamp": 1762940971602
+    },
+    {
+      "id": 4,
+      "latitude": 59.8420326,
+      "longitude": 17.6433727,
+      "rssi": -69.66666666666667,
+      "ssid": "Sample_Network",
+      "timestamp": 1762940971603
+    },
+    {
+      "id": 5,
+      "latitude": 59.8420083,
+      "longitude": 17.6432341,
+      "rssi": -64.0,
+      "ssid": "Sample_Network",
+      "timestamp": 1762940971604
+    },
+    {
+      "id": 6,
+      "latitude": 59.8420013,
+      "longitude": 17.6431118,
+      "rssi": -76.33333333333333,
+      "ssid": "Sample_Network",
+      "timestamp": 1762940971605
+    },
+    {
+      "id": 7,
+      "latitude": 59.8419928,
+      "longitude": 17.6429443,
+      "rssi": -77.0,
+      "ssid": "Sample_Network",
+      "timestamp": 1762940971606
+    },
+    {
+      "id": 8,
+      "latitude": 59.8419793,
+      "longitude": 17.6428315,
+      "rssi": -80.0,
+      "ssid": "Sample_Network",
+      "timestamp": 1762940971607
+    },
+    {
+      "id": 9,
+      "latitude": 59.8419705,
+      "longitude": 17.6426357,
+      "rssi": -84.66666666666667,
+      "ssid": "Sample_Network",
+      "timestamp": 1762940971608
+    },
+    {
+      "id": 10,
+      "latitude": 59.8419448,
+      "longitude": 17.6423464,
+      "rssi": -82.66666666666667,
+      "ssid": "Sample_Network",
+      "timestamp": 1762940971609
+    },
+    {
+      "id": 11,
+      "latitude": 59.8417836,
+      "longitude": 17.642272,
+      "rssi": -79.66666666666667,
+      "ssid": "Sample_Network",
+      "timestamp": 1762940971610
+    },
+    {
+      "id": 12,
+      "latitude": 59.8416951,
+      "longitude": 17.6423153,
+      "rssi": -88.0,
+      "ssid": "Sample_Network",
+      "timestamp": 1762940971611
+    },
+    {
+      "id": 13,
+      "latitude": 59.8416332,
+      "longitude": 17.6424854,
+      "rssi": -88.0,
+      "ssid": "Sample_Network",
+      "timestamp": 1762940971612
+    },
+    {
+      "id": 14,
+      "latitude": 59.8415634,
+      "longitude": 17.6426083,
+      "rssi": -88.0,
+      "ssid": "Sample_Network",
+      "timestamp": 1762940971613
+    },
+    {
+      "id": 15,
+      "latitude": 59.841523,
+      "longitude": 17.6428307,
+      "rssi": -87.0,
+      "ssid": "Sample_Network",
+      "timestamp": 1762940971614
+    },
+    {
+      "id": 16,
+      "latitude": 59.8415986,
+      "longitude": 17.64293,
+      "rssi": -77.66666666666667,
+      "ssid": "Sample_Network",
+      "timestamp": 1762940971615
+    },
+    {
+      "id": 17,
+      "latitude": 59.8416859,
+      "longitude": 17.6430697,
+      "rssi": -73.0,
+      "ssid": "Sample_Network",
+      "timestamp": 1762940971616
+    },
+    {
+      "id": 18,
+      "latitude": 59.841749,
+      "longitude": 17.6432354,
+      "rssi": -77.66666666666667,
+      "ssid": "Sample_Network",
+      "timestamp": 1762940971617
+    },
+    {
+      "id": 19,
+      "latitude": 59.8417433,
+      "longitude": 17.6433967,
+      "rssi": -78.0,
+      "ssid": "Sample_Network",
+      "timestamp": 1762940971618
+    },
+    {
+      "id": 20,
+      "latitude": 59.8417077,
+      "longitude": 17.6435474,
+      "rssi": -79.0,
+      "ssid": "Sample_Network",
+      "timestamp": 1762940971619
+    },
+    {
+      "id": 21,
+      "latitude": 59.841786,
+      "longitude": 17.6436545,
+      "rssi": -82.0,
+      "ssid": "Sample_Network",
+      "timestamp": 1762940971620
+    },
+    {
+      "id": 22,
+      "latitude": 59.841819,
+      "longitude": 17.6437839,
+      "rssi": -83.66666666666667,
+      "ssid": "Sample_Network",
+      "timestamp": 1762940971621
+    },
+    {
+      "id": 23,
+      "latitude": 59.8418668,
+      "longitude": 17.6438998,
+      "rssi": -84.66666666666667,
+      "ssid": "Sample_Network",
+      "timestamp": 1762940971622
+    },
+    {
+      "id": 24,
+      "latitude": 59.8419295,
+      "longitude": 17.6439362,
+      "rssi": -80.66666666666667,
+      "ssid": "Sample_Network",
+      "timestamp": 1762940971623
+    },
+    {
+      "id": 25,
+      "latitude": 59.841938,
+      "longitude": 17.6438461,
+      "rssi": -73.33333333333333,
+      "ssid": "Sample_Network",
+      "timestamp": 1762940971624
+    }
+  ]
+}
