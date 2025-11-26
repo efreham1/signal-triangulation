@@ -38,6 +38,120 @@ namespace core
 
 	ClusteredTriangulationAlgorithm2::~ClusteredTriangulationAlgorithm2() = default;
 
+	std::pair<int64_t, int64_t> ClusteredTriangulationAlgorithm2::makeEdgeKey(int64_t id1, int64_t id2) const
+	{
+		if (id1 < id2)
+		{
+			return {id1, id2};
+		}
+		return {id2, id1};
+	}
+
+	void ClusteredTriangulationAlgorithm2::addToDistanceCache(const DataPoint &p1, const DataPoint &p2, double distance)
+	{
+		distance_cache.try_emplace(makeEdgeKey(p1.point_id, p2.point_id), distance);
+	}
+
+	void ClusteredTriangulationAlgorithm2::reorderDataPointsByDistance()
+	{
+		if (m_points.size() < 3)
+		{
+			return; // Too few points to optimize
+		}
+
+		auto getDistance = [&](const DataPoint &p1, const DataPoint &p2) -> double
+		{
+			auto key = makeEdgeKey(p1.point_id, p2.point_id);
+			auto it = distance_cache.find(key);
+			if (it != distance_cache.end())
+			{
+				return it->second;
+			}
+
+			double dx = p1.getX() - p2.getX();
+			double dy = p1.getY() - p2.getY();
+			double distance = std::sqrt(dx * dx + dy * dy);
+
+			addToDistanceCache(p1, p2, distance);
+			return distance;
+		};
+
+		// Initial Solution: Greedy Nearest Neighbor
+		std::vector<DataPoint> current_path;
+		current_path.reserve(m_points.size());
+		std::vector<DataPoint> remaining = m_points;
+
+		// Start with the first point
+		current_path.push_back(remaining[0]);
+		remaining.erase(remaining.begin());
+
+		while (!remaining.empty())
+		{
+			const DataPoint &last = current_path.back();
+			double best_dist = std::numeric_limits<double>::max();
+			size_t best_idx = 0;
+
+			for (size_t i = 0; i < remaining.size(); ++i)
+			{
+				double d = getDistance(last, remaining[i]);
+				if (d < best_dist)
+				{
+					best_dist = d;
+					best_idx = i;
+				}
+			}
+			current_path.push_back(remaining[best_idx]);
+			remaining.erase(remaining.begin() + best_idx);
+		}
+
+		// Calculate initial total distance for logging
+		double total_dist = 0.0;
+		for (size_t i = 0; i < current_path.size() - 1; ++i)
+		{
+			double dist = getDistance(current_path[i], current_path[i + 1]);
+			total_dist += dist;
+		}
+
+		double initial_dist = total_dist;
+
+		// Optimization: 2-Opt Local Search
+		bool improved = true;
+		int iterations = 0;
+		const int MAX_ITERATIONS = 100;
+
+		while (improved && iterations < MAX_ITERATIONS)
+		{
+			improved = false;
+			iterations++;
+
+			for (size_t i = 0; i < current_path.size() - 2; ++i)
+			{
+				for (size_t j = i + 1; j < current_path.size() - 1; ++j)
+				{
+					double d_ab = getDistance(current_path[i], current_path[i + 1]);
+					double d_cd = getDistance(current_path[j], current_path[j + 1]);
+					double current_cost = d_ab + d_cd;
+
+					double d_ac = getDistance(current_path[i], current_path[j]);
+					double d_bd = getDistance(current_path[i + 1], current_path[j + 1]);
+					double new_cost = d_ac + d_bd;
+
+					if (new_cost < current_cost)
+					{
+						std::reverse(current_path.begin() + i + 1, current_path.begin() + j + 1);
+						total_dist -= (current_cost - new_cost);
+						improved = true;
+					}
+				}
+			}
+		}
+
+		m_points = std::move(current_path);
+
+		spdlog::info("ClusteredTriangulationAlgorithm2: optimized path. Length reduced from {:.2f}m to {:.2f}m ({} iterations)",
+					 initial_dist, total_dist, iterations);
+	}
+
 	void ClusteredTriangulationAlgorithm2::processDataPoint(const DataPoint &point)
 	{
 		// Basic validation; throw on invalid coordinates to make errors explicit
@@ -178,6 +292,8 @@ namespace core
 
 	void ClusteredTriangulationAlgorithm2::calculatePosition(double &out_latitude, double &out_longitude, double precision, double timeout)
 	{
+		reorderDataPointsByDistance();
+
 		clusterData();
 		estimateAoAForClusters();
 

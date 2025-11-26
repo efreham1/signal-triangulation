@@ -37,6 +37,27 @@ namespace core
 
         std::vector<PointCluster> m_clusters;
 
+        // Distance cache for optimization
+        struct PairHash
+        {
+            std::size_t operator()(const std::pair<int64_t, int64_t> &p) const
+            {
+                std::size_t seed = std::hash<int64_t>{}(p.first);
+                seed ^= std::hash<int64_t>{}(p.second) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+                return seed;
+            }
+        };
+        std::unordered_map<std::pair<int64_t, int64_t>, double, PairHash> distance_cache;
+
+        // Helper to create normalized edge key (smaller ID first)
+        std::pair<int64_t, int64_t> makeEdgeKey(int64_t id1, int64_t id2) const;
+
+        // Distance cache helpers
+        void addToDistanceCache(const DataPoint &p1, const DataPoint &p2, double distance);
+
+        // Reorder points by distance (2-opt optimization)
+        void reorderDataPointsByDistance();
+
         // Internal helpers (stubs)
         void clusterData();
         void estimateAoAForClusters();
