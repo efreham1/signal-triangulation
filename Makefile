@@ -1,11 +1,9 @@
 # Simple Makefile wrapper that configures and builds with CMake
 # Usage:
-#   make          # Configure (cmake -S . -B build) and build (cmake --build build)
+#   make          # Configure (if needed) and build
 #   make test     # Configure, build and run ctest
 #   make clean    # Remove build directory
 #   make rebuild  # Clean, configure and build
-#   make install-adb
-#   make fetch_recordings
 
 BUILD_DIR := build
 CMAKE := cmake
@@ -13,7 +11,10 @@ NPROC := $(shell nproc 2>/dev/null || echo 1)
 CMAKE_FLAGS := -S . -B $(BUILD_DIR)
 CMAKE_BUILD := $(CMAKE) --build $(BUILD_DIR) --config Release -j$(NPROC)
 
-all: configure build
+# Marker file to track if cmake has been configured
+CMAKE_CACHE := $(BUILD_DIR)/CMakeCache.txt
+
+all: build
 
 install-adb:
 	@echo "Detecting platform and installing adb if needed..."
@@ -31,22 +32,36 @@ fetch_recordings: install-adb
 	@echo "Fetching recordings from connected Android device..."
 	@bash ./scripts/FileTransfer.sh
 
-configure:
+# Only run cmake configure if CMakeCache.txt doesn't exist
+$(CMAKE_CACHE): CMakeLists.txt
 	$(CMAKE) $(CMAKE_FLAGS)
 
-build:
+configure: $(CMAKE_CACHE)
+
+# Build depends on configure being done
+build: $(CMAKE_CACHE)
 	$(CMAKE_BUILD)
 
-test-plane: configure
-	@$(CMAKE) --build $(BUILD_DIR) --config Release -j$(NPROC) --target plane_fit_tests
+# Specific targets - only build what's needed
+signal-triangulation: $(CMAKE_CACHE)
+	$(CMAKE) --build $(BUILD_DIR) --config Release -j$(NPROC) --target signal-triangulation
+
+triangulation_tests: $(CMAKE_CACHE)
+	$(CMAKE) --build $(BUILD_DIR) --config Release -j$(NPROC) --target triangulation_tests
+
+plane_fit_tests: $(CMAKE_CACHE)
+	$(CMAKE) --build $(BUILD_DIR) --config Release -j$(NPROC) --target plane_fit_tests
+
+test-plane: plane_fit_tests
 	@cd $(BUILD_DIR) && ctest -L plane --output-on-failure
 
-test-location: configure
-	@$(CMAKE) --build $(BUILD_DIR) --config Release -j$(NPROC) --target signal-triangulation
-	@$(CMAKE) --build $(BUILD_DIR) --config Release -j$(NPROC) --target triangulation_tests
+test-location: signal-triangulation triangulation_tests
 	@echo ""
 	@./$(BUILD_DIR)/tests/triangulation_tests --gtest_filter=Triangulation.GlobalSummary
 
+# Force reconfigure
+reconfigure:
+	$(CMAKE) $(CMAKE_FLAGS)
 
 clean:
 	@if [ -d $(BUILD_DIR) ]; then rm -rf $(BUILD_DIR); else true; fi
@@ -56,4 +71,4 @@ purge-logs:
 
 rebuild: clean all purge-logs
 
-.PHONY: all clean rebuild configure build test-plane test-location install-adb fetch_recordings
+.PHONY: all clean rebuild configure build test-plane test-location install-adb fetch_recordings reconfigure signal-triangulation triangulation_tests plane_fit_tests
