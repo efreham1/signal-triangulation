@@ -60,6 +60,7 @@ namespace core
 
         // Internal helpers (stubs)
         void clusterData();
+        void coalescePoints();
         void estimateAoAForClusters();
         double getCost(double x, double y);
         void bruteForceSearch(double &out_x, double &out_y, double precision, double timeout);

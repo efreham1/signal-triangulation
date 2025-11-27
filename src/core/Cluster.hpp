@@ -21,8 +21,6 @@ namespace core
         double centroid_y;
         double aoa_x;
         double aoa_y;
-        std::pair<int, int> points_furthest_between;
-        double furthest_distance;
 
         PointCluster()
         {
@@ -32,24 +30,11 @@ namespace core
             centroid_y = 0.0;
             aoa_x = 0.0;
             aoa_y = 0.0;
-            points_furthest_between = std::make_pair(-1, -1);
-            furthest_distance = 0.0;
         }
         ~PointCluster() = default;
 
         void addPoint(const DataPoint &point)
         {
-            for (unsigned int i = 0; i < static_cast<unsigned int>(points.size()); ++i)
-            {
-                double dist = (points[i].getX() - point.getX()) * (points[i].getX() - point.getX()) +
-                              (points[i].getY() - point.getY()) * (points[i].getY() - point.getY());
-                if (dist > furthest_distance)
-                {
-                    furthest_distance = dist;
-                    points_furthest_between = std::make_pair(i, static_cast<unsigned int>(points.size()));
-                    spdlog::debug("PointCluster: updated furthest distance to {} between points {} and {}", furthest_distance, i, points.size());
-                }
-            }
             points.push_back(point);
 
             // Update average RSSI
@@ -65,63 +50,32 @@ namespace core
             spdlog::debug("PointCluster: added point (x={}, y={}, rssi={}), new centroid (x={}, y={}), avg_rssi={}", point.getX(), point.getY(), point.rssi, centroid_x, centroid_y, avg_rssi);
         }
 
-        void addPoint(const DataPoint &point, double coalition_distance)
-        {
-            for (int i = 0; i < static_cast<int>(points.size()); ++i)
-            {
-                DataPoint &existing_point = points[i];
-                double dist = (existing_point.getX() - point.getX()) * (existing_point.getX() - point.getX()) +
-                              (existing_point.getY() - point.getY()) * (existing_point.getY() - point.getY());
-                if (dist <= coalition_distance * coalition_distance)
-                {
-                    spdlog::debug("PointCluster: coalesced point (x={}, y={}, rssi={}) into existing point (x={}, y={}, rssi={}), new centroid (x={}, y={}), avg_rssi={}", point.getX(), point.getY(), point.rssi, existing_point.getX(), existing_point.getY(), existing_point.rssi, centroid_x, centroid_y, avg_rssi);
-                    
-                    // Point is close enough to be coalesced into this point
-                    centroid_x = centroid_x * static_cast<double>(points.size()) - existing_point.getX();
-                    centroid_y = centroid_y * static_cast<double>(points.size()) - existing_point.getY();
-
-                    existing_point.setX((existing_point.getX() + point.getX()) / 2.0);
-                    existing_point.setY((existing_point.getY() + point.getY()) / 2.0);
-
-                    centroid_x = (centroid_x + existing_point.getX()) / static_cast<double>(points.size());
-                    centroid_y = (centroid_y + existing_point.getY()) / static_cast<double>(points.size());
-
-                    avg_rssi = avg_rssi * static_cast<double>(points.size()) - existing_point.rssi;
-
-                    existing_point.rssi = (existing_point.rssi + point.rssi) / 2;
-
-                    avg_rssi = (avg_rssi + existing_point.rssi) / static_cast<double>(points.size());
-
-
-                    if (points_furthest_between.first == i || points_furthest_between.second == i)
-                    {
-                        spdlog::debug("PointCluster: recomputing furthest points after coalescing affected point {}", i);
-                        // Recalculate furthest points
-                        furthest_distance = 0.0;
-                        for (int m = 0; m < static_cast<int>(points.size()); ++m)
-                        {
-                            for (int n = m + 1; n < static_cast<int>(points.size()); ++n)
-                            {
-                                double d = (points[m].getX() - points[n].getX()) * (points[m].getX() - points[n].getX()) +
-                                           (points[m].getY() - points[n].getY()) * (points[m].getY() - points[n].getY());
-                                if (d > furthest_distance)
-                                {
-                                    furthest_distance = d;
-                                    points_furthest_between = std::make_pair(m, n);
-                                }
-                            }
-                        }
-                        spdlog::debug("PointCluster: recomputed furthest distance to {} between points {} and {}", furthest_distance, points_furthest_between.first, points_furthest_between.second);
-                    }
-                    return;
-                }
-            }
-            // If we reach here, no existing point was close enough; add as new point
-            addPoint(point);
-        }
+        // void addPoint(const DataPoint &point, double coalition_distance)
+        // {
+        //     // If we reach here, no existing point was close enough; add as new point
+        //     addPoint(point);
+        // }
 
         double geometricRatio()
         {
+            std::pair<int, int> points_furthest_between;
+            double furthest_distance = 0.0;
+
+            for (unsigned int i = 0; i < static_cast<unsigned int>(points.size()); ++i)
+            {
+                for (unsigned int j = i + 1; j < static_cast<unsigned int>(points.size()); ++j)
+                {
+                    double d = (points[i].getX() - points[j].getX()) * (points[i].getX() - points[j].getX()) +
+                               (points[i].getY() - points[j].getY()) * (points[i].getY() - points[j].getY());
+                    if (d > furthest_distance)
+                    {
+                        furthest_distance = d;
+                        points_furthest_between = std::make_pair(i, j);
+                        spdlog::debug("PointCluster: updated furthest distance to {} between points {} and {}", furthest_distance, i, j);
+                    }
+                }
+            }
+
             if (furthest_distance == 0.0 || points.size() < 3)
             {
                 return 0.0;

@@ -18,10 +18,9 @@ namespace
 
 	// cluster weighting
 	static constexpr double VARIANCE_WEIGHT = 0.3; // weight for variance in cluster weighting
-	static constexpr double RSSI_WEIGHT = 0.1;	 // weight for RSSI component in cluster weighting
-	static constexpr double BOTTOM_RSSI = -90.0;	 // bottom RSSI threshold for cluster weighting
-	static constexpr double EXTRA_WEIGHT = 1.0;		 // extra weight multiplier for cluster weighting
-
+	static constexpr double RSSI_WEIGHT = 0.1;	   // weight for RSSI component in cluster weighting
+	static constexpr double BOTTOM_RSSI = -90.0;   // bottom RSSI threshold for cluster weighting
+	static constexpr double EXTRA_WEIGHT = 1.0;	   // extra weight multiplier for cluster weighting
 
 	// brute force search
 	static constexpr int HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS = 500; // half the number of discrete steps per axis in brute force search
@@ -201,7 +200,6 @@ namespace core
 
 	void ClusteredTriangulationAlgorithm2::bruteForceSearch(double &global_best_x, double &global_best_y, double precision, double timeout)
 	{
-		
 
 		global_best_x = 0.0;
 		global_best_y = 0.0;
@@ -267,8 +265,6 @@ namespace core
 					}
 				}
 			}
-			
-			
 
 			spdlog::info("ClusteredTriangulationAlgorithm2: brute force search iteration found best point (x={}, y={}) with cost {}", best_x, best_y, best_cost);
 
@@ -331,7 +327,12 @@ namespace core
 
 	void ClusteredTriangulationAlgorithm2::clusterData()
 	{
-		const double coalition_distance = DEFAULT_COALITION_DISTANCE_METERS; // meters
+        coalescePoints();
+
+        // Find the best cluster formation based on hard requirements
+
+		// Do this until no more clusters can be formed
+
 		unsigned int cluster_id = 0;
 		unsigned int current_cluster_size = 0;
 		for (const auto &point : m_points)
@@ -341,7 +342,7 @@ namespace core
 				m_clusters.emplace_back();
 			}
 
-			m_clusters[cluster_id].addPoint(point, coalition_distance);
+			m_clusters[cluster_id].addPoint(point);
 			current_cluster_size = static_cast<unsigned int>(m_clusters[cluster_id].points.size());
 			auto &c = m_clusters[cluster_id];
 			if (c.geometricRatio() > CLUSTER_RATIO_SPLIT_THRESHOLD && current_cluster_size >= CLUSTER_MIN_POINTS)
@@ -364,9 +365,40 @@ namespace core
 		{
 			spdlog::warn("ClusteredTriangulationAlgorithm2: only {} clusters formed; AoA estimation may be unreliable", m_clusters.size());
 		}
-	}
+    }
 
-	std::vector<double> getNormalVector2(const std::vector<double> &x, const std::vector<double> &y, const std::vector<double> &z)
+    void ClusteredTriangulationAlgorithm2::coalescePoints()
+    {
+        const double coalition_distance = DEFAULT_COALITION_DISTANCE_METERS;
+        for (int i = 0; i < static_cast<int>(m_points.size()); ++i)
+        {
+            for (int j = i + 1; j < static_cast<int>(m_points.size()); ++j)
+            {
+                double dx = m_points[i].getX() - m_points[j].getX();
+                double dy = m_points[i].getY() - m_points[j].getY();
+                double dist2 = dx * dx + dy * dy;
+                if (dist2 <= coalition_distance * coalition_distance)
+                {
+                    // Merge points by averaging their positions and RSSI into the earlier point (i)
+                    double new_x = (m_points[i].getX() + m_points[j].getX()) / 2.0;
+                    double new_y = (m_points[i].getY() + m_points[j].getY()) / 2.0;
+                    double new_rssi = (m_points[i].rssi + m_points[j].rssi) / 2.0;
+                    spdlog::debug("ClusteredTriangulationAlgorithm2: coalesced point (x={}, y={}, rssi={}) into existing point (x={}, y={}, rssi={})",
+                                  m_points[j].getX(), m_points[j].getY(), m_points[j].rssi, new_x, new_y, new_rssi);
+
+                    m_points[i].setX(new_x);
+                    m_points[i].setY(new_y);
+                    m_points[i].rssi = static_cast<int>(new_rssi);
+
+                    // Remove the merged point j and adjust index to continue checking with the same i
+                    m_points.erase(m_points.begin() + j);
+                    --j;
+                }
+            }
+        }
+    }
+
+    std::vector<double> getNormalVector2(const std::vector<double> &x, const std::vector<double> &y, const std::vector<double> &z)
 	{
 		if (x.size() < CLUSTER_MIN_POINTS || y.size() < CLUSTER_MIN_POINTS || z.size() < CLUSTER_MIN_POINTS ||
 			x.size() != y.size() || x.size() != z.size())
@@ -562,7 +594,7 @@ namespace core
 			else
 			{
 				double cluster_cost = cross_prod_mag / cluster_grad_mag;
-				cluster_cost *= cluster.getWeight(VARIANCE_WEIGHT, RSSI_WEIGHT, BOTTOM_RSSI)  + EXTRA_WEIGHT;
+				cluster_cost *= cluster.getWeight(VARIANCE_WEIGHT, RSSI_WEIGHT, BOTTOM_RSSI) + EXTRA_WEIGHT;
 				spdlog::debug("ClusteredTriangulationAlgorithm2: cost for cluster at (centroid_x={}, centroid_y={}) with AoA ({}, {}) is {} (in front of centroid)", cluster.centroid_x, cluster.centroid_y, cluster.aoa_x, cluster.aoa_y, cluster_cost);
 				total_cost += cluster_cost;
 			}
