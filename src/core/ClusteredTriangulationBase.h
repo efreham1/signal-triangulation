@@ -3,7 +3,7 @@
 
 #include "ITriangulationAlgorithm.h"
 #include "DataPoint.h"
-#include "Cluster.hpp"
+#include "Cluster.h"
 
 #include <vector>
 #include <cmath>
