@@ -1,72 +1,46 @@
 #ifndef CLUSTERED_TRIANGULATION_ALGORITHM2_H
 #define CLUSTERED_TRIANGULATION_ALGORITHM2_H
 
-#include "ITriangulationAlgorithm.h"
-#include "DataPoint.h"
-#include "Cluster.hpp"
-
-#include <vector>
-#include <cmath>
-#include <limits>
+#include "ClusteredTriangulationBase.h"
 
 namespace core
 {
 
     /**
      * @class ClusteredTriangulationAlgorithm2
-     * @brief Cluster-based triangulation algorithm implementing a brute force search
-     * for position estimation. This class processes received measurements and applies
-     * a brute force search to estimate the target position. Clustering and AoA estimation
-     * are planned for future enhancements.
+     * @brief Cluster-based triangulation using geometric ratio splitting for clustering
+     * and brute force grid search for position estimation, with cluster weighting.
      */
-    class ClusteredTriangulationAlgorithm2 : public ITriangulationAlgorithm
+    class ClusteredTriangulationAlgorithm2 : public ClusteredTriangulationBase
     {
     public:
         ClusteredTriangulationAlgorithm2();
         ~ClusteredTriangulationAlgorithm2() override;
 
-        // ITriangulationAlgorithm interface
-        void processDataPoint(const DataPoint &point) override;
         void calculatePosition(double &out_latitude, double &out_longitude, double precision, double timeout) override;
-        void reset() override;
+
+    protected:
+        // Override parameters for this algorithm
+        double getCoalitionDistance() const override { return 2.0; }
+        unsigned int getClusterMinPoints() const override { return 3u; }
+        double getClusterRatioSplitThreshold() const override { return 0.25; }
+
+        // CTA2 uses weighting
+        double getVarianceWeight() const override { return 0.3; }
+        double getRssiWeight() const override { return 0.1; }
+        double getBottomRssi() const override { return -90.0; }
+        double getExtraWeight() const override { return 1.0; }
+
+        // Implement clustering
+        void clusterData() override;
 
     private:
-        // Storage for received measurements. Implement clustering and additional
-        // state in later iterations.
-        std::vector<DataPoint> m_points;
-
-        std::vector<PointCluster> m_clusters;
-
-        // Distance cache for optimization
-        struct PairHash
-        {
-            std::size_t operator()(const std::pair<int64_t, int64_t> &p) const
-            {
-                std::size_t seed = std::hash<int64_t>{}(p.first);
-                seed ^= std::hash<int64_t>{}(p.second) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-                return seed;
-            }
-        };
-        std::unordered_map<std::pair<int64_t, int64_t>, double, PairHash> distance_cache;
-
-        // Helper to create normalized edge key (smaller ID first)
-        std::pair<int64_t, int64_t> makeEdgeKey(int64_t id1, int64_t id2) const;
-
-        // Distance cache helpers
-        void addToDistanceCache(const DataPoint &p1, const DataPoint &p2, double distance);
-
-        // Reorder points by distance (2-opt optimization)
-        void reorderDataPointsByDistance();
-
-        // Internal helpers (stubs)
-        void clusterData();
-        void coalescePoints();
-        void estimateAoAForClusters();
-        double getCost(double x, double y);
+        // CTA2-specific methods
         void bruteForceSearch(double &out_x, double &out_y, double precision, double timeout);
-    };
 
-    std::vector<double> getNormalVector2(const std::vector<double> &x, const std::vector<double> &y, const std::vector<double> &z);
+        // Brute force search parameters
+        static constexpr int HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS = 500; // TODO: should this also be a method?
+    };
 
 } // namespace core
 

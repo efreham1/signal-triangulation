@@ -50,13 +50,7 @@ namespace core
             spdlog::debug("PointCluster: added point (x={}, y={}, rssi={}), new centroid (x={}, y={}), avg_rssi={}", point.getX(), point.getY(), point.rssi, centroid_x, centroid_y, avg_rssi);
         }
 
-        // void addPoint(const DataPoint &point, double coalition_distance)
-        // {
-        //     // If we reach here, no existing point was close enough; add as new point
-        //     addPoint(point);
-        // }
-
-        double geometricRatio()
+        double geometricRatio() const
         {
             std::pair<int, int> points_furthest_between;
             double furthest_distance = 0.0;
