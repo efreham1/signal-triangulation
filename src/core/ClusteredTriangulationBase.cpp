@@ -253,10 +253,7 @@ namespace core
 
             // Apply weighting if configured
             double weight = getExtraWeight();
-            if (getVarianceWeight() > 0.0 || getRssiWeight() > 0.0)
-            {
-                weight += cluster.getWeight(getVarianceWeight(), getRssiWeight(), getBottomRssi());
-            }
+            weight += cluster.score;
             cluster_cost *= weight;
 
             total_cost += cluster_cost;

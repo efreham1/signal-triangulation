@@ -8,7 +8,7 @@ namespace core
 {
 
     PointCluster::PointCluster()
-        : estimated_aoa(0.0), avg_rssi(0.0), centroid_x(0.0), centroid_y(0.0), aoa_x(0.0), aoa_y(0.0)
+        : estimated_aoa(0.0), avg_rssi(0.0), centroid_x(0.0), centroid_y(0.0), aoa_x(0.0), aoa_y(0.0), score(0.0)
     {
     }
 
@@ -28,6 +28,45 @@ namespace core
 
         spdlog::debug("PointCluster: added point (x={}, y={}, rssi={}), new centroid (x={}, y={}), avg_rssi={}",
                       point.getX(), point.getY(), point.rssi, centroid_x, centroid_y, avg_rssi);
+    }
+
+    void PointCluster::removePoint(const DataPoint &point)
+    {
+        auto it = std::find_if(points.begin(), points.end(),
+                               [&point](const DataPoint &p) { return p.point_id == point.point_id; });
+
+        if (it != points.end())
+        {
+            points.erase(it);
+
+            // Recalculate average RSSI
+            if (!points.empty())
+            {
+                double total_rssi = 0.0;
+                double total_x = 0.0;
+                double total_y = 0.0;
+
+                for (const auto &p : points)
+                {
+                    total_rssi += p.rssi;
+                    total_x += p.getX();
+                    total_y += p.getY();
+                }
+
+                avg_rssi = total_rssi / static_cast<double>(points.size());
+                centroid_x = total_x / static_cast<double>(points.size());
+                centroid_y = total_y / static_cast<double>(points.size());
+            }
+            else
+            {
+                avg_rssi = 0.0;
+                centroid_x = 0.0;
+                centroid_y = 0.0;
+            }
+
+            spdlog::debug("PointCluster: removed point (id={}), new centroid (x={}, y={}), avg_rssi={}",
+                          point.point_id, centroid_x, centroid_y, avg_rssi);
+        }
     }
 
     double PointCluster::overlapWith(const PointCluster &other) const
@@ -71,16 +110,21 @@ namespace core
         return sum_sq_diff / static_cast<double>(points.size() - 1);
     }
 
-    double PointCluster::getWeight(double variance_weight, double rssi_weight, double bottom_rssi) const
+    double PointCluster::getAndSetScore(double ideal_geometric_ratio, double ideal_area,
+                                    double ideal_rssi_variance, double gr_weight, double area_weight,
+                                    double variance_weight)
     {
-        double variance_component = varianceRSSI();
+        double gr_score = 1.0 - std::abs(1.0 - geometricRatio() / ideal_geometric_ratio);
+        double area_score = 1.0 - std::abs(1.0 - area() / ideal_area);
+        double variance_score = 1.0 - std::abs(1.0 - varianceRSSI() / ideal_rssi_variance);
+        
+        score = gr_weight * gr_score + area_weight * area_score + variance_weight * variance_score;
+        return score;
+    }
 
-        if (avg_rssi < bottom_rssi)
-        {
-            return variance_weight * variance_component;
-        }
-
-        return variance_weight * variance_component - (bottom_rssi - avg_rssi) * rssi_weight;
+    size_t PointCluster::size() const
+    {
+        return points.size();
     }
 
     PointCluster::BoundingBox PointCluster::computePrincipalBoundingBox() const

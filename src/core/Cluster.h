@@ -17,14 +17,19 @@ namespace core
         double centroid_y;
         double aoa_x;
         double aoa_y;
+        double score;
 
         PointCluster();
         ~PointCluster() = default;
 
         void addPoint(const DataPoint &point);
+        void removePoint(const DataPoint &point);
         double overlapWith(const PointCluster &other) const;
         double varianceRSSI() const;
-        double getWeight(double variance_weight, double rssi_weight, double bottom_rssi) const;
+        size_t size() const;
+        double getAndSetScore(double ideal_geometric_ratio, double ideal_area,
+                        double ideal_rssi_variance, double gr_weight, double area_weight,
+                        double variance_weight);
 
         /**
          * @brief Bounding box in principal axis coordinate system.
