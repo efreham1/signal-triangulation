@@ -2,12 +2,8 @@ package com.example.polaris
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Button
@@ -32,7 +28,9 @@ import com.google.gson.GsonBuilder
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import androidx.activity.result.contract.ActivityResultContracts
+import kotlin.coroutines.cancellation.CancellationException
 
 @Entity(tableName = "signal_records")
 data class SignalRecord(
@@ -97,8 +95,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var exportBtn: Button
     private lateinit var selectSsidBtn: Button
     private lateinit var allRecordsText: TextView
-    private lateinit var startAutoBtn: Button
-    private lateinit var stopAutoBtn: Button
+    private lateinit var takeMeasurementBtn: Button
+    private lateinit var statusText: TextView
     private lateinit var measureSourceBtn: Button
     private lateinit var accuracyTestBtn: Button
     private lateinit var sourceNameText: TextView
@@ -115,108 +113,133 @@ class MainActivity : AppCompatActivity() {
         Manifest.permission.ACCESS_WIFI_STATE
     )
 
-    // track last scan timestamps per BSSID/SSID to detect updates
-    private val lastScanTimestamps = mutableMapOf<String, Long>()
+    private var isMeasuring = false
+    private var timerJob: Job? = null // Tracks the coroutine responsible for timing the measurement window
+    private var measurementStartTime = 0L
+    private var measurementTargetSsid: String? = null
+    private val timeFormat = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
 
-    // automatic mode flag
-    @Volatile
-    private var isAutoRunning = false
+    private val rssiListener: (RSSIStream.ScanBatch) -> Unit = { batch ->
+        handleScanBatch(batch)
+    }
 
     // Session-only name for the source position
     private var sessionSourceName: String? = null
     private var isMeasuringSource = false
+    private var measurementOffsetMs = 5_000L
 
     private val deviceID: String by lazy {
         Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID) ?: "unknown"
     }
 
-    private val wifiScanReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            val resultsUpdated = intent?.getBooleanExtra(WifiManager.EXTRA_RESULTS_UPDATED, false) ?: false
-            val wifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
-
-            // ensure permissions before reading scanResults
-            if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-                ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(
-                    this@MainActivity,
-                    requiredPermissions,
-                    locationPermissionRequestCode
-                )
-                return
-            }
-
-            val scanResults = wifiManager.scanResults ?: emptyList()
-
-            // Build SSID list (unique, non-empty, sorted) and preserve previous selection
-            val previouslySelectedSSID = selectedSSID
-            val scannedSsids = scanResults.mapNotNull { it.SSID.takeIf { ss -> ss.isNotBlank() } }.distinct().sorted()
-            val mergedList = mutableListOf<String>().apply {
-                addAll(scannedSsids)
-                if (previouslySelectedSSID != null && previouslySelectedSSID !in this) add(0, previouslySelectedSSID)
-            }
-            ssidList.clear()
-            ssidList.addAll(mergedList)
-
-            runOnUiThread { updateSelectedSsidButton() }
-
-            // detect update for selected SSID (even if RSSI value didn't change)
-            val sel = selectedSSID
-            if (!sel.isNullOrEmpty()) {
-                val found = scanResults.firstOrNull { it.SSID == sel }
-                if (found != null) {
-                    // Use arrival wall-clock time for matching locations (keeps units consistent with Location.time)
-                    val seenTimeMs = System.currentTimeMillis()
-                    val key = found.BSSID ?: found.SSID
-                    val prev = lastScanTimestamps[key]
-                    // treat as new if we haven't seen it before or it's updated
-                    if (prev == null || seenTimeMs > prev || resultsUpdated) {
-                        lastScanTimestamps[key] = seenTimeMs
-                        // only perform automatic capture when auto mode is running
-                        if (isAutoRunning) {
-                            onRssiMeasurementUpdated(found, seenTimeMs)
-                        }
-                    }
-                } else {
-                    // selected SSID not found in current scan
-                    runOnUiThread {
-                        Toast.makeText(
-                            this@MainActivity,
-                            getString(R.string.network_unavailable_message, sel),
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
+    private fun handleScanBatch(batch: RSSIStream.ScanBatch) {
+        val newSsids = batch.results.mapNotNull { it.SSID.takeIf { ss -> ss.isNotBlank() } }
+        if (newSsids.isNotEmpty()) {
+            val merged = (ssidList + newSsids).filter { it.isNotBlank() }.distinct().sorted()
+            if (merged.size != ssidList.size || !ssidList.containsAll(merged)) {
+                ssidList.clear()
+                ssidList.addAll(merged)
+                runOnUiThread { updateSelectedSsidButton() }
             }
         }
     }
 
-    private fun onRssiMeasurementUpdated(scanResult: android.net.wifi.ScanResult, seenTimeMs: Long) {
-        val now = System.currentTimeMillis()
-        val timeStr = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(now))
-
-        runOnUiThread {
-            Toast.makeText(this@MainActivity, getString(R.string.rssi_updated, scanResult.level, timeStr), Toast.LENGTH_SHORT).show()
+    private fun startManualMeasurement() {
+        val target = selectedSSID
+        if (target.isNullOrEmpty()) {
+            statusText.text = getString(R.string.status_no_ssid)
+            Toast.makeText(this, getString(R.string.prompt_select_ssid_first), Toast.LENGTH_SHORT).show()
+            return
         }
 
+        if (!hasAllPermissions()) {
+            ActivityCompat.requestPermissions(this, requiredPermissions, locationPermissionRequestCode)
+            return
+        }
+
+        if (isMeasuring) return
+
+        isMeasuring = true
+        measurementTargetSsid = target
+        measurementStartTime = System.currentTimeMillis()
+        takeMeasurementBtn.isEnabled = false
+
+        RSSIStream.requestImmediateScan()
+        
+        startMeasurementLoop() // Start the smooth timer and measurement logic
+    }
+
+    private fun startMeasurementLoop() {
+        timerJob?.cancel()
+        timerJob = lifecycleScope.launch {
+            statusText.text = getString(R.string.status_waiting_rssi)
+            try {
+                val target = measurementTargetSsid ?: return@launch
+                val (rssi, timestamp) = RSSIStream.awaitFirstRSSIAfter(target, measurementStartTime + measurementOffsetMs)
+                completeMeasurement(target, rssi, timestamp, timestamp - measurementStartTime)
+            } catch (_: CancellationException) {
+                // cancelled
+            }
+        }
+    }
+
+    private fun completeMeasurement(ssid: String, rssi: Int, seenTimeMs: Long, measurementDurationMs: Long) {
+        if (!isMeasuring) return
+        isMeasuring = false
+        
         lifecycleScope.launch {
-            val bestLoc = LocationStream.nearestByWallClock(seenTimeMs, maxDeltaMs = 7_000) // NOTE: magic number 7 seconds
-            if (bestLoc == null) {
-                runOnUiThread {
+            val avgPair = withContext(Dispatchers.Default) {
+                LocationStream.getAveragedLocationAndSamplesFrom(seenTimeMs, measurementDurationMs)
+            }
+
+            if (avgPair == null) {
+                withContext(Dispatchers.Main) {
+                    statusText.text = getString(R.string.status_measurement_failed)
+                    takeMeasurementBtn.isEnabled = true
                     Toast.makeText(this@MainActivity, getString(R.string.no_location), Toast.LENGTH_SHORT).show()
                 }
-            } else {
-                val record = SignalRecord(
-                    latitude = bestLoc.latitude,
-                    longitude = bestLoc.longitude,
-                    ssid = scanResult.SSID,
-                    rssi = scanResult.level,
-                    timestamp = seenTimeMs,
-                    deviceID = deviceID
-                )
-                signalDao.insert(record)
-                runOnUiThread { refreshRecordsView() }
+                measurementTargetSsid = null
+                return@launch
             }
+
+            val avgLoc = avgPair.first
+            val record = SignalRecord(
+                latitude = avgLoc.latitude,
+                longitude = avgLoc.longitude,
+                ssid = ssid,
+                rssi = rssi,
+                timestamp = seenTimeMs,
+                deviceID = deviceID
+            )
+            signalDao.insert(record)
+
+            withContext(Dispatchers.Main) {
+                statusText.text = getString(R.string.status_measurement_taken, avgPair.second.size)
+                takeMeasurementBtn.isEnabled = true
+                Toast.makeText(
+                    this@MainActivity,
+                    getString(R.string.rssi_updated, rssi, timeFormat.format(java.util.Date(seenTimeMs))),
+                    Toast.LENGTH_SHORT
+                ).show()
+                refreshRecordsView()
+            }
+            measurementTargetSsid = null
+        }
+    }
+
+    private fun resetMeasurementState() {
+        isMeasuring = false
+        timerJob?.cancel() // Stop the timer
+        measurementTargetSsid = null
+        runOnUiThread {
+            takeMeasurementBtn.isEnabled = true
+            statusText.text = getString(R.string.status_ready)
+        }
+    }
+
+    private fun hasAllPermissions(): Boolean {
+        return requiredPermissions.all { perm ->
+            ContextCompat.checkSelfPermission(this, perm) == PackageManager.PERMISSION_GRANTED
         }
     }
 
@@ -245,20 +268,17 @@ class MainActivity : AppCompatActivity() {
         allRecordsText = findViewById(R.id.allRecordsText)
         selectSsidBtn = findViewById(R.id.selectSsidBtn)
         exportBtn = findViewById(R.id.exportBtn)
-        startAutoBtn = findViewById(R.id.startAutoBtn)
-        stopAutoBtn = findViewById(R.id.stopAutoBtn)
+        takeMeasurementBtn = findViewById(R.id.takeMeasurementBtn)
+        statusText = findViewById(R.id.statusText)
         measureSourceBtn = findViewById(R.id.measureSourceBtn)
         accuracyTestBtn = findViewById(R.id.accuracyTestBtn)
         sourceNameText = findViewById(R.id.source_name_text)
-        // initial auto state
-        isAutoRunning = false
-        updateAutoButtons()
+        statusText.text = getString(R.string.status_ready)
 
         // UI actions
         selectSsidBtn.setOnClickListener { showSsidChoiceDialog() }
 
-        startAutoBtn.setOnClickListener { startMeasurements() }
-        stopAutoBtn.setOnClickListener { stopMeasurements() }
+        takeMeasurementBtn.setOnClickListener { startManualMeasurement() }
 
         exportBtn.setOnClickListener { promptFreeTextAndExport() }
 
@@ -296,41 +316,15 @@ class MainActivity : AppCompatActivity() {
         refreshRecordsView()
     }
 
-    private fun updateAutoButtons() {
-        runOnUiThread {
-            startAutoBtn.isEnabled = !isAutoRunning
-            stopAutoBtn.isEnabled = isAutoRunning
-        }
-    }
-
-    private fun startMeasurements() {
-        if (selectedSSID.isNullOrEmpty()) {
-            Toast.makeText(this, getString(R.string.prompt_select_ssid_first), Toast.LENGTH_SHORT).show()
-            return
-        }
-        isAutoRunning = true
-        updateAutoButtons()
-        Toast.makeText(this, getString(R.string.recording_started), Toast.LENGTH_SHORT).show()
-    }
-
-    private fun stopMeasurements() {
-        isAutoRunning = false
-        updateAutoButtons()
-        Toast.makeText(this, getString(R.string.recording_stopped), Toast.LENGTH_SHORT).show()
-    }
-
     override fun onResume() {
         super.onResume()
-        val filter = IntentFilter()
-        filter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION)
-        registerReceiver(wifiScanReceiver, filter)
-        val wifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
-        wifiManager.startScan()
-
-        // Start shared 1 Hz stream once we have permission
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+        if (hasAllPermissions()) {
             LocationStream.start(this)
+            RSSIStream.start(this)
+            RSSIStream.addListener(rssiListener)
+            RSSIStream.latest()?.let { handleScanBatch(it) }
+        } else {
+            ActivityCompat.requestPermissions(this, requiredPermissions, locationPermissionRequestCode)
         }
         refreshRecordsView()
         checkAndRefreshSource()
@@ -384,8 +378,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        try { unregisterReceiver(wifiScanReceiver) } catch (_: Exception) { }
+        RSSIStream.removeListener(rssiListener)
+        RSSIStream.stop()
         LocationStream.stop()
+        resetMeasurementState()
     }
 
     private fun updateSelectedSsidButton() {
@@ -409,6 +405,7 @@ class MainActivity : AppCompatActivity() {
             .setSingleChoiceItems(items, checkedIndex) { dialog, which ->
                 selectedSSID = ssidList.getOrNull(which)
                 updateSelectedSsidButton()
+                resetMeasurementState()
                 dialog.dismiss()
             }
             .setNegativeButton(android.R.string.cancel, null)

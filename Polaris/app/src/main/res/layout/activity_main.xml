@@ -38,29 +38,22 @@
         android:text="@string/open_accuracy_test"
         android:layout_marginTop="8dp" />
 
-    <!-- start/stop automatic measurements -->
-    <LinearLayout
+    <TextView
+        android:id="@+id/statusText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:layout_marginTop="16dp"
+        android:gravity="center_horizontal"
+        android:text="@string/status_ready"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <Button
+        android:id="@+id/takeMeasurementBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:weightSum="2">
-
-        <Button
-            android:id="@+id/startAutoBtn"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/start_recording" />
-
-        <Button
-            android:id="@+id/stopAutoBtn"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:text="@string/stop_recording" />
-    </LinearLayout>
+        android:text="@string/take_measurement" />
 
     <Button
         android:id="@+id/cleanRecordsBtn"

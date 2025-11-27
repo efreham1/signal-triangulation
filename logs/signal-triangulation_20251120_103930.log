@@ -1,2 +1,0 @@
-[2025-11-20 10:39:30.702] [file_logger] [info] Logging initialized. level=info
-[2025-11-20 10:39:30.702] [file_logger] [error] Failed to parse signals file 'signals.json': Failed to open JSON file: signals.json

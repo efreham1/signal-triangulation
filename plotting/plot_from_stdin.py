@@ -21,7 +21,192 @@ from typing import Dict, Any
 import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
+import pandas as pd
 
+def parse_search_space_costs(text: str):
+    """
+    Parse the 'Search Space Costs:' section.
+    Returns X, Y, Z arrays for plotting, or None if not found.
+    """
+    lines = text.splitlines()
+    start_idx = -1
+    for i, line in enumerate(lines):
+        if line.strip() == "Search Space Costs:":
+            start_idx = i + 1
+            break
+    
+    if start_idx == -1:
+        return None, None, None
+
+    data = []
+    for line in lines[start_idx:]:
+        parts = line.split(',')
+        if len(parts) == 3:
+            try:
+                x = float(parts[0])
+                y = float(parts[1])
+                cost = float(parts[2])
+                data.append((x, y, cost))
+            except ValueError:
+                break # Stop at non-numeric line
+        else:
+            break
+            
+    if not data:
+        return None, None, None
+
+    # Convert to numpy arrays and pivot
+    try:
+        df = pd.DataFrame(data, columns=['x', 'y', 'cost'])
+        pivot = df.pivot(index='y', columns='x', values='cost')
+        X = pivot.columns.values
+        Y = pivot.index.values
+        X, Y = np.meshgrid(X, Y)
+        Z = pivot.values
+        return X, Y, Z
+    except Exception as e:
+        print(f"Error processing search space data: {e}")
+        return None, None, None
+
+def plot_heatmap(X, Y, Z, out_dir=None, show=True):
+    fig, ax = plt.subplots(figsize=(10, 8))
+    cp = ax.contourf(X, Y, Z, levels=50, cmap='viridis')
+    fig.colorbar(cp, label='Cost')
+    ax.set_title('Search Space Cost Landscape (Heatmap)')
+    ax.set_xlabel('X (meters)')
+    ax.set_ylabel('Y (meters)')
+    ax.grid(True, alpha=0.3)
+    
+    if out_dir:
+        output_file = f"{out_dir}/search_space_heatmap.png"
+        fig.savefig(output_file, dpi=200)
+        print(f"Saved heatmap to {output_file}")
+    
+    if show:
+        plt.show()
+
+def plot_3d_surface(X, Y, Z, out_dir=None, show=True):
+    fig = plt.figure(figsize=(12, 9))
+    ax = fig.add_subplot(111, projection='3d')
+    surf = ax.plot_surface(X, Y, Z, cmap='viridis', edgecolor='none', alpha=0.8)
+    fig.colorbar(surf, ax=ax, shrink=0.5, aspect=5, label='Cost')
+    ax.set_title('Search Space Cost Landscape (3D Surface)')
+    ax.set_xlabel('X (meters)')
+    ax.set_ylabel('Y (meters)')
+    ax.set_zlabel('Cost')
+    
+    if out_dir:
+        output_file = f"{out_dir}/search_space_3d.png"
+        fig.savefig(output_file, dpi=200)
+        print(f"Saved 3D surface plot to {output_file}")
+    
+    if show:
+        plt.show()
+
+def plot_composite_heatmap(X, Y, Z, data_x, data_y, centroids=None, aoas=None, result_point=None, source_point=None, out_dir=None, show=True):
+    fig, ax = plt.subplots(figsize=(12, 10))
+    
+    # 1. The Cost Heatmap
+    # Use a lighter alpha so points show up
+    cp = ax.contourf(X, Y, Z, levels=50, cmap='viridis', alpha=0.9)
+    fig.colorbar(cp, label='Cost')
+    
+    # 2. Data Points (measurements) - subtle white dots
+    if data_x is not None and data_y is not None:
+        ax.scatter(data_x, data_y, c='black', s=15, alpha=0.4, label='measurements', edgecolors='none')
+
+    # 3. Centroids and AoA
+    if centroids is not None:
+        cx, cy = centroids
+        cx = np.array(cx)
+        cy = np.array(cy)
+        # Plot centroids
+        ax.scatter(cx, cy, marker='X', c='red', s=120, edgecolors='white', linewidth=1.5, label='centroids', zorder=5)
+        
+        if aoas is not None:
+            angles = np.array(aoas)
+            # compute arrow length based on grid extent
+            xr = np.max(X) - np.min(X)
+            yr = np.max(Y) - np.min(Y)
+            extent = max(xr, yr)
+            arrow_len = extent * 0.1
+            rads = np.deg2rad(angles)
+            dxs = arrow_len * np.cos(rads)
+            dys = arrow_len * np.sin(rads)
+            
+            # Quiver for AoA
+            ax.quiver(cx, cy, dxs, dys, angles='xy', scale_units='xy', scale=1, color='red', width=0.006, headwidth=4, zorder=4)
+
+    # 4. Result Point
+    if result_point is not None:
+        rx, ry = result_point
+        ax.scatter([rx], [ry], marker='*', c='gold', s=250, edgecolors='black', linewidth=1.5, label='result', zorder=10)
+
+    # 5. Source Point
+    if source_point is not None:
+        sx, sy = source_point
+        ax.scatter([sx], [sy], marker='P', c='cyan', s=200, edgecolors='black', linewidth=1.5, label='source', zorder=10)
+
+    ax.set_title('Composite Search Space: Cost + Geometry')
+    ax.set_xlabel('X (meters)')
+    ax.set_ylabel('Y (meters)')
+    ax.grid(True, alpha=0.3, linestyle='--')
+    ax.legend(loc='upper right', framealpha=0.9)
+    
+    if out_dir:
+        output_file = f"{out_dir}/composite_heatmap.png"
+        fig.savefig(output_file, dpi=200)
+        print(f"Saved composite heatmap to {output_file}")
+    
+    if show:
+        plt.show()
+
+def plot_composite_3d_surface(X, Y, Z, result_point=None, source_point=None, out_dir=None, show=True):
+    fig = plt.figure(figsize=(12, 9))
+    ax = fig.add_subplot(111, projection='3d')
+    
+    # Surface
+    surf = ax.plot_surface(X, Y, Z, cmap='viridis', edgecolor='none', alpha=0.6)
+    fig.colorbar(surf, ax=ax, shrink=0.5, aspect=5, label='Cost')
+    
+    # Helper to find Z for a given (x,y)
+    def get_z(px, py):
+        # X[0, :] are x coordinates, Y[:, 0] are y coordinates
+        x_axis = X[0, :]
+        y_axis = Y[:, 0]
+        idx_x = (np.abs(x_axis - px)).argmin()
+        idx_y = (np.abs(y_axis - py)).argmin()
+        return Z[idx_y, idx_x]
+
+    if result_point is not None:
+        rx, ry = result_point
+        try:
+            rz = get_z(rx, ry)
+            ax.scatter([rx], [ry], [rz], c='gold', marker='*', s=200, edgecolors='black', label='result', zorder=10)
+        except Exception as e:
+            print(f"Warning: Could not plot result point at ({rx}, {ry}): {e}")
+        
+    if source_point is not None:
+        sx, sy = source_point
+        try:
+            sz = get_z(sx, sy)
+            ax.scatter([sx], [sy], [sz], c='cyan', marker='P', s=150, edgecolors='black', label='source', zorder=10)
+        except Exception as e:
+            print(f"Warning: Could not plot source point at ({sx}, {sy}): {e}")
+
+    ax.set_title('Composite 3D Cost Surface')
+    ax.set_xlabel('X (meters)')
+    ax.set_ylabel('Y (meters)')
+    ax.set_zlabel('Cost')
+    ax.legend()
+
+    if out_dir:
+        output_file = f"{out_dir}/composite_3d.png"
+        fig.savefig(output_file, dpi=200)
+        print(f"Saved composite 3D plot to {output_file}")
+    
+    if show:
+        plt.show()
 
 def parse_lists_from_text(text: str) -> Dict[str, Any]:
     """Find variable assignments of the form `name = [ ... ]` and return Python lists.
@@ -397,6 +582,16 @@ def main():
     # Parse and plot cluster-specific output (if present in stdin)
     if clusters:
         plot_clusters(clusters, result_point=result_point, out_dir=args.out_dir, show=show, source_point=source_point)
+
+    # Parse and plot search space costs (if present)
+    X, Y, Z = parse_search_space_costs(text)
+    if X is not None:
+        plot_heatmap(X, Y, Z, out_dir=args.out_dir, show=show)
+        plot_3d_surface(X, Y, Z, out_dir=args.out_dir, show=show)
+        
+        # Composite plots
+        plot_composite_heatmap(X, Y, Z, x, y, centroids=centroids, aoas=aoas, result_point=result_point, source_point=source_point, out_dir=args.out_dir, show=show)
+        plot_composite_3d_surface(X, Y, Z, result_point=result_point, source_point=source_point, out_dir=args.out_dir, show=show)
 
 if __name__ == '__main__':
     main()
