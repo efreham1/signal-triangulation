@@ -11,30 +11,14 @@
 // File-local tunable constants (avoid magic numbers in code)
 namespace
 {
-	// clustering - shape criteria
-	static constexpr double TARGET_SQUARENESS = 1.0; // Perfect square ratio (width/height = 1)
-	static constexpr double SQUARENESS_WEIGHT = 2.0; // Weight for squareness in scoring
-	static constexpr double AREA_WEIGHT = 0.5;		 // Weight for area deviation in scoring
-	static constexpr double MIN_SQUARENESS = 0.15;	 // Minimum acceptable squareness (reject worse)
-
-	// clustering - size constraints
-	static constexpr size_t CLUSTER_MIN_POINTS = 4u;   // Minimum points per cluster
-	static constexpr size_t CLUSTER_MAX_POINTS = 100u; // Maximum points per cluster
-	static constexpr size_t MIN_CLUSTERS = 4u;		   // Minimum clusters required
-	static constexpr size_t MAX_CLUSTERS = 50u;		   // Maximum clusters allowed (relaxed)
-
-	// clustering - area targets
-	static constexpr double TARGET_AREA_PER_CLUSTER = 60.0; // Target area in square meters per cluster
-	static constexpr double AREA_TOLERANCE = 0.5;		   // Acceptable deviation from target (fraction)
-
-	// exhaustive search threshold
-	static constexpr size_t EXHAUSTIVE_SEARCH_MAX_POINTS = 25; // Use brute force if n <= this	 // geometric ratio threshold to split cluster
-
-	static constexpr double DEFAULT_COALITION_DISTANCE_METERS = 1.0; // meters used to coalesce nearby points
+	// clustering
+	static constexpr double DEFAULT_COALITION_DISTANCE_METERS = 2.0; // meters used to coalesce nearby points
+	static constexpr unsigned int CLUSTER_MIN_POINTS = 3u;			 // minimum points to form a cluster (3 points needed for AoA estimation)
+	static constexpr double CLUSTER_RATIO_SPLIT_THRESHOLD = 0.25;	 // geometric ratio threshold to split cluster
 
 	// cluster weighting
-	static constexpr double VARIANCE_WEIGHT = 0.5; // weight for variance in cluster weighting
-	static constexpr double RSSI_WEIGHT = 0.3;	 // weight for RSSI component in cluster weighting
+	static constexpr double VARIANCE_WEIGHT = 0.3; // weight for variance in cluster weighting
+	static constexpr double RSSI_WEIGHT = 0.1;	 // weight for RSSI component in cluster weighting
 	static constexpr double BOTTOM_RSSI = -90.0;	 // bottom RSSI threshold for cluster weighting
 	static constexpr double EXTRA_WEIGHT = 1.0;		 // extra weight multiplier for cluster weighting
 
@@ -316,16 +300,11 @@ namespace core
 		double global_best_x = 0.0;
 		double global_best_y = 0.0;
 
-		spdlog::info("ClusteredTriangulationAlgorithm2: starting brute force search for global minimum, data points: {}, clusters: {}",
-					 m_points.size(), m_clusters.size());
-
 		bruteForceSearch(global_best_x, global_best_y, precision, timeout);
 
 		// print x and y of resulting point
 		if (plottingEnabled)
 		{
-			spdlog::info("ClusteredTriangulationAlgorithm2: plotting enabled, printing {} points and {} clusters",
-						 m_points.size(), m_clusters.size());
 			printPointsAndClusters2(m_points, m_clusters);
 			std::cout << "Resulting point after brute force search: x=" << global_best_x << ", y=" << global_best_y << std::endl;
 		}
@@ -350,413 +329,40 @@ namespace core
 		m_clusters.clear();
 	}
 
-	double ClusteredTriangulationAlgorithm2::getTargetTotalArea(size_t num_clusters) const
-	{
-		return TARGET_AREA_PER_CLUSTER * static_cast<double>(num_clusters);
-	}
-
-	ClusteredTriangulationAlgorithm2::ClusterMetrics
-	ClusteredTriangulationAlgorithm2::evaluateClusterMetrics(size_t start_idx, size_t end_idx) const
-	{
-		ClusterMetrics metrics = {0.0, 0.0, 0, false};
-
-		size_t count = end_idx - start_idx + 1;
-		metrics.point_count = count;
-
-		// Check size constraints
-		if (count < CLUSTER_MIN_POINTS || count > CLUSTER_MAX_POINTS)
-		{
-			return metrics; // Invalid, valid = false
-		}
-
-		// Calculate bounding box
-		double min_x = std::numeric_limits<double>::max();
-		double max_x = std::numeric_limits<double>::lowest();
-		double min_y = std::numeric_limits<double>::max();
-		double max_y = std::numeric_limits<double>::lowest();
-
-		for (size_t i = start_idx; i <= end_idx; ++i)
-		{
-			double x = m_points[i].getX();
-			double y = m_points[i].getY();
-			min_x = std::min(min_x, x);
-			max_x = std::max(max_x, x);
-			min_y = std::min(min_y, y);
-			max_y = std::max(max_y, y);
-		}
-
-		double width = max_x - min_x;
-		double height = max_y - min_y;
-
-		// Handle degenerate cases
-		if (width < 1e-9 && height < 1e-9)
-		{
-			// All points at same location - perfect squareness but zero area
-			metrics.squareness = 1.0;
-			metrics.area = 0.0;
-			metrics.valid = true;
-			return metrics;
-		}
-
-		// Area from bounding box
-		metrics.area = width * height;
-
-		// Squareness: ratio of shorter side to longer side (1.0 = perfect square)
-		double shorter = std::min(width, height);
-		double longer = std::max(width, height);
-
-		if (longer < 1e-9)
-		{
-			metrics.squareness = 1.0; // Degenerate case
-		}
-		else
-		{
-			metrics.squareness = shorter / longer;
-		}
-
-		// Check minimum squareness threshold
-		if (metrics.squareness < MIN_SQUARENESS)
-		{
-			return metrics; // Invalid, valid = false
-		}
-
-		metrics.valid = true;
-		return metrics;
-	}
-
-	ClusteredTriangulationAlgorithm2::PartitionScore
-	ClusteredTriangulationAlgorithm2::evaluatePartition(const std::vector<std::pair<size_t, size_t>> &segments) const
-	{
-		PartitionScore score = {0.0, 0.0, 0.0, std::numeric_limits<double>::max()};
-
-		size_t num_clusters = segments.size();
-
-		// Check cluster count bounds (just for feasibility, not scoring)
-		if (num_clusters < MIN_CLUSTERS || num_clusters > MAX_CLUSTERS)
-		{
-			return score; // Invalid partition
-		}
-
-		double total_squareness = 0.0;
-		double total_area = 0.0;
-
-		for (const auto &seg : segments)
-		{
-			ClusterMetrics metrics = evaluateClusterMetrics(seg.first, seg.second);
-			if (!metrics.valid)
-			{
-				return score; // Invalid partition
-			}
-			total_squareness += metrics.squareness;
-			total_area += metrics.area;
-		}
-
-		// Squareness score: average squareness (higher is better, so we invert for minimization)
-		double avg_squareness = total_squareness / num_clusters;
-		score.squareness_score = (TARGET_SQUARENESS - avg_squareness); // Lower is better
-
-		// Area score: penalize deviation from TARGET_AREA_PER_CLUSTER for each cluster
-		double target_total = getTargetTotalArea(num_clusters);
-		if (target_total > 0.0)
-		{
-			double area_deviation = std::abs(total_area - target_total) / target_total;
-			score.area_score = area_deviation;
-		}
-		else
-		{
-			score.area_score = 0.0;
-		}
-
-		// No cluster count penalty
-		score.cluster_count_score = 0.0;
-
-		// Combined score (lower is better) - only shape and area
-		score.total_score = SQUARENESS_WEIGHT * score.squareness_score +
-							AREA_WEIGHT * score.area_score;
-
-		return score;
-	}
-
-	void ClusteredTriangulationAlgorithm2::findOptimalClustering()
-	{
-		size_t n = m_points.size();
-
-		if (n < CLUSTER_MIN_POINTS * MIN_CLUSTERS)
-		{
-			throw std::runtime_error("ClusteredTriangulationAlgorithm2: insufficient points for clustering");
-		}
-
-		if (n <= EXHAUSTIVE_SEARCH_MAX_POINTS)
-		{
-			// Exhaustive search: try all 2^(n-1) contiguous partitions
-			size_t num_cuts = n - 1;
-			size_t total_partitions = 1ULL << num_cuts;
-
-			spdlog::info("ClusteredTriangulationAlgorithm2: exhaustive search over {} partitions", total_partitions);
-
-			double best_total_score = std::numeric_limits<double>::max();
-			std::vector<std::pair<size_t, size_t>> best_segments;
-
-			for (size_t mask = 0; mask < total_partitions; ++mask)
-			{
-				std::vector<std::pair<size_t, size_t>> segments;
-				size_t seg_start = 0;
-
-				for (size_t i = 0; i < num_cuts; ++i)
-				{
-					if (mask & (1ULL << i))
-					{
-						segments.push_back({seg_start, i});
-						seg_start = i + 1;
-					}
-				}
-				segments.push_back({seg_start, n - 1});
-
-				PartitionScore score = evaluatePartition(segments);
-				if (score.total_score < best_total_score)
-				{
-					best_total_score = score.total_score;
-					best_segments = segments;
-				}
-			}
-
-			if (best_segments.empty())
-			{
-				throw std::runtime_error("ClusteredTriangulationAlgorithm2: no valid partition found");
-			}
-
-			spdlog::info("ClusteredTriangulationAlgorithm2: best partition has {} clusters with score {:.4f}",
-						 best_segments.size(), best_total_score);
-
-			buildClustersFromSegments(best_segments);
-		}
-		else
-		{
-			dpClusterSearch();
-		}
-	}
-
-	void ClusteredTriangulationAlgorithm2::dpClusterSearch()
-	{
-		size_t n = m_points.size();
-		size_t min_k = MIN_CLUSTERS;
-		size_t max_k = std::min(MAX_CLUSTERS, n / CLUSTER_MIN_POINTS);
-
-		spdlog::info("ClusteredTriangulationAlgorithm2: DP search for {} to {} clusters (n={}, min_points_per_cluster={})",
-					 min_k, max_k, n, CLUSTER_MIN_POINTS);
-
-		// Precompute cluster scores for all valid segments [i, j]
-		// segment_score[i][len] = score for segment starting at i with length len
-		std::vector<std::vector<double>> segment_score(n);
-		std::vector<std::vector<double>> segment_area(n);
-
-		for (size_t i = 0; i < n; ++i)
-		{
-			size_t max_len = std::min(CLUSTER_MAX_POINTS, n - i);
-			segment_score[i].resize(max_len + 1, std::numeric_limits<double>::max());
-			segment_area[i].resize(max_len + 1, 0.0);
-
-			for (size_t len = CLUSTER_MIN_POINTS; len <= max_len; ++len)
-			{
-				size_t j = i + len - 1;
-				ClusterMetrics metrics = evaluateClusterMetrics(i, j);
-				if (metrics.valid)
-				{
-					segment_score[i][len] = (TARGET_SQUARENESS - metrics.squareness);
-					segment_area[i][len] = metrics.area;
-					spdlog::debug("ClusteredTriangulationAlgorithm2: segment [{}, {}] len={} valid, squareness={:.3f}, area={:.3f}",
-								  i, j, len, metrics.squareness, metrics.area);
-				}
-			}
-		}
-
-		// dp[i][k] = {min_score, total_area} to partition [0..i-1] into k clusters
-		struct DPState
-		{
-			double score;
-			double area;
-		};
-		std::vector<std::vector<DPState>> dp(n + 1, std::vector<DPState>(max_k + 1, {std::numeric_limits<double>::max(), 0.0}));
-		std::vector<std::vector<size_t>> parent(n + 1, std::vector<size_t>(max_k + 1, SIZE_MAX));
-
-		dp[0][0] = {0.0, 0.0};
-
-		for (size_t i = CLUSTER_MIN_POINTS; i <= n; ++i)
-		{
-			size_t max_clusters_for_i = i / CLUSTER_MIN_POINTS;
-			for (size_t k = 1; k <= std::min(max_clusters_for_i, max_k); ++k)
-			{
-				// Try all valid last segments ending at i-1
-				// Segment has length `len` and starts at position `j = i - len`
-				for (size_t len = CLUSTER_MIN_POINTS; len <= std::min(CLUSTER_MAX_POINTS, i); ++len)
-				{
-					size_t j = i - len; // Start of last segment
-
-					// Check that we can form k-1 clusters from [0, j-1]
-					if (k > 1 && j < (k - 1) * CLUSTER_MIN_POINTS)
-					{
-						continue; // Not enough points for remaining clusters
-					}
-
-					if (dp[j][k - 1].score == std::numeric_limits<double>::max())
-					{
-						continue;
-					}
-
-					if (len >= segment_score[j].size() || segment_score[j][len] == std::numeric_limits<double>::max())
-					{
-						continue;
-					}
-
-					double new_score = dp[j][k - 1].score + segment_score[j][len];
-					if (new_score < dp[i][k].score)
-					{
-						dp[i][k] = {new_score, dp[j][k - 1].area + segment_area[j][len]};
-						parent[i][k] = j;
-						spdlog::debug("ClusteredTriangulationAlgorithm2: dp[{}][{}] = {:.4f} via segment [{}, {}] len={}",
-									  i, k, new_score, j, i - 1, len);
-					}
-				}
-			}
-		}
-
-		// Find best k considering area target per cluster
-		double best_combined_score = std::numeric_limits<double>::max();
-		size_t best_k = 0;
-
-		for (size_t k = min_k; k <= max_k; ++k)
-		{
-			if (dp[n][k].score == std::numeric_limits<double>::max())
-			{
-				spdlog::debug("ClusteredTriangulationAlgorithm2: k={} is infeasible", k);
-				continue;
-			}
-
-			double target_total = getTargetTotalArea(k);
-			double area_penalty = (target_total > 0.0) ? std::abs(dp[n][k].area - target_total) / target_total : 0.0;
-
-			double combined = SQUARENESS_WEIGHT * dp[n][k].score +
-							  AREA_WEIGHT * area_penalty;
-
-			spdlog::debug("ClusteredTriangulationAlgorithm2: k={} score={:.4f} area={:.4f} target={:.4f} combined={:.4f}",
-						  k, dp[n][k].score, dp[n][k].area, target_total, combined);
-
-			if (combined < best_combined_score)
-			{
-				best_combined_score = combined;
-				best_k = k;
-			}
-		}
-
-		if (best_k == 0)
-		{
-			throw std::runtime_error("ClusteredTriangulationAlgorithm2: no valid partition found via DP");
-		}
-
-		// Reconstruct segments
-		std::vector<std::pair<size_t, size_t>> segments;
-		size_t i = n;
-		size_t k = best_k;
-		while (k > 0)
-		{
-			size_t j = parent[i][k];
-			if (j == SIZE_MAX)
-			{
-				throw std::runtime_error("ClusteredTriangulationAlgorithm2: DP reconstruction failed - invalid parent");
-			}
-			size_t seg_start = j;
-			size_t seg_end = i - 1;
-			size_t seg_len = seg_end - seg_start + 1;
-
-			spdlog::debug("ClusteredTriangulationAlgorithm2: reconstructed segment [{}, {}] len={}",
-						  seg_start, seg_end, seg_len);
-
-			if (seg_len < CLUSTER_MIN_POINTS)
-			{
-				spdlog::error("ClusteredTriangulationAlgorithm2: reconstructed segment [{}, {}] has only {} points (min={})",
-							  seg_start, seg_end, seg_len, CLUSTER_MIN_POINTS);
-				throw std::runtime_error("ClusteredTriangulationAlgorithm2: DP reconstruction produced invalid segment");
-			}
-
-			segments.push_back({seg_start, seg_end});
-			i = j;
-			k--;
-		}
-		std::reverse(segments.begin(), segments.end());
-
-		spdlog::info("ClusteredTriangulationAlgorithm2: DP found {} clusters with combined score {:.4f}",
-					 best_k, best_combined_score);
-
-		buildClustersFromSegments(segments);
-	}
-
-	void ClusteredTriangulationAlgorithm2::buildClustersFromSegments(
-		const std::vector<std::pair<size_t, size_t>> &segments)
-	{
-		m_clusters.clear();
-		m_clusters.reserve(segments.size());
-
-		spdlog::info("ClusteredTriangulationAlgorithm2: building {} clusters from segments", segments.size());
-
-		for (size_t seg_idx = 0; seg_idx < segments.size(); ++seg_idx)
-		{
-			const auto &seg = segments[seg_idx];
-
-			PointCluster cluster;
-
-			double sum_x = 0.0, sum_y = 0.0;
-			int sum_rssi = 0;
-
-			// Track bounding box for logging
-			double min_x = std::numeric_limits<double>::max();
-			double max_x = std::numeric_limits<double>::lowest();
-			double min_y = std::numeric_limits<double>::max();
-			double max_y = std::numeric_limits<double>::lowest();
-
-			for (size_t i = seg.first; i <= seg.second; ++i)
-			{
-				cluster.addPoint(m_points[i]);
-				sum_x += m_points[i].getX();
-				sum_y += m_points[i].getY();
-				sum_rssi += m_points[i].rssi;
-
-				min_x = std::min(min_x, m_points[i].getX());
-				max_x = std::max(max_x, m_points[i].getX());
-				min_y = std::min(min_y, m_points[i].getY());
-				max_y = std::max(max_y, m_points[i].getY());
-			}
-
-			// Ensure centroid and avg_rssi are set
-			size_t count = seg.second - seg.first + 1;
-			cluster.centroid_x = sum_x / count;
-			cluster.centroid_y = sum_y / count;
-			cluster.avg_rssi = static_cast<double>(sum_rssi) / count;
-
-			// Calculate dimensions and area
-			double width = max_x - min_x;
-			double height = max_y - min_y;
-			double area = width * height;
-			double squareness = (std::max(width, height) > 1e-9)
-									? std::min(width, height) / std::max(width, height)
-									: 1.0;
-
-			spdlog::info("ClusteredTriangulationAlgorithm2: cluster {} - {} points, dimensions: {:.2f}m x {:.2f}m, area: {:.2f}m², squareness: {:.3f}",
-						 seg_idx, count, width, height, area, squareness);
-
-			m_clusters.push_back(std::move(cluster));
-		}
-	}
-
 	void ClusteredTriangulationAlgorithm2::clusterData()
 	{
-		findOptimalClustering();
-
-		spdlog::info("ClusteredTriangulationAlgorithm2: formed {} clusters from {} data points",
-					 m_clusters.size(), m_points.size());
-
-		if (m_clusters.size() < 3)
+		const double coalition_distance = DEFAULT_COALITION_DISTANCE_METERS; // meters
+		unsigned int cluster_id = 0;
+		unsigned int current_cluster_size = 0;
+		for (const auto &point : m_points)
 		{
-			throw std::runtime_error("ClusteredTriangulationAlgorithm2: insufficient clusters for triangulation");
+			if (current_cluster_size == 0)
+			{
+				m_clusters.emplace_back();
+			}
+
+			m_clusters[cluster_id].addPoint(point, coalition_distance);
+			current_cluster_size = static_cast<unsigned int>(m_clusters[cluster_id].points.size());
+			auto &c = m_clusters[cluster_id];
+			if (c.geometricRatio() > CLUSTER_RATIO_SPLIT_THRESHOLD && current_cluster_size >= CLUSTER_MIN_POINTS)
+			{
+				spdlog::debug("ClusteredTriangulationAlgorithm2: created new cluster (id={}) after splitting cluster (id={}) due to geometric ratio {}", cluster_id + 1, cluster_id, c.geometricRatio());
+				cluster_id++;
+				current_cluster_size = 0;
+			}
+		}
+		spdlog::info("ClusteredTriangulationAlgorithm2: formed {} clusters from {} data points", m_clusters.size(), m_points.size());
+		if (m_clusters.size() != cluster_id)
+		{
+			spdlog::warn("ClusteredTriangulationAlgorithm2: last cluster formed does not meet requirements");
+		}
+		if (m_clusters.size() < 2)
+		{
+			throw std::runtime_error("ClusteredTriangulationAlgorithm2: insufficient clusters formed for AoA estimation");
+		}
+		else if (m_clusters.size() < 3)
+		{
+			spdlog::warn("ClusteredTriangulationAlgorithm2: only {} clusters formed; AoA estimation may be unreliable", m_clusters.size());
 		}
 	}
 
@@ -884,111 +490,37 @@ namespace core
 		std::vector<double> X;
 		std::vector<double> Y;
 		std::vector<double> Z;
-
-		size_t valid_aoa_count = 0;
-
-		for (size_t cluster_idx = 0; cluster_idx < m_clusters.size(); ++cluster_idx)
+		for (auto &cluster : m_clusters)
 		{
-			auto &cluster = m_clusters[cluster_idx];
-
 			if (cluster.points.size() < 3)
 			{
-				spdlog::warn("ClusteredTriangulationAlgorithm2: cluster {} has only {} points, skipping AoA estimation",
-							 cluster_idx, cluster.points.size());
 				continue; // Need at least 3 points to estimate AoA
 			}
-
 			X.resize(cluster.points.size());
 			Y.resize(cluster.points.size());
 			Z.resize(cluster.points.size());
-
-			// Debug: check point spread and RSSI values
-			double min_x = std::numeric_limits<double>::max();
-			double max_x = std::numeric_limits<double>::lowest();
-			double min_y = std::numeric_limits<double>::max();
-			double max_y = std::numeric_limits<double>::lowest();
-			double min_rssi = std::numeric_limits<double>::max();
-			double max_rssi = std::numeric_limits<double>::lowest();
-
 			for (size_t i = 0; i < cluster.points.size(); ++i)
 			{
 				const auto &point = cluster.points[i];
 				X[i] = point.getX();
 				Y[i] = point.getY();
 				Z[i] = static_cast<double>(point.rssi);
-
-				min_x = std::min(min_x, X[i]);
-				max_x = std::max(max_x, X[i]);
-				min_y = std::min(min_y, Y[i]);
-				max_y = std::max(max_y, Y[i]);
-				min_rssi = std::min(min_rssi, Z[i]);
-				max_rssi = std::max(max_rssi, Z[i]);
-			}
-
-			spdlog::debug("ClusteredTriangulationAlgorithm2: cluster {} has {} points, x=[{:.2f}, {:.2f}], y=[{:.2f}, {:.2f}], rssi=[{:.0f}, {:.0f}]",
-						  cluster_idx, cluster.points.size(), min_x, max_x, min_y, max_y, min_rssi, max_rssi);
-
-			// Check if there's enough spread for plane fitting
-			double x_spread = max_x - min_x;
-			double y_spread = max_y - min_y;
-			double rssi_spread = max_rssi - min_rssi;
-
-			if (x_spread < 1e-6 && y_spread < 1e-6)
-			{
-				spdlog::warn("ClusteredTriangulationAlgorithm2: cluster {} has no spatial spread (all points at same location), skipping AoA",
-							 cluster_idx);
-				continue;
-			}
-
-			if (rssi_spread < 1e-6)
-			{
-				spdlog::warn("ClusteredTriangulationAlgorithm2: cluster {} has no RSSI variation (all same value: {}), skipping AoA",
-							 cluster_idx, min_rssi);
-				continue;
-			}
-
+			};
 			std::vector<double> normal = getNormalVector2(X, Y, Z);
-
-			spdlog::debug("ClusteredTriangulationAlgorithm2: cluster {} normal vector = [{:.6f}, {:.6f}, {:.6f}]",
-						  cluster_idx, normal[0], normal[1], normal[2]);
-
 			// The gradient components
-			if (std::abs(normal[2]) < 1e-9)
+			if (normal[2] == 0.0)
 			{
-				spdlog::warn("ClusteredTriangulationAlgorithm2: cluster {} has near-zero normal[2]={:.9f}, cannot compute gradient",
-							 cluster_idx, normal[2]);
 				continue; // Avoid division by zero
 			}
-
 			double grad_x = -normal[0] / normal[2];
 			double grad_y = -normal[1] / normal[2];
-
-			// Validate gradient is non-zero
-			if (std::abs(grad_x) < 1e-9 && std::abs(grad_y) < 1e-9)
-			{
-				spdlog::warn("ClusteredTriangulationAlgorithm2: cluster {} has near-zero gradient ({:.9f}, {:.9f}), skipping",
-							 cluster_idx, grad_x, grad_y);
-				continue;
-			}
-
 			cluster.aoa_x = grad_x;
 			cluster.aoa_y = grad_y;
 			cluster.estimated_aoa = atan2(grad_y, grad_x) * (180.0 / M_PI); // in degrees
 
-			valid_aoa_count++;
-
-			spdlog::info("ClusteredTriangulationAlgorithm2: cluster {} AoA estimated at {:.2f} degrees (grad_x={:.6f}, grad_y={:.6f})",
-						 cluster_idx, cluster.estimated_aoa, grad_x, grad_y);
+			spdlog::info("ClusteredTriangulationAlgorithm2: cluster AoA estimated at {} degrees (grad_x={}, grad_y={})", cluster.estimated_aoa, grad_x, grad_y);
 		}
-
-		spdlog::info("ClusteredTriangulationAlgorithm2: {} of {} clusters have valid AoA estimates",
-					 valid_aoa_count, m_clusters.size());
-
-		if (valid_aoa_count < 2)
-		{
-			spdlog::error("ClusteredTriangulationAlgorithm2: insufficient clusters with valid AoA ({} < 2), triangulation will fail",
-						  valid_aoa_count);
-		}
+		// Estimate AoA as the arctangent of the gradient
 	}
 
 	double ClusteredTriangulationAlgorithm2::getCost(double x, double y)
