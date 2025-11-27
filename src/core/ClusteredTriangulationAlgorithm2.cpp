@@ -61,7 +61,7 @@ namespace core
 		{
 			GAUSS_ELIM_PIVOT_EPS = gauss_elim_pivot_eps.value();
 		}
-		spdlog::info("ClusteredTriangulationAlgorithm2: hyperparameters set: coalition_distance={}, cluster_min_points={}, cluster_ratio_split_threshold={}, gradient_descent_step={}",
+		spdlog::info("ClusteredTriangulationAlgorithm2: hyperparameters set: coalition_distance={}, cluster_min_points={}, cluster_ratio_split_threshold={}",
 					 DEFAULT_COALITION_DISTANCE_METERS, CLUSTER_MIN_POINTS, CLUSTER_RATIO_SPLIT_THRESHOLD);
 	}
 

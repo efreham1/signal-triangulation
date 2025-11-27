@@ -99,7 +99,6 @@ std::string g_algorithm_arg;
 
 TEST(Triangulation, SingleFileErrorCheck)
 {
-
     if (g_single_file_path.empty())
     {
         GTEST_SKIP() << "g_single_file_path not set";
@@ -200,9 +199,11 @@ int main (int argc, char **argv)
             }
         }
         else if (arg.rfind("--cta-", 0) == 0) {
-            if (i + 1 < argc) {
+            if (i + 1 < argc && std::string(argv[i+1]).rfind("--", 0) != 0) {
                 g_algorithm_arg += std::string(argv[i]) + " " + std::string(argv[i+1]) + " ";
                 i++;
+            } else {
+                std::cerr << "[WARNING] " << arg << " flag requires a value, but none was provided or next argument is another flag." << std::endl;
             }
         }
     }

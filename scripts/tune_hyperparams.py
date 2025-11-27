@@ -18,7 +18,7 @@ import argparse
 import itertools
 import subprocess
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 def run_eval_cmd(cmd: str) -> Tuple[int, str]:
     """Executes the provided shell command and captures its output."""
@@ -118,8 +118,6 @@ def main():
     p.add_argument("--min-pts", default="7,5,9", help="Comma-separated cluster min points")
     p.add_argument("--ratio", default="0.2,0.35,0.6", help="Comma-separated cluster ratio values")
     p.add_argument("--step", default="0.1,0.2", help="Comma-separated gradient step sizes")
-    p.add_argument("--reg-eps", default="1e-12,1e-9", help="Comma-separated regularization epsilons")
-    p.add_argument("--piv-eps", default="1e-15,1e-12", help="Comma-separated pivot epsilons")
     
     args = p.parse_args()
 
@@ -128,7 +126,6 @@ def main():
         "min_pts": parse_list(args.min_pts, int),
         "ratio": parse_list(args.ratio, float),
         "step": parse_list(args.step, float),
-
     }
 
     grid_search(
