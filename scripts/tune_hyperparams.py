@@ -18,7 +18,7 @@ import argparse
 import itertools
 import subprocess
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 def run_eval_cmd(cmd: str) -> Tuple[int, str]:
     """Executes the provided shell command and captures its output."""
