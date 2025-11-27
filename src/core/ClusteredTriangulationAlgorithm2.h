@@ -28,6 +28,13 @@ namespace core
         // ITriangulationAlgorithm interface
         void processDataPoint(const DataPoint &point) override;
         void calculatePosition(double &out_latitude, double &out_longitude, double precision, double timeout) override;
+        void setHyperparameters(
+            std::optional<double> coalition_dist_meters,
+            std::optional<int> cluster_min_points,
+            std::optional<double> cluster_ratio_split_threshold,
+            std::optional<double> normal_regularization_eps, 
+            std::optional<double> gauss_elim_pivot_eps       
+        );
         void reset() override;
 
     private:

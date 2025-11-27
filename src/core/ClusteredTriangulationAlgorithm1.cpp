@@ -12,9 +12,9 @@
 namespace
 {
 	// clustering
-	static constexpr double DEFAULT_COALITION_DISTANCE_METERS = 1.0; // meters used to coalesce nearby points
-	static constexpr unsigned int CLUSTER_MIN_POINTS = 4u;			 // minimum points to form a cluster (3 points needed for AoA estimation)
-	static constexpr double CLUSTER_RATIO_SPLIT_THRESHOLD = 0.25;	 // geometric ratio threshold to split cluster
+	static double DEFAULT_COALITION_DISTANCE_METERS = 1.0; // meters used to coalesce nearby points
+	static unsigned int CLUSTER_MIN_POINTS = 4u;			 // minimum points to form a cluster (3 points needed for AoA estimation)
+	static double CLUSTER_RATIO_SPLIT_THRESHOLD = 0.25;	 // geometric ratio threshold to split cluster
 
 	// numeric tolerances
 	static double NORMAL_REGULARIZATION_EPS = 1e-12; // regularize normal equations diagonal
@@ -27,9 +27,8 @@ namespace core
 	ClusteredTriangulationAlgorithm1::ClusteredTriangulationAlgorithm1() = default;
 
 	ClusteredTriangulationAlgorithm1::~ClusteredTriangulationAlgorithm1() = default;
-	ClusteredTriangulationAlgorithm::~ClusteredTriangulationAlgorithm() = default;
 
-	void ClusteredTriangulationAlgorithm::setHyperparameters(
+	void ClusteredTriangulationAlgorithm1::setHyperparameters(
 		std::optional<double> coalition_dist_meters,
 		std::optional<int> cluster_min_points,
 		std::optional<double> cluster_ratio_split_threshold,
@@ -57,8 +56,8 @@ namespace core
 		{
 			GAUSS_ELIM_PIVOT_EPS = gauss_elim_pivot_eps.value();
 		}
-		spdlog::info("ClusteredTriangulationAlgorithm: hyperparameters set: coalition_distance={}, cluster_min_points={}, cluster_ratio_split_threshold={}, gradient_descent_step={}",
-					 DEFAULT_COALITION_DISTANCE_METERS, CLUSTER_MIN_POINTS, CLUSTER_RATIO_SPLIT_THRESHOLD, GRADIENT_DESCENT_STEP_METERS);
+		spdlog::info("ClusteredTriangulationAlgorithm1: hyperparameters set: coalition_distance={}, cluster_min_points={}, cluster_ratio_split_threshold={}, gradient_descent_step={}",
+					 DEFAULT_COALITION_DISTANCE_METERS, CLUSTER_MIN_POINTS, CLUSTER_RATIO_SPLIT_THRESHOLD);
 	}
 
 
@@ -80,7 +79,7 @@ namespace core
 		spdlog::debug("ClusteredTriangulationAlgorithm1: added DataPoint (x={}, y={}, rssi={}, timestamp={})", point.getX(), point.getY(), point.rssi, point.timestamp_ms);
 	}
 
-	std::pair<int64_t, int64_t> ClusteredTriangulationAlgorithm::makeDistanceKey(int64_t id1, int64_t id2) const
+	std::pair<int64_t, int64_t> ClusteredTriangulationAlgorithm1::makeDistanceKey(int64_t id1, int64_t id2) const
 	{
 		if (id1 < id2)
 		{
@@ -89,13 +88,13 @@ namespace core
 		return {id2, id1};
 	}
 
-	void ClusteredTriangulationAlgorithm::addToDistanceCache(const DataPoint &p1, const DataPoint &p2, double distance)
+	void ClusteredTriangulationAlgorithm1::addToDistanceCache(const DataPoint &p1, const DataPoint &p2, double distance)
 	{
 		std::pair<int64_t, int64_t> key = makeDistanceKey(p1.point_id, p2.point_id);
 		distance_cache.try_emplace(key, distance);
 	}
 
-	void ClusteredTriangulationAlgorithm::reorderDataPointsByDistance()
+	void ClusteredTriangulationAlgorithm1::reorderDataPointsByDistance()
 	{
 		if (m_points.size() < 3)
 		{

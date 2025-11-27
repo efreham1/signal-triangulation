@@ -76,8 +76,6 @@ int main(int argc, char *argv[])
             if (i + 1 < argc) min_pts = std::stoi(argv[++i]); else return 1;
         } else if (a == "--cta-ratio") {
             if (i + 1 < argc) cluster_ratio = std::stod(argv[++i]); else return 1;
-        } else if (a == "--cta-step") {
-            if (i + 1 < argc) gradient_step = std::stod(argv[++i]); else return 1;
         } else if (a == "--cta-reg-eps") {
             if (i + 1 < argc) reg_eps = std::stod(argv[++i]); else return 1;
         } else if (a == "--cta-piv-eps") {
@@ -187,19 +185,27 @@ int main(int argc, char *argv[])
     {
         algorithm = std::make_unique<core::ClusteredTriangulationAlgorithm1>();
 
-        auto* cta = dynamic_cast<core::ClusteredTriangulationAlgorithm*>(algorithm.get());
-        if (cta)
+        auto* cta1 = dynamic_cast<core::ClusteredTriangulationAlgorithm1*>(algorithm.get());
+        if (cta1)
         {
-            // Pass the parsed (or empty) optional values to the algorithm
-            cta->setHyperparameters(
-                coalition_dist, min_pts, cluster_ratio,
-                gradient_step, reg_eps, piv_eps
+            cta1->setHyperparameters(
+                coalition_dist, min_pts, cluster_ratio, reg_eps, piv_eps
             );
         }
     }
     else if (algorithmType == "CTA2")
     {
         algorithm = std::make_unique<core::ClusteredTriangulationAlgorithm2>();
+
+        auto* cta2 = dynamic_cast<core::ClusteredTriangulationAlgorithm2*>(algorithm.get());
+        if (cta2)
+        {
+            // This assumes CTA2 has the same setHyperparameters method.
+            // If not, you'll need to adapt this.
+            cta2->setHyperparameters(
+                coalition_dist, min_pts, cluster_ratio, reg_eps, piv_eps
+            );
+        }
    
     }
     else

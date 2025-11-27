@@ -12,17 +12,17 @@
 namespace
 {
 	// clustering
-	static constexpr double DEFAULT_COALITION_DISTANCE_METERS = 2.0; // meters used to coalesce nearby points
-	static constexpr unsigned int CLUSTER_MIN_POINTS = 3u;			 // minimum points to form a cluster (3 points needed for AoA estimation)
-	static constexpr double CLUSTER_RATIO_SPLIT_THRESHOLD = 0.25;	 // geometric ratio threshold to split cluster
+	static double DEFAULT_COALITION_DISTANCE_METERS = 2.0; // meters used to coalesce nearby points
+	static unsigned int CLUSTER_MIN_POINTS = 3u;			 // minimum points to form a cluster (3 points needed for AoA estimation)
+	static double CLUSTER_RATIO_SPLIT_THRESHOLD = 0.25;	 // geometric ratio threshold to split cluster
 
 	
 	// brute force search
 	static constexpr int HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS = 500; // half the number of discrete steps per axis in brute force search
 
 	// numeric tolerances
-	static constexpr double NORMAL_REGULARIZATION_EPS = 1e-12; // regularize normal equations diagonal
-	static constexpr double GAUSS_ELIM_PIVOT_EPS = 1e-15;	   // pivot threshold for Gaussian elimination
+	static double NORMAL_REGULARIZATION_EPS = 1e-12; // regularize normal equations diagonal
+	static double GAUSS_ELIM_PIVOT_EPS = 1e-15;	   // pivot threshold for Gaussian elimination
 }
 
 namespace core
@@ -31,6 +31,39 @@ namespace core
 	ClusteredTriangulationAlgorithm2::ClusteredTriangulationAlgorithm2() = default;
 
 	ClusteredTriangulationAlgorithm2::~ClusteredTriangulationAlgorithm2() = default;
+
+
+	void ClusteredTriangulationAlgorithm2::setHyperparameters(
+		std::optional<double> coalition_dist_meters,
+		std::optional<int> cluster_min_points,
+		std::optional<double> cluster_ratio_split_threshold,
+		std::optional<double> normal_regularization_eps,
+		std::optional<double> gauss_elim_pivot_eps
+		)
+	{
+		if (coalition_dist_meters.has_value())
+		{
+			DEFAULT_COALITION_DISTANCE_METERS = coalition_dist_meters.value();
+		}
+		if (cluster_min_points.has_value())
+		{
+			CLUSTER_MIN_POINTS = static_cast<unsigned int>(cluster_min_points.value());
+		}
+		if (cluster_ratio_split_threshold.has_value())
+		{
+			CLUSTER_RATIO_SPLIT_THRESHOLD = cluster_ratio_split_threshold.value();
+		}
+		if (normal_regularization_eps.has_value())
+		{
+			NORMAL_REGULARIZATION_EPS = normal_regularization_eps.value();
+		}
+		if (gauss_elim_pivot_eps.has_value())
+		{
+			GAUSS_ELIM_PIVOT_EPS = gauss_elim_pivot_eps.value();
+		}
+		spdlog::info("ClusteredTriangulationAlgorithm2: hyperparameters set: coalition_distance={}, cluster_min_points={}, cluster_ratio_split_threshold={}, gradient_descent_step={}",
+					 DEFAULT_COALITION_DISTANCE_METERS, CLUSTER_MIN_POINTS, CLUSTER_RATIO_SPLIT_THRESHOLD);
+	}
 
 	void ClusteredTriangulationAlgorithm2::processDataPoint(const DataPoint &point)
 	{
