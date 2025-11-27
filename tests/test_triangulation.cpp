@@ -21,20 +21,22 @@ namespace fs = std::filesystem;
 
 #define MAX_ALLOWED_ERROR_METERS 3.0
 
-static std::string runAppAndCapture(const std::string &exe, const std::string &arg1, const std::string &arg2)
+static std::string runAppAndCapture(const std::string &full_command)
 {
-    std::string cmd = "\"" + exe + "\" " + arg1 + " " + arg2;
+    std::string cmd_with_stderr = full_command + " 2>&1";
+    
     std::string output;
-    FILE *pipe = popen(cmd.c_str(), "r");
+    FILE *pipe = popen(cmd_with_stderr.c_str(), "r");
     if (!pipe)
         return {};
     char buffer[4096];
     while (fgets(buffer, sizeof(buffer), pipe) != nullptr)
         output += buffer;
     int exitCode = pclose(pipe);
+    
     if (exitCode != 0)
     {
-        std::cerr << "[DEBUG] Command failed with exit code " << exitCode << ": " << cmd << std::endl;
+        std::cerr << "[DEBUG] Command failed with exit code " << exitCode << ": " << full_command << std::endl;
         return {};
     }
     return output;
@@ -42,7 +44,7 @@ static std::string runAppAndCapture(const std::string &exe, const std::string &a
 
 // Helper to calculate error for a single file
 // Returns -1.0 on failure (parsing/running)
-double calculateErrorForFile(const std::string &filePath, const std::string &arg2)
+double calculateErrorForFile(const std::string &filePath, const std::string &forward_args)
 {
     if (!fs::exists(filePath))
     {
@@ -74,8 +76,8 @@ double calculateErrorForFile(const std::string &filePath, const std::string &arg
     double srcLon = j["source_pos"]["y"].get<double>();
 
     // Run app and capture stdout (expects the line: "New position calculated: Lat=..., Lon=...")
-    std::string signals_file_arg = "--signals-file \"" + filePath + "\"";
-    std::string out = runAppAndCapture(APP_BIN_PATH, signals_file_arg, arg2);
+    std::string full_command = std::string(APP_BIN_PATH) + " --signals-file " + filePath + " " + forward_args;
+    std::string out = runAppAndCapture(full_command);
     
     std::regex re(R"(Calculated Position: Latitude\s*=\s*([0-9\.\-eE]+)\s*,\s*Longitude\s*=\s*([0-9\.\-eE]+))");
     std::smatch m;

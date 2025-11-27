@@ -12,6 +12,7 @@
 #include <filesystem>
 #include <chrono>
 #include <ctime>
+#include <optional>
 
 #define LOG_FILE_PATH "logs"
 
@@ -22,6 +23,14 @@ int main(int argc, char *argv[])
     std::string signalsFile = "signals.json";
     std::string algorithmType = "CTA1";
     bool plottingEnabled = false;
+
+    // Hyperparameter holders
+    std::optional<double> coalition_dist;
+    std::optional<int> min_pts;
+    std::optional<double> cluster_ratio;
+    std::optional<double> gradient_step;
+    std::optional<double> reg_eps;
+    std::optional<double> piv_eps;
 
     // Simple argument scan for --log-level=LEVEL, --signals-file=FILE, --algorithm=TYPE, and --plotting-output
     for (int i = 1; i < argc; ++i)
@@ -58,6 +67,19 @@ int main(int argc, char *argv[])
         else if (a == "--plotting-output")
         {
             plottingEnabled = true;
+        }
+        else if (a == "--cta-coalition") {
+            if (i + 1 < argc) coalition_dist = std::stod(argv[++i]); else return 1;
+        } else if (a == "--cta-min-pts") {
+            if (i + 1 < argc) min_pts = std::stoi(argv[++i]); else return 1;
+        } else if (a == "--cta-ratio") {
+            if (i + 1 < argc) cluster_ratio = std::stod(argv[++i]); else return 1;
+        } else if (a == "--cta-step") {
+            if (i + 1 < argc) gradient_step = std::stod(argv[++i]); else return 1;
+        } else if (a == "--cta-reg-eps") {
+            if (i + 1 < argc) reg_eps = std::stod(argv[++i]); else return 1;
+        } else if (a == "--cta-piv-eps") {
+            if (i + 1 < argc) piv_eps = std::stod(argv[++i]); else return 1;
         }
     }
 
@@ -115,6 +137,17 @@ int main(int argc, char *argv[])
     if (algorithmType == "CTA1")
     {
         algorithm = std::make_unique<core::ClusteredTriangulationAlgorithm>();
+
+        // Downcast from the interface to the concrete class to access its specific methods
+        auto* cta = dynamic_cast<core::ClusteredTriangulationAlgorithm*>(algorithm.get());
+        if (cta)
+        {
+            // Pass the parsed (or empty) optional values to the algorithm
+            cta->setHyperparameters(
+                coalition_dist, min_pts, cluster_ratio,
+                gradient_step, reg_eps, piv_eps
+            );
+        }
     }
     else
     {
