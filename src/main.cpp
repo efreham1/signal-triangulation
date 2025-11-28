@@ -13,6 +13,7 @@
 #include <filesystem>
 #include <chrono>
 #include <ctime>
+#include <optional>
 
 #define LOG_FILE_PATH "logs"
 
@@ -25,6 +26,13 @@ int main(int argc, char *argv[])
     bool plottingEnabled = false;
     double precision = 0.1; // default precision for algorithms that use it
     double timeout = 0.0; // default timeout (0 = no timeout)
+
+    // Hyperparameter holders
+    std::optional<double> coalition_dist;
+    std::optional<int> min_pts;
+    std::optional<double> cluster_ratio;
+    std::optional<double> reg_eps;
+    std::optional<double> piv_eps;
 
     // Simple argument scan for --log-level=LEVEL, --signals-file=FILE, --algorithm=TYPE, and --plotting-output
     for (int i = 1; i < argc; ++i)
@@ -60,6 +68,17 @@ int main(int argc, char *argv[])
         else if (a == "--plotting-output" || a == "-o")
         {
             plottingEnabled = true;
+        }
+        else if (a == "--cta-coalition") {
+            if (i + 1 < argc) coalition_dist = std::stod(argv[++i]); else return 1;
+        } else if (a == "--cta-min-pts") {
+            if (i + 1 < argc) min_pts = std::stoi(argv[++i]); else return 1;
+        } else if (a == "--cta-ratio") {
+            if (i + 1 < argc) cluster_ratio = std::stod(argv[++i]); else return 1;
+        } else if (a == "--cta-reg-eps") {
+            if (i + 1 < argc) reg_eps = std::stod(argv[++i]); else return 1;
+        } else if (a == "--cta-piv-eps") {
+            if (i + 1 < argc) piv_eps = std::stod(argv[++i]); else return 1;
         }
         else if (a == "--precision" || a == "-p")
         {
@@ -164,10 +183,28 @@ int main(int argc, char *argv[])
     if (algorithmType == "CTA1")
     {
         algorithm = std::make_unique<core::ClusteredTriangulationAlgorithm1>();
+
+        auto* cta1 = dynamic_cast<core::ClusteredTriangulationAlgorithm1*>(algorithm.get());
+        if (cta1)
+        {
+            cta1->setHyperparameters(
+                coalition_dist, min_pts, cluster_ratio, reg_eps, piv_eps
+            );
+        }
     }
     else if (algorithmType == "CTA2")
     {
         algorithm = std::make_unique<core::ClusteredTriangulationAlgorithm2>();
+
+        auto* cta2 = dynamic_cast<core::ClusteredTriangulationAlgorithm2*>(algorithm.get());
+        if (cta2)
+        {
+            // This assumes CTA2 has the same setHyperparameters method.
+            // If not, you'll need to adapt this.
+            cta2->setHyperparameters(
+                coalition_dist, min_pts, cluster_ratio, reg_eps, piv_eps
+            );
+        }
     }
     else
     {
