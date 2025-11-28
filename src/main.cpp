@@ -31,7 +31,6 @@ int main(int argc, char *argv[])
     std::optional<double> coalition_dist;
     std::optional<int> min_pts;
     std::optional<double> cluster_ratio;
-    std::optional<double> gradient_step;
     std::optional<double> reg_eps;
     std::optional<double> piv_eps;
 
@@ -206,7 +205,6 @@ int main(int argc, char *argv[])
                 coalition_dist, min_pts, cluster_ratio, reg_eps, piv_eps
             );
         }
-   
     }
     else
     {

@@ -7,10 +7,12 @@ passing hyperparameter values as named arguments (e.g., --cta-coalition 3.0).
 
 Usage Example (from repo root):
   ./scripts/tune_hyperparams.py \
-    --eval-cmd "./build/signal-triangulation --signals-file recordings/lshape.json --algorithm CTA1" \
+    --eval-cmd "./build/tests/triangulation_tests --gtest_filter=Triangulation.SingleFileErrorCheck --run-single-file recordings/new_field.json --algorithm CTA2" \
     --metric-regex "Global Average Error:\s*([0-9.+-eE]+)" \
-    --min-pts "5,7,9" \
-    --ratio "0.2,0.35,0.5"
+    --min-pts "5,7,9,11" \
+    --ratio "0.2,0.35,0.5" \
+    --coalition "2.0,3.0,4.0" \
+    --max-tests 100
 """
 
 from __future__ import annotations
@@ -18,6 +20,7 @@ import argparse
 import itertools
 import subprocess
 import re
+import sys
 from typing import Dict, Optional, Tuple
 
 def run_eval_cmd(cmd: str) -> Tuple[int, str]:
@@ -103,8 +106,19 @@ def grid_search(
     best_params_str = ", ".join(f"{k}={v}" for k, v in best_params.items())
     print(f"  Params = {{{best_params_str}}}")
 
-def parse_list(s: str, cast_type):
-    return [cast_type(x.strip()) for x in s.split(',') if x.strip()]
+def parse_list(s: str, cast_type, arg_name: str):
+    values = []
+    for x in s.split(','):
+        x = x.strip()
+        if not x:
+            continue
+        try:
+            values.append(cast_type(x))
+        except ValueError:
+            print(f"Error: Invalid value '{x}' provided for argument '{arg_name}'.", file=sys.stderr)
+            print(f"Please provide a comma-separated list of {cast_type.__name__}s.", file=sys.stderr)
+            sys.exit(1)
+    return values
 
 def main():
     p = argparse.ArgumentParser(description="Tune algorithm hyperparameters via command-line arguments.")
@@ -117,15 +131,13 @@ def main():
     p.add_argument("--coalition", default="3.0,2.0,5.0", help="Comma-separated coalition distances")
     p.add_argument("--min-pts", default="7,5,9", help="Comma-separated cluster min points")
     p.add_argument("--ratio", default="0.2,0.35,0.6", help="Comma-separated cluster ratio values")
-    p.add_argument("--step", default="0.1,0.2", help="Comma-separated gradient step sizes")
     
     args = p.parse_args()
 
     param_grid = {
-        "coalition": parse_list(args.coalition, float),
-        "min_pts": parse_list(args.min_pts, int),
-        "ratio": parse_list(args.ratio, float),
-        "step": parse_list(args.step, float),
+        "coalition": parse_list(args.coalition, float, "--coalition"),
+        "min_pts": parse_list(args.min_pts, int, "--min-pts"),
+        "ratio": parse_list(args.ratio, float, "--ratio"),
     }
 
     grid_search(
