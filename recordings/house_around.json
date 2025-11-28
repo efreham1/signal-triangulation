@@ -1,0 +1,112 @@
+{
+  "source_pos": {
+    "x": 60.35026651000002,
+    "y": 15.92991734
+  },
+  "measurements": [
+    {
+      "id": 20,
+      "latitude": 60.3502715,
+      "longitude": 15.9300423,
+      "rssi": -67,
+      "ssid": "Forslund_5G",
+      "timestamp": 1763151894440
+    },
+    {
+      "id": 19,
+      "latitude": 60.3501885,
+      "longitude": 15.9300138,
+      "rssi": -72,
+      "ssid": "Forslund_5G",
+      "timestamp": 1763151887304
+    },
+    {
+      "id": 18,
+      "latitude": 60.3501277,
+      "longitude": 15.9299103,
+      "rssi": -66,
+      "ssid": "Forslund_5G",
+      "timestamp": 1763151880187
+    },
+    {
+      "id": 17,
+      "latitude": 60.3501606,
+      "longitude": 15.9297342,
+      "rssi": -80,
+      "ssid": "Forslund_5G",
+      "timestamp": 1763151872971
+    },
+    {
+      "id": 16,
+      "latitude": 60.3502431,
+      "longitude": 15.9297499,
+      "rssi": -55,
+      "ssid": "Forslund_5G",
+      "timestamp": 1763151865914
+    },
+    {
+      "id": 15,
+      "latitude": 60.3503151,
+      "longitude": 15.9298346,
+      "rssi": -78,
+      "ssid": "Forslund_5G",
+      "timestamp": 1763151858752
+    },
+    {
+      "id": 14,
+      "latitude": 60.3502968,
+      "longitude": 15.9300093,
+      "rssi": -52,
+      "ssid": "Forslund_5G",
+      "timestamp": 1763151851615
+    },
+    {
+      "id": 13,
+      "latitude": 60.3502174,
+      "longitude": 15.9300387,
+      "rssi": -74,
+      "ssid": "Forslund_5G",
+      "timestamp": 1763151844494
+    },
+    {
+      "id": 12,
+      "latitude": 60.350149,
+      "longitude": 15.9299651,
+      "rssi": -82,
+      "ssid": "Forslund_5G",
+      "timestamp": 1763151837352
+    },
+    {
+      "id": 11,
+      "latitude": 60.3501399,
+      "longitude": 15.9297929,
+      "rssi": -85,
+      "ssid": "Forslund_5G",
+      "timestamp": 1763151830224
+    },
+    {
+      "id": 10,
+      "latitude": 60.3502004,
+      "longitude": 15.9297393,
+      "rssi": -82,
+      "ssid": "Forslund_5G",
+      "timestamp": 1763151823111
+    },
+    {
+      "id": 9,
+      "latitude": 60.3502867,
+      "longitude": 15.92979,
+      "rssi": -83,
+      "ssid": "Forslund_5G",
+      "timestamp": 1763151815969
+    },
+    {
+      "id": 8,
+      "latitude": 60.35033,
+      "longitude": 15.9299217,
+      "rssi": -77,
+      "ssid": "Forslund_5G",
+      "timestamp": 1763151808861
+    }
+  ]
+}

@@ -77,6 +77,11 @@ double calculateErrorForFile(const std::string &filePath)
     std::string out = runAppAndCapture(APP_BIN_PATH, std::string("--signals-file"), std::string("\"" + filePath + "\""));
     std::regex re(R"(Calculated Position: Latitude\s*=\s*([0-9\.\-eE]+)\s*,\s*Longitude\s*=\s*([0-9\.\-eE]+))");
     std::smatch m;
+    if (out.empty())
+    {
+        std::cerr << "[DEBUG] No output from app for file: " << filePath << std::endl;
+        return -1.0;
+    }
     if (!std::regex_search(out, m, re) || m.size() < 3)
     {
         std::cerr << "[DEBUG] Regex failed to match output for: " << filePath << "\nOutput was:\n"
