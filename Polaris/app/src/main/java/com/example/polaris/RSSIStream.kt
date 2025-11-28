@@ -27,7 +27,7 @@ object RSSIStream {
 
     // Scanning loop
     private var scanJob: Job? = null
-    private var scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private var scope: CoroutineScope? = null
     private const val SCAN_INTERVAL_MS = 100L // request scans aggressively
 
     // Listeners for new data
@@ -36,9 +36,9 @@ object RSSIStream {
     fun start(ctx: Context) {
         if (started) return
         
-        if (!scope.isActive) {
-            scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
-        }
+        // Always create a fresh scope
+        scope?.cancel()
+        scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
         
         val hasPerm = ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
                       ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
@@ -67,7 +67,9 @@ object RSSIStream {
     fun stop() {
         if (!started) return
         scanJob?.cancel()
-        scope.cancel()
+        scanJob = null
+        scope?.cancel()
+        scope = null
         try {
             contextRef?.get()?.unregisterReceiver(scanReceiver)
         } catch (_: Exception) {
@@ -78,7 +80,6 @@ object RSSIStream {
         contextRef = null
         started = false
         synchronized(buffer) { buffer.clear() }
-        synchronized(listeners) { listeners.clear() }
     }
 
     fun addListener(listener: (ScanBatch) -> Unit) {
@@ -91,7 +92,7 @@ object RSSIStream {
 
     fun requestImmediateScan() {
         if (!started) return
-        scope.launch {
+        scope?.launch {
             @Suppress("DEPRECATION")
             wifiManager?.startScan()
         }
@@ -99,7 +100,7 @@ object RSSIStream {
 
     private fun startScanningLoop() {
         scanJob?.cancel()
-        scanJob = scope.launch {
+        scanJob = scope?.launch {
             while (isActive && started) {
                 @Suppress("DEPRECATION")
                 val success = wifiManager?.startScan() ?: false
