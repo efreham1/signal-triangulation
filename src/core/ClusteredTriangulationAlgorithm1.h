@@ -1,83 +1,44 @@
 #ifndef CLUSTERED_TRIANGULATION_ALGORITHM1_H
 #define CLUSTERED_TRIANGULATION_ALGORITHM1_H
 
-#include "ITriangulationAlgorithm.h"
-#include "DataPoint.h"
-#include "Cluster.hpp"
-
-#include <vector>
-#include <cmath>
-#include <limits>
-#include <unordered_map>
-#include <optional>
+#include "ClusteredTriangulationBase.h"
 
 namespace core
 {
 
     /**
      * @class ClusteredTriangulationAlgorithm1
-     * @brief Skeleton for the cluster-based triangulation algorithm described in the
-     * design notes. This file provides method stubs and a minimal data model so the
-     * class can be compiled and integrated; algorithmic details should be implemented
-     * in subsequent iterations.
+     * @brief Cluster-based triangulation using geometric ratio splitting for clustering
+     * and gradient descent with intersection seeding for position estimation.
      */
-    class ClusteredTriangulationAlgorithm1 : public ITriangulationAlgorithm
+    class ClusteredTriangulationAlgorithm1 : public ClusteredTriangulationBase
     {
     public:
         ClusteredTriangulationAlgorithm1();
         ~ClusteredTriangulationAlgorithm1() override;
 
-        // ITriangulationAlgorithm interface
-        void processDataPoint(const DataPoint &point) override;
         void calculatePosition(double &out_latitude, double &out_longitude, double precision, double timeout) override;
-        void setHyperparameters(
-            std::optional<double> coalition_dist_meters,
-            std::optional<int> cluster_min_points,
-            std::optional<double> cluster_ratio_split_threshold,
-            std::optional<double> normal_regularization_eps, 
-            std::optional<double> gauss_elim_pivot_eps       
-        );
-        void reset() override;
-        
-        private:
-        // Storage for received measurements. Implement clustering and additional
-        // state in later iterations.
-        std::vector<DataPoint> m_points;
-        
-        std::vector<PointCluster> m_clusters;
+    protected:
+        // Override parameters for this algorithm
+        double getCoalitionDistance() const override { return 1.0; }
+        unsigned int getClusterMinPoints() const override { return 4u; }
+        double getClusterRatioSplitThreshold() const override { return 0.25; }
 
-        // Memoization setup
-        struct PairHash
-        {
-            static void hash_combine(std::size_t &seed, std::size_t value)
-            {
-                // Golden ratio hash combination
-                constexpr std::size_t golden_ratio_const = 0x9e3779b9;
-                seed ^= value + golden_ratio_const + (seed << 6) + (seed >> 2);
-            }
+        // No weighting in CTA1
+        double getVarianceWeight() const override { return 0.0; }
+        double getRssiWeight() const override { return 0.0; }
+        double getExtraWeight() const override { return 1.0; }
 
-            inline std::size_t operator()(const std::pair<int64_t, int64_t> &v) const
-            {
-                std::size_t seed = 0;
-                hash_combine(seed, std::hash<int64_t>()(v.first));
-                hash_combine(seed, std::hash<int64_t>()(v.second));
-                return seed;
-            }
-        };
-        std::unordered_map<std::pair<int64_t, int64_t>, double, PairHash> distance_cache;
+        // Implement clustering
+        void clusterData() override;
 
-        // Internal helpers
-        void clusterData();
-        void estimateAoAForClusters();
-        std::pair<int64_t, int64_t> makeDistanceKey(int64_t id1, int64_t id2) const;
-        void addToDistanceCache(const DataPoint &p1, const DataPoint &p2, double distance);
-        void reorderDataPointsByDistance();
-        double getCost(double x, double y);
-        void gradientDescent(double &out_x, double &out_y, std::vector<std::pair<double, double>> intersections, double precision, double timeout);
+    private:
+        // CTA1-specific methods
         std::vector<std::pair<double, double>> findIntersections();
+        void gradientDescent(double &out_x, double &out_y,
+                             std::vector<std::pair<double, double>> intersections,
+                             double precision, double timeout);
     };
-
-    std::vector<double> getNormalVector(const std::vector<double> &x, const std::vector<double> &y, const std::vector<double> &z);
 
 } // namespace core
 
