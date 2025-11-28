@@ -8,6 +8,7 @@
 #include <vector>
 #include <cmath>
 #include <limits>
+#include <optional>
 
 namespace core
 {
