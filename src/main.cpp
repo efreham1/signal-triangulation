@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
     std::string algorithmType = "CTA2";
     bool plottingEnabled = false;
     double precision = 0.1; // default precision for algorithms that use it
-    double timeout = 0.0; // default timeout (0 = no timeout)
+    double timeout = 60.0; // default timeout (0 = no timeout)
 
     // Simple argument scan for --log-level=LEVEL, --signals-file=FILE, --algorithm=TYPE, and --plotting-output
     for (int i = 1; i < argc; ++i)

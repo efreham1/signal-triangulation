@@ -253,7 +253,10 @@ namespace core
 
             // Apply weighting if configured
             double weight = getExtraWeight();
-            weight += cluster.score;
+            if (cluster.score > 0.0)
+            {
+                weight += cluster.score;
+            }
             cluster_cost *= weight;
 
             total_cost += cluster_cost;
@@ -280,11 +283,32 @@ namespace core
                       << ", avg_rssi: " << cluster.avg_rssi
                       << ", estimated_aoa: " << cluster.estimated_aoa
                       << ", ratio: " << ratio
+                      << ", weight: " << cluster.score
                       << ", num_points: " << cluster.points.size() << std::endl;
             for (const auto &p : cluster.points)
             {
-                std::cout << "p " << p.getX() << " " << p.getY() << std::endl;
+                std::cout << "    p " << p.getX() << " " << p.getY() << " " << i << std::endl;
             }
+        }
+
+        // Print point-to-cluster membership summary
+        std::cout << "Point Membership:" << std::endl;
+        for (const auto &point : m_points)
+        {
+            std::cout << "  point (" << point.getX() << ", " << point.getY() << ") in clusters:";
+            for (size_t i = 0; i < m_clusters.size(); ++i)
+            {
+                for (const auto &cp : m_clusters[i].points)
+                {
+                    if (std::abs(cp.getX() - point.getX()) < 1e-9 &&
+                        std::abs(cp.getY() - point.getY()) < 1e-9)
+                    {
+                        std::cout << " " << i;
+                        break;
+                    }
+                }
+            }
+            std::cout << std::endl;
         }
     }
 

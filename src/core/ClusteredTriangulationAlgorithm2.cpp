@@ -6,6 +6,7 @@
 #include <cmath>
 #include <set>
 #include <chrono>
+#include <random>
 #include <spdlog/spdlog.h>
 
 namespace core
@@ -47,18 +48,45 @@ namespace core
 		out_longitude = result_point.getLongitude();
 	}
 
+	std::vector<int> strideOrder(int n)
+	{
+		std::vector<int> order;
+		order.reserve(n);
+
+		// Choose stride as roughly sqrt(n) or a prime-like value
+		int stride = std::max(2, static_cast<int>(std::sqrt(n)));
+		// Make stride coprime with n for full coverage
+		while (std::gcd(stride, n) != 1 && stride < n)
+		{
+			stride++;
+		}
+
+		int current = 0;
+		for (int i = 0; i < n; ++i)
+		{
+			order.push_back(current);
+			current = (current + stride) % n;
+		}
+
+		return order;
+	}
+
 	void ClusteredTriangulationAlgorithm2::findBestClusters()
 	{
 		double total_time_left = CLUSTER_FORMATION_TIMEOUT;
-		// Try starting with each point as seed
+
+		int n_points = static_cast<int>(m_points.size());
+		std::vector<int> point_order = strideOrder(n_points);
+
 		auto start_time = std::chrono::steady_clock::now();
-		for (int i = 0; i < static_cast<int>(m_points.size()); ++i)
+		for (int idx = 0; idx < n_points; ++idx)
 		{
+			int i = point_order[idx];
 			auto current_time = std::chrono::steady_clock::now();
 			std::chrono::duration<double> elapsed = current_time - start_time;
 			total_time_left = CLUSTER_FORMATION_TIMEOUT - elapsed.count();
 
-			double alloted_time = total_time_left / static_cast<double>(static_cast<int>(m_points.size()) - i);
+			double alloted_time = total_time_left / static_cast<double>(n_points - idx);
 			bool found_valid = false;
 
 			PointCluster best_cluster = PointCluster();
@@ -71,18 +99,24 @@ namespace core
 			// Find ALL other points within distance
 			getCandidates(i, candidate_indices);
 
-			int n = static_cast<int>(candidate_indices.size());
+			int n_candidates = static_cast<int>(candidate_indices.size());
 			int min_additional = getClusterMinPoints() - 1;
 
+			spdlog::info("ClusteredTriangulationAlgorithm2: forming clusters with seed point index {}, {} candidates found, alloted time {:.2f}s",
+						 i, n_candidates, alloted_time);
 			PointCluster cluster = PointCluster();
 			cluster.addPoint(m_points[i]); // seed
 
 			auto combinations_start_time = std::chrono::steady_clock::now();
 			// Generate and evaluate combinations ON-THE-FLY
-			for (int k = min_additional; k <= n; ++k)
+			for (int k = min_additional; k <= n_candidates; ++k)
 			{
 				bool timeout_reached = false;
 				std::vector<int> indices(k);
+
+				cluster = PointCluster();
+				cluster.addPoint(m_points[i]); // seed
+
 				// Initialize indices for combination of size k
 				for (int idx = 0; idx < k; ++idx)
 				{
@@ -108,7 +142,7 @@ namespace core
 					}
 
 					int pos = k - 1;
-					while (pos >= 0 && indices[pos] == n - k + pos)
+					while (pos >= 0 && indices[pos] == n_candidates - k + pos)
 					{
 						--pos;
 					}
@@ -137,9 +171,18 @@ namespace core
 
 			if (found_valid)
 			{
+				best_cluster.getAndSetScore(
+					IDEAL_GEOMETRIC_RATIO_FOR_BEST_CLUSTER,
+					IDEAL_AREA_FOR_BEST_CLUSTER,
+					MIN_RSSI_VARIANCE_FOR_BEST_CLUSTER,
+					WEIGHT_GEOMETRIC_RATIO,
+					WEIGHT_AREA,
+					WEIGHT_RSSI_VARIANCE,
+					BOTTOM_RSSI_FOR_BEST_CLUSTER,
+					WEIGHT_RSSI);
 				m_clusters.push_back(best_cluster);
-				spdlog::info("ClusteredTriangulationAlgorithm2: formed cluster with {} points, geometric ratio {:.3f}, area {:.2f}",
-							 best_cluster.size(), best_cluster.geometricRatio(), best_cluster.area());
+				spdlog::info("ClusteredTriangulationAlgorithm2: formed cluster with {} points, geometric ratio {:.3f}, area {:.2f}, seed index {}",
+							 best_cluster.size(), best_cluster.geometricRatio(), best_cluster.area(), best_seed_index);
 			}
 			else
 			{
@@ -167,7 +210,6 @@ namespace core
 
 	bool ClusteredTriangulationAlgorithm2::checkCluster(PointCluster &cluster, PointCluster &best_cluster, double &best_score, int &best_seed_index, int i)
 	{
-
 		double ratio = cluster.geometricRatio();
 		double clusterArea = cluster.area();
 		bool found_valid_for_this_seed = false;
@@ -198,7 +240,9 @@ namespace core
 					MIN_RSSI_VARIANCE_FOR_BEST_CLUSTER,
 					WEIGHT_GEOMETRIC_RATIO,
 					WEIGHT_AREA,
-					WEIGHT_RSSI_VARIANCE);
+					WEIGHT_RSSI_VARIANCE,
+					BOTTOM_RSSI_FOR_BEST_CLUSTER,
+					WEIGHT_RSSI);
 
 				if (current_score > best_score)
 				{

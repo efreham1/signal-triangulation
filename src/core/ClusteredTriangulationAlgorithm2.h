@@ -45,7 +45,7 @@ namespace core
         static constexpr double CLUSTER_FORMATION_TIMEOUT = 20.0; // seconds
 
         // CTA2-specific constants
-        static constexpr int HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS = 500; // TODO: should this also be a method?
+        static constexpr int HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS = 500; // 500x500 grid per precision step
 
         // Brute-force clustering thresholds
         static constexpr int MAX_INTERNAL_CLUSTER_DISTANCE = 20; // Meters
@@ -65,10 +65,14 @@ namespace core
         // Overlap
         static constexpr double MAX_OVERLAP_BETWEEN_CLUSTERS = 0.05; // 5%
 
+        // RSSI strength
+        static constexpr double BOTTOM_RSSI_FOR_BEST_CLUSTER = -90.0; // dBm
+
         // Weights for best cluster selection
         static constexpr double WEIGHT_GEOMETRIC_RATIO = 1;
         static constexpr double WEIGHT_AREA = 1;
         static constexpr double WEIGHT_RSSI_VARIANCE = 1;
+        static constexpr double WEIGHT_RSSI = 1;
     };
 
 } // namespace core

@@ -29,7 +29,7 @@ namespace core
         size_t size() const;
         double getAndSetScore(double ideal_geometric_ratio, double ideal_area,
                         double ideal_rssi_variance, double gr_weight, double area_weight,
-                        double variance_weight);
+                        double variance_weight, double bottom_rssi_threshold, double rssi_weight);
 
         /**
          * @brief Bounding box in principal axis coordinate system.

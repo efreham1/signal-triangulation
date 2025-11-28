@@ -112,13 +112,18 @@ namespace core
 
     double PointCluster::getAndSetScore(double ideal_geometric_ratio, double ideal_area,
                                     double ideal_rssi_variance, double gr_weight, double area_weight,
-                                    double variance_weight)
+                                    double variance_weight, double bottom_rssi_threshold, double rssi_weight)
     {
         double gr_score = 1.0 - std::abs(1.0 - geometricRatio() / ideal_geometric_ratio);
         double area_score = 1.0 - std::abs(1.0 - area() / ideal_area);
         double variance_score = 1.0 - std::abs(1.0 - varianceRSSI() / ideal_rssi_variance);
+        double rssi_score = 0.0;
+        if (avg_rssi > bottom_rssi_threshold)
+        {
+            rssi_score = 1.0 - (avg_rssi / bottom_rssi_threshold);
+        }
         
-        score = gr_weight * gr_score + area_weight * area_score + variance_weight * variance_score;
+        score = gr_weight * gr_score + area_weight * area_score + variance_weight * variance_score + rssi_weight * rssi_score;
         return score;
     }
 
