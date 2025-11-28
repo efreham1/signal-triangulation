@@ -183,7 +183,7 @@ class MainActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     statusText.text = getString(R.string.status_ready)
                     takeMeasurementBtn.isEnabled = true
-                    Toast.makeText(this@MainActivity, "Measurement timed out - SSID not found. Try again.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@MainActivity, getString(R.string.measurement_timeout), Toast.LENGTH_LONG).show()
                 }
                 resetMeasurementState()
             } catch (_: CancellationException) {
@@ -300,7 +300,7 @@ class MainActivity : AppCompatActivity() {
                         // Only delete signal records, preserve source position
                         signalDao.deleteAll()
                         refreshRecordsView()
-                        Toast.makeText(this@MainActivity, "Recordings deleted", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@MainActivity, getString(R.string.recordings_deleted), Toast.LENGTH_SHORT).show()
                     }
                 }
                 .setNegativeButton(getString(R.string.confirm_delete_negative), null)

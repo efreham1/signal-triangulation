@@ -4,6 +4,7 @@
     <string name="placeholder_db">Database entries will appear here</string>
     <string name="exported_to">Exported to:\n%1$s</string>
     <string name="clean_records">Delete Recordings</string>
+    <string name="recordings_deleted">Recordings deleted</string>
     <string name="export_json">Export to JSON</string>
     <string name="choose_ssid">Choose SSID</string>
 
@@ -28,6 +29,7 @@
     <string name="measuring_done">Done (%1$d samples)</string>
     <string name="measurement_result">Mean: lat=%1$.6f lon=%2$.6f\n</string>
     <string name="measurement_saved">Measurement saved as source position</string>
+    <string name="measurement_timeout">Measurement timed out - SSID not found. Try again.</string>
 
     <string name="placeholder_source">No source selected</string>
     <string name="selected_source">Selected Source: %1$s</string>
