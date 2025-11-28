@@ -48,7 +48,7 @@ namespace core
 		out_longitude = result_point.getLongitude();
 	}
 
-	std::vector<int> strideOrder(int n)
+	static std::vector<int> strideOrder(int n)
 	{
 		std::vector<int> order;
 		order.reserve(n);

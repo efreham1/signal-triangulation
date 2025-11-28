@@ -66,4 +66,4 @@ namespace core
 
 } // namespace core
 
-#endif // CLUSTER_HPP
+#endif // CLUSTER_H
