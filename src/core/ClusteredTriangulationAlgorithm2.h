@@ -3,6 +3,8 @@
 
 #include "ClusteredTriangulationBase.h"
 
+#include <optional>
+
 namespace core
 {
 
@@ -33,7 +35,6 @@ namespace core
 
         // Implement clustering
         void clusterData() override;
-
     private:
         // CTA2-specific methods
         void bruteForceSearch(double &out_x, double &out_y, double precision, double timeout);

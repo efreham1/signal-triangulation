@@ -3,6 +3,8 @@
 
 #include "ClusteredTriangulationBase.h"
 
+#include <optional>
+
 namespace core
 {
 
@@ -18,7 +20,6 @@ namespace core
         ~ClusteredTriangulationAlgorithm1() override;
 
         void calculatePosition(double &out_latitude, double &out_longitude, double precision, double timeout) override;
-
     protected:
         // Override parameters for this algorithm
         double getCoalitionDistance() const override { return 1.0; }

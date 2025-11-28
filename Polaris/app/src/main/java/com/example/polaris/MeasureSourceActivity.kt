@@ -2,7 +2,6 @@ package com.example.polaris
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.location.Location
 import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
@@ -14,9 +13,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.room.Room
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.math.sqrt
 import kotlinx.coroutines.isActive
 
 @Suppress("DEPRECATION")
@@ -29,19 +26,11 @@ class MeasureSourceActivity : AppCompatActivity() {
 
     private val locationPermissionRequestCode = 1001
 
-    private data class ReceivedSample(
-        val latitude: Double,
-        val longitude: Double,
-        val providerTimeMs: Long,
-        val providerElapsedNs: Long,
-    )
-
     // Sample count
     private val sampleCount = 10
 
     // Delay between samples in ms
     private val sampleDelayMs = 1500L
-    private val singleTimeoutMs = 3000L
 
     // DB
     private lateinit var db: AppDatabase
@@ -63,7 +52,10 @@ class MeasureSourceActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         if (hasLocationPermission()) {
-            LocationStream.start(this)
+            // Ensure stream is started, but don't restart if already running
+            if (!LocationStream.isStarted()) {
+                LocationStream.start(this)
+            }
         } else {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), locationPermissionRequestCode)
         }
@@ -71,10 +63,8 @@ class MeasureSourceActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
-        LocationStream.stop()
     }
 
-    // New strategy: Uses LocationStream's weighted average
     private fun startMeasurements() {
         if (!hasLocationPermission()) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), locationPermissionRequestCode)

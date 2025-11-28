@@ -29,6 +29,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.TimeoutCancellationException
 import androidx.activity.result.contract.ActivityResultContracts
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -177,8 +178,16 @@ class MainActivity : AppCompatActivity() {
                 val target = measurementTargetSsid ?: return@launch
                 val (rssi, timestamp) = RSSIStream.awaitFirstRSSIAfter(target, measurementStartTime + measurementOffsetMs)
                 completeMeasurement(target, rssi, timestamp, timestamp - measurementStartTime)
+            } catch (_: TimeoutCancellationException) {
+                // Timeout - allow retry instead of getting stuck
+                withContext(Dispatchers.Main) {
+                    statusText.text = getString(R.string.status_ready)
+                    takeMeasurementBtn.isEnabled = true
+                    Toast.makeText(this@MainActivity, getString(R.string.measurement_timeout), Toast.LENGTH_LONG).show()
+                }
+                resetMeasurementState()
             } catch (_: CancellationException) {
-                // cancelled
+                // cancelled by user or activity lifecycle
             }
         }
     }
@@ -291,7 +300,7 @@ class MainActivity : AppCompatActivity() {
                         // Only delete signal records, preserve source position
                         signalDao.deleteAll()
                         refreshRecordsView()
-                        Toast.makeText(this@MainActivity, "Recordings deleted", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@MainActivity, getString(R.string.recordings_deleted), Toast.LENGTH_SHORT).show()
                     }
                 }
                 .setNegativeButton(getString(R.string.confirm_delete_negative), null)
@@ -319,7 +328,10 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         if (hasAllPermissions()) {
-            LocationStream.start(this)
+            // Always ensure streams are started
+            if (!LocationStream.isStarted()) {
+                LocationStream.start(this)
+            }
             RSSIStream.start(this)
             RSSIStream.addListener(rssiListener)
             RSSIStream.latest()?.let { handleScanBatch(it) }
@@ -379,9 +391,14 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         RSSIStream.removeListener(rssiListener)
+        resetMeasurementState()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Only stop streams when activity is actually being destroyed
         RSSIStream.stop()
         LocationStream.stop()
-        resetMeasurementState()
     }
 
     private fun updateSelectedSsidButton() {

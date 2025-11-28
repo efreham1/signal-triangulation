@@ -1,4 +1,4 @@
-#include "../src/core/ClusteredTriangulationAlgorithm.h"
+#include "../src/core/ClusteredTriangulationAlgorithm1.h"
 
 #include <vector>
 #include <random>
