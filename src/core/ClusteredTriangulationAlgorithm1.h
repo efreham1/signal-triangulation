@@ -3,8 +3,6 @@
 
 #include "ClusteredTriangulationBase.h"
 
-#include <optional>
-
 namespace core
 {
 

@@ -9,6 +9,7 @@
 #include <cmath>
 #include <limits>
 #include <unordered_map>
+#include <optional>
 
 namespace core
 {
@@ -31,6 +32,14 @@ namespace core
 
         // calculatePosition() must be implemented by subclasses
         void calculatePosition(double &out_latitude, double &out_longitude, double precision, double timeout) override = 0;
+
+    // Hyperparameter configuration - can be overridden by subclasses
+    virtual void setHyperparameters(
+        std::optional<double> coalition_dist_meters = std::nullopt,
+        std::optional<int> cluster_min_points = std::nullopt,
+        std::optional<double> cluster_ratio_split_threshold = std::nullopt,
+        std::optional<double> normal_regularization_eps = std::nullopt,
+        std::optional<double> gauss_elim_pivot_eps = std::nullopt);
 
     protected:
         // Shared data

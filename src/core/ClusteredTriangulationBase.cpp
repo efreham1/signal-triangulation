@@ -19,6 +19,21 @@ namespace core
     ClusteredTriangulationBase::ClusteredTriangulationBase() = default;
     ClusteredTriangulationBase::~ClusteredTriangulationBase() = default;
 
+    void ClusteredTriangulationBase::setHyperparameters(
+        std::optional<double> coalition_dist_meters,
+        std::optional<int> cluster_min_points,
+        std::optional<double> cluster_ratio_split_threshold,
+        std::optional<double> normal_regularization_eps,
+        std::optional<double> gauss_elim_pivot_eps)
+    {
+        // Default empty implementation - subclasses can override
+        (void)coalition_dist_meters;
+        (void)cluster_min_points;
+        (void)cluster_ratio_split_threshold;
+        (void)normal_regularization_eps;
+        (void)gauss_elim_pivot_eps;
+    }
+
     void ClusteredTriangulationBase::processDataPoint(const DataPoint &point)
     {
         if (!point.validCoordinates())
