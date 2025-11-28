@@ -2,12 +2,14 @@ cmake_minimum_required(VERSION 3.10)
 project(triangulation_tests LANGUAGES CXX)
 
 include(FetchContent)
+include(GoogleTest)
 enable_testing()
 
 # GoogleTest
 FetchContent_Declare(
   googletest
   URL https://github.com/google/googletest/archive/refs/tags/v1.15.0.zip
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 FetchContent_MakeAvailable(googletest)
 
@@ -15,31 +17,31 @@ FetchContent_MakeAvailable(googletest)
 file(GLOB_RECURSE TRIANGULATION_CORE_SOURCES "${CMAKE_SOURCE_DIR}/src/*.cpp")
 list(FILTER TRIANGULATION_CORE_SOURCES EXCLUDE REGEX ".*/main\\.cpp$")
 
-# Plane-fit tests (separate executable)
-add_executable(plane_fit_tests
-  test_plane_fit.cpp
-  ${TRIANGULATION_CORE_SOURCES}
-)
-target_include_directories(plane_fit_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(plane_fit_tests PRIVATE
-  gtest_main
-  nlohmann_json::nlohmann_json
-  spdlog::spdlog
-)
-add_test(NAME plane_fit COMMAND plane_fit_tests)
-set_tests_properties(plane_fit PROPERTIES LABELS "plane")
+# Create a library from core sources for tests to link against
+add_library(core_test_lib STATIC ${TRIANGULATION_CORE_SOURCES})
+target_include_directories(core_test_lib PUBLIC "${CMAKE_SOURCE_DIR}/src")
+target_link_libraries(core_test_lib PUBLIC spdlog::spdlog nlohmann_json::nlohmann_json)
 
-# Triangulation/location tests (separate executable)
-add_executable(triangulation_tests
-  test_triangulation.cpp
-  ${TRIANGULATION_CORE_SOURCES}
+add_executable(unit_tests
+    test_main.cpp
+    test_datapoint.cpp
+    test_plane_fit.cpp
 )
-target_include_directories(triangulation_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(triangulation_tests
-  PRIVATE
-  gtest_main
-  nlohmann_json::nlohmann_json
-  spdlog::spdlog
+
+add_executable(integration_tests
+    test_triangulation.cpp
+)
+
+target_link_libraries(unit_tests GTest::gtest GTest::gtest_main core_test_lib)
+target_link_libraries(integration_tests GTest::gtest GTest::gtest_main core_test_lib)
+
+# Discover individual tests (each TEST() becomes a separate ctest)
+gtest_discover_tests(unit_tests
+    PROPERTIES LABELS "unit"
+)
+
+gtest_discover_tests(integration_tests
+    PROPERTIES LABELS "integration"
 )
 
 # Define APP_BIN_PATH correctly per platform
@@ -49,7 +51,7 @@ else()
   set(APP_BIN "${CMAKE_BINARY_DIR}/${APP_TARGET_NAME}")
 endif()
 
-target_compile_definitions(triangulation_tests PRIVATE 
+target_compile_definitions(integration_tests PRIVATE 
     APP_BIN_PATH=\"${APP_BIN}\"
     RECORDINGS_DIR=\"${CMAKE_SOURCE_DIR}/recordings\"
 )

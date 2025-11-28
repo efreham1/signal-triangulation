@@ -2,6 +2,9 @@
 # Usage:
 #   make          # Configure (cmake -S . -B build) and build (cmake --build build)
 #   make test     # Configure, build and run ctest
+#   make test-unit        # Run unit tests only
+#   make test-integration # Run integration tests only
+#   make test-one TEST=<test_name>  # Run a specific test by name
 #   make clean    # Remove build directory
 #   make rebuild  # Clean, configure and build
 #   make install-adb
@@ -37,16 +40,23 @@ configure:
 build:
 	$(CMAKE_BUILD)
 
-test-plane: configure
-	@$(CMAKE) --build $(BUILD_DIR) --config Release -j$(NPROC) --target plane_fit_tests
-	@cd $(BUILD_DIR) && ctest -L plane --output-on-failure
+# Run all tests
+test: configure build
+	@cd $(BUILD_DIR) && ctest --output-on-failure
 
-test-location: configure
-	@$(CMAKE) --build $(BUILD_DIR) --config Release -j$(NPROC) --target signal-triangulation
-	@$(CMAKE) --build $(BUILD_DIR) --config Release -j$(NPROC) --target triangulation_tests
-	@echo ""
-	@./$(BUILD_DIR)/tests/triangulation_tests --gtest_filter=Triangulation.GlobalSummary
+# Run unit tests only
+test-unit: configure
+	@$(CMAKE) --build $(BUILD_DIR) --config Release -j$(NPROC) --target unit_tests
+	@cd $(BUILD_DIR) && ctest -L unit --output-on-failure
 
+# Run integration tests
+test-integration: configure
+	@$(CMAKE) --build $(BUILD_DIR) --config Release -j$(NPROC) --target integration_tests
+	@cd $(BUILD_DIR) && ctest -L integration --output-on-failure
+
+# Run a specific test by name
+test-one: configure build
+	@cd $(BUILD_DIR) && ctest -R "$(TEST)" --output-on-failure -V
 
 clean:
 	@if [ -d $(BUILD_DIR) ]; then rm -rf $(BUILD_DIR); else true; fi
