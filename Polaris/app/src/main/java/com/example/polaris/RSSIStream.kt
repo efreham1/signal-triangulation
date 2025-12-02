@@ -90,14 +90,6 @@ object RSSIStream {
         synchronized(listeners) { listeners.remove(listener) }
     }
 
-    fun requestImmediateScan() {
-        if (!started) return
-        scope?.launch {
-            @Suppress("DEPRECATION")
-            wifiManager?.startScan()
-        }
-    }
-
     private fun startScanningLoop() {
         scanJob?.cancel()
         scanJob = scope?.launch {

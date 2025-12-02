@@ -30,8 +30,14 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import androidx.activity.result.contract.ActivityResultContracts
 import kotlin.coroutines.cancellation.CancellationException
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 
 @Entity(tableName = "signal_records")
 data class SignalRecord(
@@ -120,6 +126,12 @@ class MainActivity : AppCompatActivity() {
     private var measurementTargetSsid: String? = null
     private val timeFormat = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
 
+    // Auto-measurement state
+    private var isAutoMeasuring = false
+    private var autoMeasureJob: Job? = null
+    private var autoMeasureDelayMs = 5000L // Default 5 seconds between measurements
+    private lateinit var autoBtn: Button
+
     private val rssiListener: (RSSIStream.ScanBatch) -> Unit = { batch ->
         handleScanBatch(batch)
     }
@@ -164,8 +176,6 @@ class MainActivity : AppCompatActivity() {
         measurementTargetSsid = target
         measurementStartTime = System.currentTimeMillis()
         takeMeasurementBtn.isEnabled = false
-
-        RSSIStream.requestImmediateScan()
         
         startMeasurementLoop() // Start the smooth timer and measurement logic
     }
@@ -182,7 +192,9 @@ class MainActivity : AppCompatActivity() {
                 // Timeout - allow retry instead of getting stuck
                 withContext(Dispatchers.Main) {
                     statusText.text = getString(R.string.status_ready)
-                    takeMeasurementBtn.isEnabled = true
+                    if (!isAutoMeasuring) {
+                        takeMeasurementBtn.isEnabled = true
+                    }
                     Toast.makeText(this@MainActivity, getString(R.string.measurement_timeout), Toast.LENGTH_LONG).show()
                 }
                 resetMeasurementState()
@@ -192,6 +204,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @SuppressLint("StringFormatInvalid")
     private fun completeMeasurement(ssid: String, rssi: Int, seenTimeMs: Long, measurementDurationMs: Long) {
         if (!isMeasuring) return
         isMeasuring = false
@@ -204,7 +217,9 @@ class MainActivity : AppCompatActivity() {
             if (avgPair == null) {
                 withContext(Dispatchers.Main) {
                     statusText.text = getString(R.string.status_measurement_failed)
-                    takeMeasurementBtn.isEnabled = true
+                    if (!isAutoMeasuring) {
+                        takeMeasurementBtn.isEnabled = true
+                    }
                     Toast.makeText(this@MainActivity, getString(R.string.no_location), Toast.LENGTH_SHORT).show()
                 }
                 measurementTargetSsid = null
@@ -224,7 +239,9 @@ class MainActivity : AppCompatActivity() {
 
             withContext(Dispatchers.Main) {
                 statusText.text = getString(R.string.status_measurement_taken, avgPair.second.size)
-                takeMeasurementBtn.isEnabled = true
+                if (!isAutoMeasuring) {
+                    takeMeasurementBtn.isEnabled = true
+                }
                 Toast.makeText(
                     this@MainActivity,
                     getString(R.string.rssi_updated, rssi, timeFormat.format(java.util.Date(seenTimeMs))),
@@ -236,13 +253,106 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun resetMeasurementState() {
-        isMeasuring = false
-        timerJob?.cancel() // Stop the timer
-        measurementTargetSsid = null
-        runOnUiThread {
+    private fun promptAutoMeasurementDelay() {
+        val target = selectedSSID
+        if (target.isNullOrEmpty()) {
+            statusText.text = getString(R.string.status_no_ssid)
+            Toast.makeText(this, getString(R.string.prompt_select_ssid_first), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (!hasAllPermissions()) {
+            ActivityCompat.requestPermissions(this, requiredPermissions, locationPermissionRequestCode)
+            return
+        }
+
+        val input = EditText(this).apply {
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            hint = getString(R.string.auto_delay_hint)
+            setText("5")
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.auto_delay_title))
+            .setView(input)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val seconds = input.text.toString().toIntOrNull()
+                if (seconds == null || seconds < 1) {
+                    Toast.makeText(this, getString(R.string.invalid_number), Toast.LENGTH_SHORT).show()
+                } else {
+                    autoMeasureDelayMs = seconds * 1000L
+                    startAutoMeasurement()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun startAutoMeasurement() {
+        if (isAutoMeasuring) return
+
+        isAutoMeasuring = true
+        autoBtn.text = getString(R.string.auto_stop)
+        takeMeasurementBtn.isEnabled = false
+
+        autoMeasureJob = lifecycleScope.launch {
+            while (isActive && isAutoMeasuring) {
+                
+                // Trigger a measurement
+                triggerAutoMeasurement()
+
+                // Wait for measurement to complete
+                while (isActive && isMeasuring) {
+                    delay(100)
+                }
+
+                if (!isAutoMeasuring) break
+
+                // Wait the configured delay before next measurement
+                val delaySeconds = autoMeasureDelayMs / 1000
+                for (i in delaySeconds downTo 1) {
+                    if (!isAutoMeasuring) break
+                    statusText.text = getString(R.string.auto_next_in, i)
+                    vibrate()
+                    delay(1000)
+                }
+                vibrate(300L)
+            }
+        }
+    }
+
+    private fun triggerAutoMeasurement() {
+        val target = selectedSSID ?: return
+
+        if (isMeasuring) return
+
+        isMeasuring = true
+        measurementTargetSsid = target
+        measurementStartTime = System.currentTimeMillis()
+
+        startMeasurementLoop()
+    }
+
+    private fun stopAutoMeasurement() {
+        isAutoMeasuring = false
+        autoMeasureJob?.cancel()
+        autoMeasureJob = null
+        autoBtn.text = getString(R.string.auto_measurement)
+        if (!isMeasuring) {
             takeMeasurementBtn.isEnabled = true
             statusText.text = getString(R.string.status_ready)
+        }
+    }
+
+    private fun resetMeasurementState() {
+        isMeasuring = false
+        timerJob?.cancel()
+        measurementTargetSsid = null
+        runOnUiThread {
+            if (!isAutoMeasuring) {
+                takeMeasurementBtn.isEnabled = true
+                statusText.text = getString(R.string.status_ready)
+            }
         }
     }
 
@@ -288,6 +398,15 @@ class MainActivity : AppCompatActivity() {
         selectSsidBtn.setOnClickListener { showSsidChoiceDialog() }
 
         takeMeasurementBtn.setOnClickListener { startManualMeasurement() }
+
+        autoBtn = findViewById(R.id.autoBtn)
+        autoBtn.setOnClickListener {
+            if (isAutoMeasuring) {
+                stopAutoMeasurement()
+            } else {
+                promptAutoMeasurementDelay()
+            }
+        }
 
         exportBtn.setOnClickListener { promptFreeTextAndExport() }
 
@@ -391,6 +510,7 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         RSSIStream.removeListener(rssiListener)
+        stopAutoMeasurement()
         resetMeasurementState()
     }
 
@@ -406,27 +526,65 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showSsidChoiceDialog() {
-        if (ssidList.isEmpty()) {
-            AlertDialog.Builder(this)
-                .setTitle(getString(R.string.choose_ssid))
-                .setMessage(getString(R.string.no_ssids_found))
-                .setPositiveButton(android.R.string.ok, null)
-                .show()
-            return
-        }
+        // Take a snapshot of the current SSID list
+        var snapshotList = ssidList.toList()
 
-        val items = ssidList.toTypedArray()
-        val checkedIndex = selectedSSID?.let { ssidList.indexOf(it) } ?: -1
-        AlertDialog.Builder(this)
+        // Create an ArrayAdapter that we can update (even if empty initially)
+        val adapter = android.widget.ArrayAdapter(
+            this,
+            android.R.layout.simple_list_item_single_choice,
+            snapshotList.toMutableList()
+        )
+
+        var checkedPosition = selectedSSID?.let { snapshotList.indexOf(it) } ?: -1
+
+        val dialog = AlertDialog.Builder(this)
             .setTitle(getString(R.string.choose_ssid))
-            .setSingleChoiceItems(items, checkedIndex) { dialog, which ->
-                selectedSSID = ssidList.getOrNull(which)
+            .setSingleChoiceItems(adapter, checkedPosition) { dlg, which ->
+                selectedSSID = adapter.getItem(which)
                 updateSelectedSsidButton()
                 resetMeasurementState()
-                dialog.dismiss()
+                dlg.dismiss()
             }
             .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            .setNeutralButton(getString(R.string.refresh), null)
+            .create()
+
+        dialog.setOnShowListener {
+            // Show empty message if no SSIDs
+            if (snapshotList.isEmpty()) {
+                dialog.listView.emptyView = TextView(this).apply {
+                    text = getString(R.string.no_ssids_found)
+                    setPadding(48, 48, 48, 48)
+                    (dialog.listView.parent as? android.view.ViewGroup)?.addView(this)
+                }
+            }
+
+            // Override the neutral button to NOT dismiss the dialog
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                lifecycleScope.launch {
+                    delay(2000)
+
+                    // Update the snapshot with fresh data
+                    snapshotList = ssidList.toList()
+
+                    // Update the adapter in place
+                    withContext(Dispatchers.Main) {
+                        adapter.clear()
+                        adapter.addAll(snapshotList)
+                        adapter.notifyDataSetChanged()
+
+                        // Update checked position if selected SSID is still in list
+                        checkedPosition = selectedSSID?.let { snapshotList.indexOf(it) } ?: -1
+                        if (checkedPosition >= 0) {
+                            dialog.listView.setItemChecked(checkedPosition, true)
+                        }
+                    }
+                }
+            }
+        }
+
+        dialog.show()
     }
 
     @SuppressLint("SetTextI18n")
@@ -451,6 +609,23 @@ class MainActivity : AppCompatActivity() {
                     allRecordsText.text = header + body
                 }
             }
+        }
+    }
+
+    private fun vibrate(durationMs: Long = 100L) {
+        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val manager = getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            manager.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(VIBRATOR_SERVICE) as Vibrator
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(durationMs)
         }
     }
 
