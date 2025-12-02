@@ -115,7 +115,7 @@ TEST(Triangulation, SingleFileErrorCheck)
 
     std::cout << "Global Average Error: " << std::fixed << std::setprecision(4) << err << " m\n";
 
-    // EXPECT_LT(err, MAX_ALLOWED_ERROR_METERS) << "Error is too high!";
+    EXPECT_LT(err, MAX_ALLOWED_ERROR_METERS) << "Error is too high!";
 }
 
 // New Global Summary Test
