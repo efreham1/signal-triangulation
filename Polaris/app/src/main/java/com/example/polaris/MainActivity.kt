@@ -309,12 +309,14 @@ class MainActivity : AppCompatActivity() {
                 if (!isAutoMeasuring) break
 
                 // Wait the configured delay before next measurement
-                val delaySeconds = autoMeasureDelayMs / 1000
-                for (i in delaySeconds downTo 1) {
-                    if (!isAutoMeasuring) break
-                    statusText.text = getString(R.string.auto_next_in, i)
+                var remainingMs = autoMeasureDelayMs
+                while (remainingMs > 0 && isAutoMeasuring) {
+                    val secondsLeft = (remainingMs / 1000).toInt() + if (remainingMs % 1000 > 0) 1 else 0
+                    statusText.text = getString(R.string.auto_next_in, secondsLeft)
                     vibrate()
-                    delay(1000)
+                    val step = if (remainingMs >= 1000) 1000L else remainingMs
+                    delay(step)
+                    remainingMs -= step
                 }
                 vibrate(300L)
             }
