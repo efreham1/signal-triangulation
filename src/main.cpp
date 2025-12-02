@@ -15,14 +15,38 @@
 
 #define LOG_FILE_PATH "logs"
 
+void setupFileLogging(spdlog::level::level_enum log_level)
+{
+    std::filesystem::path logs_dir(LOG_FILE_PATH);
+    if (!std::filesystem::exists(logs_dir))
+    {
+        std::filesystem::create_directories(logs_dir);
+    }
+
+    auto now = std::chrono::system_clock::now();
+    std::time_t tnow = std::chrono::system_clock::to_time_t(now);
+    std::tm tmnow;
+#ifdef _WIN32
+    localtime_s(&tmnow, &tnow);
+#else
+    localtime_r(&tnow, &tmnow);
+#endif
+
+    char buf[64];
+    std::strftime(buf, sizeof(buf), "%Y%m%d", &tmnow);
+    std::string filename = std::string("signal-triangulation_") + buf + ".log";
+    std::filesystem::path log_file_path = logs_dir / filename;
+
+    auto file_logger = spdlog::basic_logger_mt("file_logger", log_file_path.string());
+    spdlog::set_default_logger(file_logger);
+    spdlog::set_level(log_level);
+
+    spdlog::info("Logging initialized. level={}", spdlog::level::to_string_view(log_level));
+}
+
 int main(int argc, char *argv[])
 {
-    CliParser::Result cli = CliParser::parse(argc, argv);
-    if (!cli.valid)
-    {
-        std::cout << "Error: " << cli.error_message << std::endl;
-        return 1;
-    }
+    auto cli = CliParser::parse(argc, argv);
 
     if (cli.show_help)
     {
@@ -30,62 +54,36 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    // Setup logging
-    try
+    if (cli.show_param_help)
     {
-        std::filesystem::path logs_dir(LOG_FILE_PATH);
-        if (!std::filesystem::exists(logs_dir))
-        {
-            std::filesystem::create_directories(logs_dir);
-        }
-
-        auto now = std::chrono::system_clock::now();
-        std::time_t ts = std::chrono::system_clock::to_time_t(now);
-        std::tm tmnow;
-#ifdef _WIN32
-        localtime_s(&tmnow, &ts);
-#else
-        localtime_r(&ts, &tmnow);
-#endif
-
-        char buf[64];
-        std::strftime(buf, sizeof(buf), "%Y%m%d", &tmnow);
-
-        std::string filename = std::string("signal-triangulation_") + buf + ".log";
-        std::filesystem::path filepath = std::filesystem::path(LOG_FILE_PATH) / filename;
-
-        auto file_logger = spdlog::basic_logger_mt("file_logger", filepath.string());
-        spdlog::set_default_logger(file_logger);
-        spdlog::set_level(cli.log_level);
-
-        spdlog::info("Logging initialized");
-    }
-    catch (const spdlog::spdlog_ex &ex)
-    {
-        std::cerr << "Logging init failed: " << ex.what() << std::endl;
+        CliParser::printParamHelp();
+        return 0;
     }
 
-    spdlog::info("CLI config: signals={}, algorithm={}, plotting={}, precision={}, timeout={}",
-                 cli.signals_file,
-                 cli.algorithm,
-                 cli.plotting_enabled ? "true" : "false",
-                 cli.precision,
-                 cli.cost_calculation_timeout);
+    if (!cli.valid)
+    {
+        std::cerr << "Error: " << cli.error_message << std::endl;
+        return 1;
+    }
 
-    // Select algorithm
+    // Setup file logging with CLI log level
+    setupFileLogging(cli.log_level);
+
+    // Create algorithm with CLI parameters
     std::unique_ptr<core::ITriangulationAlgorithm> algorithm;
 
-    if (cli.algorithm == "CTA1")
+    if (cli.algorithm == "CTA2")
     {
-        algorithm = std::make_unique<core::ClusteredTriangulationAlgorithm1>();
+        algorithm = std::make_unique<core::ClusteredTriangulationAlgorithm2>(cli.algorithm_params);
     }
-    else if (cli.algorithm == "CTA2")
+    else if (cli.algorithm == "CTA1")
     {
-        algorithm = std::make_unique<core::ClusteredTriangulationAlgorithm2>();
+        // TODO: Add parameters for CTA1 aswell
+        algorithm = std::make_unique<core::ClusteredTriangulationAlgorithm1>(cli.algorithm_params);
     }
     else
     {
-        spdlog::error("Unknown algorithm type: {}", cli.algorithm);
+        std::cerr << "Unknown algorithm: " << cli.algorithm << std::endl;
         return 1;
     }
 

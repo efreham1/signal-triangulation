@@ -19,21 +19,6 @@ namespace core
     ClusteredTriangulationBase::ClusteredTriangulationBase() = default;
     ClusteredTriangulationBase::~ClusteredTriangulationBase() = default;
 
-    void ClusteredTriangulationBase::setHyperparameters(
-        std::optional<double> coalition_dist_meters,
-        std::optional<int> cluster_min_points,
-        std::optional<double> cluster_ratio_split_threshold,
-        std::optional<double> normal_regularization_eps,
-        std::optional<double> gauss_elim_pivot_eps)
-    {
-        // Default empty implementation - subclasses can override
-        (void)coalition_dist_meters;
-        (void)cluster_min_points;
-        (void)cluster_ratio_split_threshold;
-        (void)normal_regularization_eps;
-        (void)gauss_elim_pivot_eps;
-    }
-
     void ClusteredTriangulationBase::processDataPoint(const DataPoint &point)
     {
         if (!point.validCoordinates())
@@ -41,7 +26,6 @@ namespace core
             throw std::invalid_argument("ClusteredTriangulationBase: invalid coordinates");
         }
 
-        // Insert point keeping vector sorted by timestamp_ms (ascending)
         auto it = std::lower_bound(
             m_points.begin(), m_points.end(), point.timestamp_ms,
             [](const DataPoint &a, const int64_t t)
@@ -196,7 +180,7 @@ namespace core
         }
     }
 
-    void ClusteredTriangulationBase::estimateAoAForClusters()
+    void ClusteredTriangulationBase::estimateAoAForClusters(unsigned int min_points)
     {
         std::vector<double> X, Y, Z;
 
@@ -219,7 +203,7 @@ namespace core
                 Z[i] = static_cast<double>(point.rssi);
             }
 
-            std::vector<double> normal = fitPlaneNormal(X, Y, Z, getClusterMinPoints());
+            std::vector<double> normal = fitPlaneNormal(X, Y, Z, min_points);
 
             if (normal[2] == 0.0)
             {
@@ -237,7 +221,7 @@ namespace core
         }
     }
 
-    double ClusteredTriangulationBase::getCost(double x, double y) const
+    double ClusteredTriangulationBase::getCost(double x, double y, double extra_weight) const
     {
         double total_cost = 0.0;
 
@@ -266,8 +250,7 @@ namespace core
                 cluster_cost = cross_prod_mag / cluster_grad_mag;
             }
 
-            // Apply weighting if configured
-            double weight = getExtraWeight();
+            double weight = extra_weight;
             if (cluster.score > 0.0)
             {
                 weight += cluster.score;
