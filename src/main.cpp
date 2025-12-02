@@ -2,133 +2,35 @@
 #include "core/ClusteredTriangulationAlgorithm1.h"
 #include "core/ClusteredTriangulationAlgorithm2.h"
 #include "core/JsonSignalParser.h"
+#include "core/CliParser.h"
 
 #include <iostream>
-#include <memory>
 #include <iomanip>
-#include <string>
-#include <algorithm>
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/basic_file_sink.h>
+#include <memory>
 #include <filesystem>
 #include <chrono>
 #include <ctime>
-#include <optional>
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/basic_file_sink.h>
 
 #define LOG_FILE_PATH "logs"
 
 int main(int argc, char *argv[])
 {
-    // Default logging configuration (can be overridden via command-line)
-    std::string log_level_str = "info";
-    std::string signalsFile = "signals.json";
-    std::string algorithmType = "CTA2";
-    bool plottingEnabled = false;
-    double precision = 0.1; // default precision for algorithms that use it
-    double timeout = 60.0; // default timeout (0 = no timeout)
-
-    // Hyperparameter holders
-    std::optional<double> coalition_dist;
-    std::optional<int> min_pts;
-    std::optional<double> cluster_ratio;
-    std::optional<double> reg_eps;
-    std::optional<double> piv_eps;
-
-    // Simple argument scan for --log-level=LEVEL, --signals-file=FILE, --algorithm=TYPE, and --plotting-output
-    for (int i = 1; i < argc; ++i)
+    CliParser::Result cli = CliParser::parse(argc, argv);
+    if (!cli.valid)
     {
-        std::string a = argv[i];
-        if (a == "--log-level" || a == "-l")
-        {
-            if (i + 1 >= argc)
-            {
-                std::cout << "Missing value for --log-level" << std::endl;
-                return 1;
-            }
-            log_level_str = argv[++i];
-        }
-        else if (a == "--signals-file" || a == "-s")
-        {
-            if (i + 1 >= argc)
-            {
-                std::cout << "Missing value for --signals-file" << std::endl;
-                return 1;
-            }
-            signalsFile = argv[++i];
-        }
-        else if (a == "--algorithm" || a == "-a")
-        {
-            if (i + 1 >= argc)
-            {
-                std::cout << "Missing value for --algorithm" << std::endl;
-                return 1;
-            }
-            algorithmType = argv[++i];
-        }
-        else if (a == "--plotting-output" || a == "-o")
-        {
-            plottingEnabled = true;
-        }
-        else if (a == "--cta-coalition") {
-            if (i + 1 < argc) coalition_dist = std::stod(argv[++i]); else return 1;
-        } else if (a == "--cta-min-pts") {
-            if (i + 1 < argc) min_pts = std::stoi(argv[++i]); else return 1;
-        } else if (a == "--cta-ratio") {
-            if (i + 1 < argc) cluster_ratio = std::stod(argv[++i]); else return 1;
-        } else if (a == "--cta-reg-eps") {
-            if (i + 1 < argc) reg_eps = std::stod(argv[++i]); else return 1;
-        } else if (a == "--cta-piv-eps") {
-            if (i + 1 < argc) piv_eps = std::stod(argv[++i]); else return 1;
-        }
-        else if (a == "--precision" || a == "-p")
-        {
-            if (i + 1 >= argc)
-            {
-                std::cout << "Missing value for --precision" << std::endl;
-                return 1;
-            }
-            try
-            {
-                precision = std::stod(argv[++i]);
-            }
-            catch (const std::exception &ex)
-            {
-                std::cout << "Invalid value for --precision: " << argv[i] << std::endl;
-                return 1;
-            }
-        }
-        else if (a == "--timeout" || a == "-t")
-        {
-            if (i + 1 >= argc)
-            {
-                std::cout << "Missing value for --timeout" << std::endl;
-                return 1;
-            }
-            try
-            {
-                timeout = std::stod(argv[++i]);
-            }
-            catch (const std::exception &ex)
-            {
-                std::cout << "Invalid value for --timeout: " << argv[i] << std::endl;
-                return 1;
-            }
-        }
-        else if (a == "--help" || a == "-h")
-        {
-            std::cout << "Usage: " << argv[0] << " [options]\n"
-                      << "Options:\n"
-                      << "  --log-level, -l LEVEL        Set log level (trace, debug, info, warn, err, critical, off)\n"
-                      << "  --signals-file, -s FILE      Path to signals JSON file\n"
-                      << "  --algorithm, -a TYPE         Triangulation algorithm type (CTA1, CTA2)\n"
-                      << "  --precision, -p VALUE        Precision for triangulation algorithms (default: 0.1)\n"
-                      << "  --timeout, -t VALUE          Timeout in seconds for triangulation algorithms (default: 0 = no timeout)\n"
-                      << "  --plotting-output, -o        Enable plotting output\n"
-                      << "  --help, -h                   Show this help message\n";
-            return 0;
-        }
+        std::cout << "Error: " << cli.error_message << std::endl;
+        return 1;
     }
 
+    if (cli.show_help)
+    {
+        CliParser::printHelp(argv[0]);
+        return 0;
+    }
+
+    // Setup logging
     try
     {
         std::filesystem::path logs_dir(LOG_FILE_PATH);
@@ -136,106 +38,75 @@ int main(int argc, char *argv[])
         {
             std::filesystem::create_directories(logs_dir);
         }
+
         auto now = std::chrono::system_clock::now();
-        std::time_t tnow = std::chrono::system_clock::to_time_t(now);
+        std::time_t ts = std::chrono::system_clock::to_time_t(now);
         std::tm tmnow;
 #ifdef _WIN32
-        localtime_s(&tmnow, &tnow);
+        localtime_s(&tmnow, &ts);
 #else
-        localtime_r(&tnow, &tmnow);
+        localtime_r(&ts, &tmnow);
 #endif
+
         char buf[64];
         std::strftime(buf, sizeof(buf), "%Y%m%d", &tmnow);
+
         std::string filename = std::string("signal-triangulation_") + buf + ".log";
-        std::filesystem::path log_file_path = (std::filesystem::path(LOG_FILE_PATH) / filename).string();
+        std::filesystem::path filepath = std::filesystem::path(LOG_FILE_PATH) / filename;
 
-        auto file_logger = spdlog::basic_logger_mt("file_logger", log_file_path);
+        auto file_logger = spdlog::basic_logger_mt("file_logger", filepath.string());
         spdlog::set_default_logger(file_logger);
-        // map string to spdlog level (case-insensitive)
-        std::string lvl = log_level_str;
-        std::transform(lvl.begin(), lvl.end(), lvl.begin(), ::tolower);
-        if (lvl == "trace")
-            spdlog::set_level(spdlog::level::trace);
-        else if (lvl == "debug")
-            spdlog::set_level(spdlog::level::debug);
-        else if (lvl == "info")
-            spdlog::set_level(spdlog::level::info);
-        else if (lvl == "warn" || lvl == "warning")
-            spdlog::set_level(spdlog::level::warn);
-        else if (lvl == "err" || lvl == "error")
-            spdlog::set_level(spdlog::level::err);
-        else if (lvl == "critical")
-            spdlog::set_level(spdlog::level::critical);
-        else if (lvl == "off")
-            spdlog::set_level(spdlog::level::off);
-        else
-            spdlog::set_level(spdlog::level::info); // fallback
+        spdlog::set_level(cli.log_level);
 
-        spdlog::info("Logging initialized. level={}", log_level_str);
+        spdlog::info("Logging initialized");
     }
     catch (const spdlog::spdlog_ex &ex)
     {
-        std::cerr << "spdlog init failed: " << ex.what() << std::endl;
+        std::cerr << "Logging init failed: " << ex.what() << std::endl;
     }
 
-    // Log the resolved command-line configuration
-    spdlog::info(
-        "Command-line config: signals_file='{}', algorithm='{}', plotting_enabled={}, precision={}, timeout={}"
-        , signalsFile, algorithmType, plottingEnabled ? "true" : "false", precision, timeout);
+    spdlog::info("CLI config: signals={}, algorithm={}, plotting={}, precision={}, timeout={}",
+                 cli.signals_file,
+                 cli.algorithm,
+                 cli.plotting_enabled ? "true" : "false",
+                 cli.precision,
+                 cli.cost_calculation_timeout);
 
-
+    // Select algorithm
     std::unique_ptr<core::ITriangulationAlgorithm> algorithm;
 
-    if (algorithmType == "CTA1")
+    if (cli.algorithm == "CTA1")
     {
         algorithm = std::make_unique<core::ClusteredTriangulationAlgorithm1>();
-
-        auto* cta1 = dynamic_cast<core::ClusteredTriangulationAlgorithm1*>(algorithm.get());
-        if (cta1)
-        {
-            cta1->setHyperparameters(
-                coalition_dist, min_pts, cluster_ratio, reg_eps, piv_eps
-            );
-        }
     }
-    else if (algorithmType == "CTA2")
+    else if (cli.algorithm == "CTA2")
     {
         algorithm = std::make_unique<core::ClusteredTriangulationAlgorithm2>();
-
-        auto* cta2 = dynamic_cast<core::ClusteredTriangulationAlgorithm2*>(algorithm.get());
-        if (cta2)
-        {
-            // This assumes CTA2 has the same setHyperparameters method.
-            // If not, you'll need to adapt this.
-            cta2->setHyperparameters(
-                coalition_dist, min_pts, cluster_ratio, reg_eps, piv_eps
-            );
-        }
     }
     else
     {
-        spdlog::error("Unknown algorithm type: {}", algorithmType);
+        spdlog::error("Unknown algorithm type: {}", cli.algorithm);
         return 1;
     }
 
-    if (plottingEnabled)
-    {
-        algorithm->plottingEnabled = true;
-    }
+    algorithm->plottingEnabled = cli.plotting_enabled;
 
-    std::vector<core::DataPoint> dps;
+    // Load data
+    std::vector<core::DataPoint> points;
     try
     {
-        dps = core::JsonSignalParser::parseFileToVector(signalsFile);
+        points = core::JsonSignalParser::parseFileToVector(cli.signals_file);
     }
     catch (const std::exception &ex)
     {
-        spdlog::error("Failed to parse signals file '{}': {}", signalsFile, ex.what());
+        spdlog::error("Failed to parse signals: {}", ex.what());
         return 1;
     }
+
+    // Process points
     try
     {
-        for (auto &dp : dps)
+        for (auto &dp : points)
         {
             dp.computeCoordinates();
             algorithm->processDataPoint(dp);
@@ -243,32 +114,38 @@ int main(int argc, char *argv[])
     }
     catch (const std::exception &ex)
     {
-        spdlog::error("Error processing data points: {}", ex.what());
+        spdlog::error("Processing error: {}", ex.what());
         return 1;
     }
 
-    double latitude = 0.0;
-    double longitude = 0.0;
+    // Compute position
+    double lat = 0.0;
+    double lon = 0.0;
 
     try
     {
-        algorithm->calculatePosition(latitude, longitude, precision, timeout);
+        algorithm->calculatePosition(lat, lon, cli.precision, cli.cost_calculation_timeout);
     }
     catch (const std::exception &ex)
     {
-        spdlog::error("Error calculating position: {}", ex.what());
+        spdlog::error("Calculation error: {}", ex.what());
         return 1;
     }
 
-    if (!plottingEnabled)
+    if (!cli.plotting_enabled)
     {
-        std::cout << "Calculated Position: Latitude = " << std::setprecision(10) << latitude
-                  << ", Longitude = " << std::setprecision(10) << longitude << std::endl;
+        std::cout << "Calculated Position: Latitude = "
+                  << std::setprecision(10) << lat
+                  << ", Longitude = " << std::setprecision(10) << lon
+                  << std::endl;
     }
     else
     {
-        std::pair<double, double> sourcePos = core::JsonSignalParser::parseFileToSourcePos(signalsFile);
-        std::cout << "Source position from file: x=" << std::setprecision(10) << sourcePos.first << ", y=" << std::setprecision(10) << sourcePos.second << std::endl;
+        auto src = core::JsonSignalParser::parseFileToSourcePos(cli.signals_file);
+        std::cout << "Source position from file: x="
+                  << std::setprecision(10) << src.first
+                  << ", y=" << std::setprecision(10) << src.second
+                  << std::endl;
     }
 
     return 0;
