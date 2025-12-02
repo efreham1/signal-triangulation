@@ -106,7 +106,9 @@ namespace core
 #endif
 
 // Parallel loop over seed points
+#ifdef USE_OPENMP
 #pragma omp parallel for schedule(dynamic, 1)
+#endif
 		for (int idx = 0; idx < n_points; ++idx)
 		{
 			auto seed_start_time = std::chrono::high_resolution_clock::now();
@@ -120,6 +122,9 @@ namespace core
 			bool found_valid = false;
 
 			std::vector<int> candidate_indices;
+
+			// Does not create a race condition since all distances are calculated beforehand
+			// TODO: Could make an explicitly thread-safe version
 			getCandidates(i, candidate_indices);
 
 			int n_candidates = static_cast<int>(candidate_indices.size());
@@ -146,10 +151,8 @@ namespace core
 			// DFS exploration with timeout
 			while (!stack.empty() && !timeout_reached)
 			{
-				seed_combinations++;
-
-				// Check timeout periodically (every 1000 iterations to reduce overhead)
-				if (seed_combinations % 1000 == 0)
+				// Check timeout periodically (every 100 iterations to reduce overhead)
+				if (seed_combinations % 100 == 0)
 				{
 					auto current_time = std::chrono::high_resolution_clock::now();
 					double elapsed_s = std::chrono::duration<double>(current_time - seed_start_time).count();
@@ -184,7 +187,7 @@ namespace core
 				int cluster_size = static_cast<int>(current_selection.size()) + 1;
 				if (cluster_size >= static_cast<int>(getClusterMinPoints()))
 				{
-
+					seed_combinations++;
 					// Evaluate cluster (thread-local, no locking needed here)
 					if (checkCluster(cluster, best_cluster, best_score))
 					{
@@ -292,7 +295,7 @@ namespace core
 	{
 		double ratio = cluster.geometricRatio();
 		double clusterArea = cluster.area();
-		bool found_valid_for_this_seed = false;
+		bool found_valid = false;
 
 		bool valid = (ratio >= MIN_GEOMETRIC_RATIO_FOR_BEST_CLUSTER &&
 					  clusterArea >= MIN_AREA_FOR_BEST_CLUSTER &&
@@ -300,7 +303,7 @@ namespace core
 
 		if (valid)
 		{
-			found_valid_for_this_seed = true;
+			found_valid = true;
 			double current_score = cluster.getAndSetScore(
 				IDEAL_GEOMETRIC_RATIO_FOR_BEST_CLUSTER,
 				IDEAL_AREA_FOR_BEST_CLUSTER,
@@ -321,7 +324,7 @@ namespace core
 				}
 			}
 		}
-		return found_valid_for_this_seed;
+		return found_valid;
 	}
 
 	void ClusteredTriangulationAlgorithm2::clusterData()

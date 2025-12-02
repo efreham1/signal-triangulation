@@ -2,6 +2,8 @@
 #include "../src/core/JsonSignalParser.h"
 #include <fstream>
 #include <cstdio>
+#include <unistd.h>
+#include <filesystem>
 
 // Helper class to create temporary JSON files for testing
 class TempJsonFile
@@ -11,15 +13,16 @@ public:
 
     TempJsonFile(const std::string &content)
     {
-        char tmp_name[L_tmpnam];
-        std::snprintf(tmp_name, L_tmpnam, "/tmp/jsonXXXXXX");
-        int fd = mkstemp(tmp_name);
-        if (fd == -1) {
-            throw std::runtime_error("mkstemp failed to create temporary file");
-        }
-        close(fd);
-        path = std::string(tmp_name);
+        auto temp_dir = std::filesystem::temp_directory_path();
+        std::string unique_name = "json_test_" + std::to_string(std::rand()) + "_" +
+                                  std::to_string(reinterpret_cast<uintptr_t>(this)) + ".json";
+        path = temp_dir / unique_name;
+
         std::ofstream f(path);
+        if (!f.is_open())
+        {
+            throw std::runtime_error("Failed to create temporary file: " + path);
+        }
         f << content;
         f.close();
     }

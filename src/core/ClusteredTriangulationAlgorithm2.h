@@ -2,7 +2,6 @@
 #define CLUSTERED_TRIANGULATION_ALGORITHM2_H
 
 #include "ClusteredTriangulationBase.h"
-#include <mutex>
 #include <atomic>
 
 namespace core
@@ -53,9 +52,6 @@ namespace core
         std::vector<double> m_time_per_seed_ms;
         std::vector<int> m_candidates_per_seed;
         std::vector<bool> m_seed_timed_out;
-
-        // Mutex for thread-safe cluster insertion
-        std::mutex m_clusters_mutex;
 
         static constexpr double PER_SEED_TIMEOUT = 1.0; // seconds
 
