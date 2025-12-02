@@ -2,6 +2,8 @@
 #define CLUSTERED_TRIANGULATION_ALGORITHM2_H
 
 #include "ClusteredTriangulationBase.h"
+#include <mutex>
+#include <atomic>
 
 namespace core
 {
@@ -38,10 +40,24 @@ namespace core
         void bruteForceSearch(double &out_x, double &out_y, double precision, double timeout);
         void findBestClusters();
         void getCandidates(int i, std::vector<int> &candidate_indices);
-        bool checkCluster(PointCluster &cluster, PointCluster &best_cluster, double &best_score, int &best_seed_index, int i);
+        bool checkCluster(PointCluster &cluster, PointCluster &best_cluster, double &best_score);
+        void logPerformanceSummary();
 
-        static constexpr int MAX_CLUSTER_POINTS = 10;
-        static constexpr double CLUSTER_FORMATION_TIMEOUT = 20.0; // seconds
+        // Performance counters (thread-safe versions)
+        std::atomic<size_t> m_combinations_explored{0};
+        std::atomic<size_t> m_clusters_evaluated{0};
+        double m_clustering_time_ms = 0.0;
+
+        // Per-seed metrics
+        std::vector<size_t> m_combinations_per_seed;
+        std::vector<double> m_time_per_seed_ms;
+        std::vector<int> m_candidates_per_seed;
+        std::vector<bool> m_seed_timed_out;
+
+        // Mutex for thread-safe cluster insertion
+        std::mutex m_clusters_mutex;
+
+        static constexpr double PER_SEED_TIMEOUT = 1.0; // seconds
 
         // CTA2-specific constants
         static constexpr int HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS = 500; // 500x500 grid per precision step
