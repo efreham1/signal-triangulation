@@ -9,7 +9,7 @@ enable_testing()
 FetchContent_Declare(
   googletest
   URL https://github.com/google/googletest/archive/refs/tags/v1.15.0.zip
-  URL_HASH SHA256=b6e2a6b1b3da8932e8e5a0e32766952f4fb1517972b1e5b9fc5f3867be3c7feb
+  URL_HASH SHA256=ed98258b96c6dc8af33eeb03c8d94a05b185866604382e12980f576595bdc509
 )
 FetchContent_MakeAvailable(googletest)
 
