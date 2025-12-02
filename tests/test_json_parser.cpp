@@ -16,7 +16,7 @@ public:
         auto temp_dir = std::filesystem::temp_directory_path();
         std::string unique_name = "json_test_" + std::to_string(std::rand()) + "_" +
                                   std::to_string(reinterpret_cast<uintptr_t>(this)) + ".json";
-        path = temp_dir / unique_name;
+        path = (temp_dir / unique_name).string();
 
         std::ofstream f(path);
         if (!f.is_open())
