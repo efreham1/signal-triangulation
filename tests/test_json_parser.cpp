@@ -11,7 +11,9 @@ public:
 
     TempJsonFile(const std::string &content)
     {
-        path = "/tmp/test_json_parser_" + std::to_string(rand()) + ".json";
+        char tmp_name[L_tmpnam];
+        std::tmpnam(tmp_name);
+        path = std::string(tmp_name);
         std::ofstream f(path);
         f << content;
         f.close();
