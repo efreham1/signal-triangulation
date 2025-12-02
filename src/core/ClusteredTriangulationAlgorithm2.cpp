@@ -92,7 +92,6 @@ namespace core
 			PointCluster best_cluster = PointCluster();
 			double best_score = -std::numeric_limits<double>::max();
 			int best_seed_index = -1;
-			// Check timeout inside seed loop
 
 			std::vector<int> candidate_indices;
 
@@ -100,7 +99,6 @@ namespace core
 			getCandidates(i, candidate_indices);
 
 			int n_candidates = static_cast<int>(candidate_indices.size());
-			int min_additional = getClusterMinPoints() - 1;
 
 			spdlog::info("ClusteredTriangulationAlgorithm2: forming clusters with seed point index {}, {} candidates found, alloted time {:.2f}s",
 						 i, n_candidates, alloted_time);
@@ -108,64 +106,66 @@ namespace core
 			cluster.addPoint(m_points[i]); // seed
 
 			auto combinations_start_time = std::chrono::steady_clock::now();
-			// Generate and evaluate combinations ON-THE-FLY
-			for (int k = min_additional; k <= n_candidates; ++k)
+
+			std::vector<int> current_selection;
+			current_selection.reserve(n_candidates);
+
+			std::vector<int> stack;
+			stack.push_back(0);
+
+			cluster = PointCluster();
+			cluster.addPoint(m_points[i]); // seed
+
+			bool timeout_reached = false;
+			while (!stack.empty() && !timeout_reached)
 			{
-				bool timeout_reached = false;
-				std::vector<int> indices(k);
-
-				cluster = PointCluster();
-				cluster.addPoint(m_points[i]); // seed
-
-				// Initialize indices for combination of size k
-				for (int idx = 0; idx < k; ++idx)
+				auto current_time = std::chrono::steady_clock::now();
+				std::chrono::duration<double> elapsed = current_time - combinations_start_time;
+				if (elapsed.count() > alloted_time)
 				{
-					cluster.addPoint(m_points[candidate_indices[idx]]);
-					indices[idx] = idx;
+					spdlog::warn("ClusteredTriangulationAlgorithm2: timeout reached during cluster formation inside combinations ({:.2f}s)", elapsed.count());
+					timeout_reached = true;
+					break;
 				}
 
-				while (true)
+				int candidate_idx = stack.back();
+
+				if (candidate_idx >= n_candidates)
 				{
-					// Evaluate current combination
+					stack.pop_back();
+					if (!current_selection.empty())
+					{
+						cluster.removePoint(m_points[candidate_indices[current_selection.back()]]);
+						current_selection.pop_back();
+					}
+					if (!stack.empty())
+					{
+						stack.back()++;
+					}
+					continue;
+				}
+
+				current_selection.push_back(candidate_idx);
+				cluster.addPoint(m_points[candidate_indices[candidate_idx]]);
+
+				int cluster_size = static_cast<int>(current_selection.size()) + 1;
+				if (cluster_size >= static_cast<int>(getClusterMinPoints()))
+				{
 					if (checkCluster(cluster, best_cluster, best_score, best_seed_index, i))
 					{
 						found_valid = true;
 					}
-
-					auto current_time = std::chrono::steady_clock::now();
-					std::chrono::duration<double> elapsed = current_time - combinations_start_time;
-					if (elapsed.count() > alloted_time)
-					{
-						spdlog::warn("ClusteredTriangulationAlgorithm2: timeout reached during cluster formation inside combinations ({:.2f}s)", elapsed.count());
-						timeout_reached = true;
-						break;
-					}
-
-					int pos = k - 1;
-					while (pos >= 0 && indices[pos] == n_candidates - k + pos)
-					{
-						--pos;
-					}
-
-					if (pos < 0)
-					{
-						break;
-					}
-
-					// Increment and reset all following elements
-					cluster.removePoint(m_points[candidate_indices[indices[pos]]]);
-					indices[pos]++;
-					cluster.addPoint(m_points[candidate_indices[indices[pos]]]);
-					for (int j = pos + 1; j < k; ++j)
-					{
-						cluster.removePoint(m_points[candidate_indices[indices[j]]]);
-						indices[j] = indices[j - 1] + 1;
-						cluster.addPoint(m_points[candidate_indices[indices[j]]]);
-					}
 				}
-				if (timeout_reached)
+
+				if (candidate_idx + 1 < n_candidates)
 				{
-					break;
+					stack.push_back(candidate_idx + 1);
+				}
+				else
+				{
+					cluster.removePoint(m_points[candidate_indices[current_selection.back()]]);
+					current_selection.pop_back();
+					stack.back()++;
 				}
 			}
 

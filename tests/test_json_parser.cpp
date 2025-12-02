@@ -12,7 +12,12 @@ public:
     TempJsonFile(const std::string &content)
     {
         char tmp_name[L_tmpnam];
-        std::tmpnam(tmp_name);
+        std::snprintf(tmp_name, L_tmpnam, "/tmp/jsonXXXXXX");
+        int fd = mkstemp(tmp_name);
+        if (fd == -1) {
+            throw std::runtime_error("mkstemp failed to create temporary file");
+        }
+        close(fd);
         path = std::string(tmp_name);
         std::ofstream f(path);
         f << content;

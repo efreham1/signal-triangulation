@@ -9,7 +9,7 @@ static core::DataPoint makePoint(int id, double x, double y, double rssi)
     dp.point_id = id;
     dp.setX(x);
     dp.setY(y);
-    dp.rssi = rssi;
+    dp.rssi = (int)rssi;
     return dp;
 }
 
