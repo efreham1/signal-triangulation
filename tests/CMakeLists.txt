@@ -8,8 +8,8 @@ enable_testing()
 # GoogleTest
 FetchContent_Declare(
   googletest
-  GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG v1.15.0
+  URL https://github.com/google/googletest/archive/refs/tags/v1.15.0.zip
+  URL_HASH SHA256=b6e2a6b1b3da8932e8e5a0e32766952f4fb1517972b1e5b9fc5f3867be3c7feb
 )
 FetchContent_MakeAvailable(googletest)
 
