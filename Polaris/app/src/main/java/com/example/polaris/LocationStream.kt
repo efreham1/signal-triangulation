@@ -82,6 +82,15 @@ object LocationStream {
 
     /**
      * Calculates a weighted average location from samples collected in the last [durationMs].
+     * Weights are inversely proportional to the square of the accuracy (1/acc^2).
+     */
+    // Currently unused
+    fun getAveragedLocation(durationMs: Long): Location? {
+        return getAveragedLocationAndSamples(durationMs)?.first
+    }
+
+    /**
+     * Calculates a weighted average location from samples collected in the last [durationMs].
      * Returns the average location and the list of samples used.
      */
     fun getAveragedLocationAndSamples(durationMs: Long): Pair<Location, List<Location>>? {
@@ -129,14 +138,5 @@ object LocationStream {
         result.accuracy = (bestAcc / sqrt(samples.size.toFloat()))
 
         return result to samples
-    }
-
-    /**
-     * Calculates a weighted average location from samples collected in the last [durationMs].
-     * Weights are inversely proportional to the square of the accuracy (1/acc^2).
-     * Currently unused
-     */
-    fun getAveragedLocation(durationMs: Long): Location? {
-        return getAveragedLocationAndSamples(durationMs)?.first
     }
 }
