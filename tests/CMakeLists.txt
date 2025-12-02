@@ -8,8 +8,8 @@ enable_testing()
 # GoogleTest
 FetchContent_Declare(
   googletest
-  URL https://github.com/google/googletest/archive/refs/tags/v1.15.0.zip
-  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+  GIT_REPOSITORY https://github.com/google/googletest.git
+  GIT_TAG v1.15.0
 )
 FetchContent_MakeAvailable(googletest)
 
@@ -25,7 +25,11 @@ target_link_libraries(core_test_lib PUBLIC spdlog::spdlog nlohmann_json::nlohman
 add_executable(unit_tests
     test_main.cpp
     test_datapoint.cpp
-    test_plane_fit.cpp
+    test_cluster.cpp
+    test_CTA_base.cpp
+    test_json_parser.cpp
+    test_CTA1.cpp
+    test_CTA2.cpp
 )
 
 add_executable(integration_tests
@@ -34,6 +38,10 @@ add_executable(integration_tests
 
 target_link_libraries(unit_tests GTest::gtest GTest::gtest_main core_test_lib)
 target_link_libraries(integration_tests GTest::gtest GTest::gtest_main core_test_lib)
+
+target_compile_definitions(unit_tests PRIVATE
+    RECORDINGS_DIR=\"${CMAKE_SOURCE_DIR}/recordings\"
+)
 
 # Discover individual tests (each TEST() becomes a separate ctest)
 gtest_discover_tests(unit_tests

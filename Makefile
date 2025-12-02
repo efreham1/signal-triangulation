@@ -40,22 +40,26 @@ configure:
 build:
 	$(CMAKE_BUILD)
 
+build-integration-tests:
+	@$(CMAKE) --build $(BUILD_DIR) --config Release -j$(NPROC) --target integration_tests
+
+build-unit-tests:
+	@$(CMAKE) --build $(BUILD_DIR) --config Release -j$(NPROC) --target unit_tests
+
 # Run all tests
-test: configure build
+test: configure build build-integration-tests build-unit-tests
 	@cd $(BUILD_DIR) && ctest --output-on-failure
 
 # Run unit tests only
-test-unit: configure
-	@$(CMAKE) --build $(BUILD_DIR) --config Release -j$(NPROC) --target unit_tests
+test-unit: configure build build-unit-tests
 	@cd $(BUILD_DIR) && ctest -L unit --output-on-failure
 
 # Run integration tests
-test-integration: configure
-	@$(CMAKE) --build $(BUILD_DIR) --config Release -j$(NPROC) --target integration_tests
+test-integration: configure build build-integration-tests
 	@cd $(BUILD_DIR) && ctest -L integration --output-on-failure
 
 # Run a specific test by name
-test-one: configure build
+test-one: configure build build-integration-tests build-unit-tests
 	@cd $(BUILD_DIR) && ctest -R "$(TEST)" --output-on-failure -V
 
 clean:
