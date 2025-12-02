@@ -43,9 +43,6 @@ namespace core
 		if (params.has("cluster_min_points"))
 			m_cluster_min_points = static_cast<unsigned int>(params.get<int>("cluster_min_points"));
 
-		if (params.has("cluster_ratio_threshold"))
-			m_cluster_ratio_threshold = params.get<double>("cluster_ratio_threshold");
-
 		if (params.has("max_internal_distance"))
 			m_max_internal_distance = params.get<int>("max_internal_distance");
 

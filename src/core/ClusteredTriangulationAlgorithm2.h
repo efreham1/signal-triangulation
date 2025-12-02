@@ -36,7 +36,7 @@ namespace core
         std::vector<bool> m_seed_timed_out;
 
         // Timing
-        double m_per_seed_timeout = 1.0;
+        double m_per_seed_timeout = 5.0;
 
         // Grid search
         int m_grid_half_size = 500;
@@ -44,7 +44,6 @@ namespace core
         // Clustering
         double m_coalition_distance = 2.0;
         unsigned int m_cluster_min_points = 3;
-        double m_cluster_ratio_threshold = 0.25;
         int m_max_internal_distance = 20;
 
         // Geometric ratio
