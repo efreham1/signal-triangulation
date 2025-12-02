@@ -538,11 +538,9 @@ class MainActivity : AppCompatActivity() {
             snapshotList.toMutableList()
         )
 
-        var checkedPosition = selectedSSID?.let { snapshotList.indexOf(it) } ?: -1
-
         val dialog = AlertDialog.Builder(this)
             .setTitle(getString(R.string.choose_ssid))
-            .setSingleChoiceItems(adapter, checkedPosition) { dlg, which ->
+            .setSingleChoiceItems(adapter, selectedSSID?.let { snapshotList.indexOf(it) } ?: -1) { dlg, which ->
                 selectedSSID = adapter.getItem(which)
                 updateSelectedSsidButton()
                 resetMeasurementState()
@@ -576,10 +574,20 @@ class MainActivity : AppCompatActivity() {
                         adapter.addAll(snapshotList)
                         adapter.notifyDataSetChanged()
 
-                        // Update checked position if selected SSID is still in list
-                        checkedPosition = selectedSSID?.let { snapshotList.indexOf(it) } ?: -1
-                        if (checkedPosition >= 0) {
-                            dialog.listView.setItemChecked(checkedPosition, true)
+                        // Restore checked position after adapter update
+                        val listView = dialog.listView
+                        val newCheckedPosition = selectedSSID?.let { snapshotList.indexOf(it) } ?: -1
+                        if (newCheckedPosition >= 0) {
+                            // Post to ensure ListView has processed the adapter change
+                            listView.post {
+                                listView.setItemChecked(newCheckedPosition, true)
+                                listView.setSelection(newCheckedPosition)
+                            }
+                        } else {
+                            // Clear all checked states if selected SSID no longer exists
+                            listView.post {
+                                listView.clearChoices()
+                            }
                         }
                     }
                 }
