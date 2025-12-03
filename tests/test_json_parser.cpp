@@ -342,7 +342,7 @@ TEST(JsonSignalParser, ParseFileToSourcePos_EmptyMeasurements)
 #ifdef RECORDINGS_DIR
 TEST(JsonSignalParser, ParseRealRecording)
 {
-    std::string path = std::string(RECORDINGS_DIR) + "/football.json";
+    std::string path = std::string(RECORDINGS_DIR) + "/FootballField2.json";
     
     auto points = core::JsonSignalParser::parseFileToVector(path);
     EXPECT_GT(points.size(), 0u);

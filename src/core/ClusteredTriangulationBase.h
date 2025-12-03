@@ -44,11 +44,11 @@ namespace core
         std::vector<DataPoint> m_points;
         std::vector<PointCluster> m_clusters;
 
+        std::map<std::pair<int64_t, int64_t>, double> distance_cache;
     private:
         std::pair<int64_t, int64_t> makeDistanceKey(int64_t id1, int64_t id2) const;
         void addToDistanceCache(const DataPoint &p1, const DataPoint &p2, double distance);
 
-        std::map<std::pair<int64_t, int64_t>, double> distance_cache;
     };
 
 } // namespace core

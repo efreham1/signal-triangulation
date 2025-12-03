@@ -15,14 +15,14 @@ class TestableTriangulationBase : public core::ClusteredTriangulationBase
 {
 public:
     // Expose protected members for testing
-    using ClusteredTriangulationBase::m_points;
-    using ClusteredTriangulationBase::m_clusters;
-    using ClusteredTriangulationBase::distance_cache;
-    using ClusteredTriangulationBase::getDistance;
-    using ClusteredTriangulationBase::reorderDataPointsByDistance;
     using ClusteredTriangulationBase::coalescePoints;
+    using ClusteredTriangulationBase::distance_cache;
     using ClusteredTriangulationBase::estimateAoAForClusters;
     using ClusteredTriangulationBase::getCost;
+    using ClusteredTriangulationBase::getDistance;
+    using ClusteredTriangulationBase::m_clusters;
+    using ClusteredTriangulationBase::m_points;
+    using ClusteredTriangulationBase::reorderDataPointsByDistance;
 
     void calculatePosition(double &out_latitude, double &out_longitude, double precision, double timeout) override
     {
@@ -32,7 +32,7 @@ public:
         out_longitude = 0.0;
     }
 
-    void clusterData() override
+    void clusterData()
     {
         // Simple clustering for testing: put all points in one cluster
         if (m_points.size() >= 3)
@@ -95,7 +95,7 @@ TEST(PlaneFit, NormalVectorAccuracy)
         Z[i] = z;
     }
 
-    auto normal = core::fitPlaneNormal(X, Y, Z);
+    auto normal = core::fitPlaneNormal(X, Y, Z, 3);
     ASSERT_EQ(normal.size(), 3u) << "Normal vector size unexpected";
 
     std::vector<double> expected = {a, b, -1.0};
@@ -128,7 +128,7 @@ TEST(PlaneFit, MinimumPoints)
     std::vector<double> Y = {0.0, 0.0, 1.0};
     std::vector<double> Z = {0.0, 1.0, 2.0}; // z = x + 2y
 
-    auto normal = core::fitPlaneNormal(X, Y, Z);
+    auto normal = core::fitPlaneNormal(X, Y, Z, 3);
     ASSERT_EQ(normal.size(), 3u);
 
     std::vector<double> expected = {1.0, 2.0, -1.0};
@@ -159,7 +159,7 @@ TEST(PlaneFit, HorizontalPlane)
     std::vector<double> Y = {0.0, 0.0, 0.0, 1.0, 1.0};
     std::vector<double> Z = {5.0, 5.0, 5.0, 5.0, 5.0};
 
-    auto normal = core::fitPlaneNormal(X, Y, Z);
+    auto normal = core::fitPlaneNormal(X, Y, Z, 3);
     ASSERT_EQ(normal.size(), 3u);
 
     EXPECT_NEAR(normal[0], 0.0, 0.01) << "X component should be ~0 for horizontal plane";
@@ -173,7 +173,7 @@ TEST(PlaneFit, InsufficientPoints)
     std::vector<double> Y = {0.0, 1.0};
     std::vector<double> Z = {0.0, 1.0};
 
-    auto normal = core::fitPlaneNormal(X, Y, Z);
+    auto normal = core::fitPlaneNormal(X, Y, Z, 3);
     ASSERT_EQ(normal.size(), 3u);
     EXPECT_DOUBLE_EQ(normal[0], 0.0);
     EXPECT_DOUBLE_EQ(normal[1], 0.0);
@@ -186,7 +186,7 @@ TEST(PlaneFit, MismatchedVectorSizes)
     std::vector<double> Y = {0.0, 1.0};
     std::vector<double> Z = {0.0, 1.0, 2.0};
 
-    auto normal = core::fitPlaneNormal(X, Y, Z);
+    auto normal = core::fitPlaneNormal(X, Y, Z, 3);
     EXPECT_DOUBLE_EQ(normal[0], 0.0);
     EXPECT_DOUBLE_EQ(normal[1], 0.0);
     EXPECT_DOUBLE_EQ(normal[2], 0.0);
@@ -364,7 +364,7 @@ TEST(CTABase, CoalescePoints_MergesClosePoints)
 
     ASSERT_EQ(algo.m_points.size(), 1u);
     EXPECT_NEAR(algo.m_points[0].getX(), 0.25, 1e-9); // Midpoint
-    EXPECT_EQ(algo.m_points[0].rssi, -50); // Average RSSI
+    EXPECT_EQ(algo.m_points[0].rssi, -50);            // Average RSSI
 }
 
 TEST(CTABase, CoalescePoints_KeepsFarPoints)
@@ -411,7 +411,7 @@ TEST(CTABase, EstimateAoA_SetsGradient)
     cluster.addPoint(makePoint(4, 10.0, 5.0, -50));
 
     algo.setClusters({cluster});
-    algo.estimateAoAForClusters();
+    algo.estimateAoAForClusters(3);
 
     ASSERT_EQ(algo.m_clusters.size(), 1u);
     // Gradient should point in positive x direction (RSSI increases)
@@ -428,7 +428,7 @@ TEST(CTABase, EstimateAoA_SkipsTooFewPoints)
     // Only 2 points - not enough for plane fitting
 
     algo.setClusters({cluster});
-    algo.estimateAoAForClusters();
+    algo.estimateAoAForClusters(3);
 
     EXPECT_DOUBLE_EQ(algo.m_clusters[0].aoa_x, 0.0);
     EXPECT_DOUBLE_EQ(algo.m_clusters[0].aoa_y, 0.0);
@@ -453,7 +453,7 @@ TEST(CTABase, GetCost_ZeroForPointOnRay)
     algo.setClusters({cluster});
 
     // Point along the ray (positive x)
-    double cost = algo.getCost(10.0, 0.0);
+    double cost = algo.getCost(10.0, 0.0, 0);
     EXPECT_NEAR(cost, 0.0, 0.1);
 }
 
@@ -471,7 +471,7 @@ TEST(CTABase, GetCost_HighForPointOffRay)
     algo.setClusters({cluster});
 
     // Point perpendicular to ray
-    double cost = algo.getCost(0.0, 10.0);
+    double cost = algo.getCost(0.0, 10.0, 0);
     EXPECT_GT(cost, 5.0);
 }
 
@@ -489,8 +489,8 @@ TEST(CTABase, GetCost_PenalizesBehindCentroid)
     algo.setClusters({cluster});
 
     // Point behind centroid (negative x)
-    double cost_behind = algo.getCost(-10.0, 0.0);
-    double cost_front = algo.getCost(10.0, 0.0);
+    double cost_behind = algo.getCost(-10.0, 0.0, 0);
+    double cost_front = algo.getCost(10.0, 0.0, 0);
 
     EXPECT_GT(cost_behind, cost_front);
 }
@@ -508,7 +508,7 @@ TEST(CTABase, GetCost_SkipsZeroGradient)
 
     algo.setClusters({cluster});
 
-    double cost = algo.getCost(10.0, 10.0);
+    double cost = algo.getCost(10.0, 10.0, 0);
     EXPECT_DOUBLE_EQ(cost, 0.0); // Cluster should be skipped
 }
 
@@ -532,9 +532,9 @@ TEST(CTABase, GetCost_MultipleClusters)
     algo.setClusters({c1, c2});
 
     // Point between clusters should have low cost
-    double cost_middle = algo.getCost(10.0, 0.0);
+    double cost_middle = algo.getCost(10.0, 0.0, 0);
     // Point far from intersection should have high cost
-    double cost_far = algo.getCost(10.0, 50.0);
+    double cost_far = algo.getCost(10.0, 50.0, 0);
 
     EXPECT_LT(cost_middle, cost_far);
 }
@@ -565,9 +565,9 @@ TEST(CTABase, FullPipeline)
     // Should have at least one cluster
     EXPECT_GE(algo.m_clusters.size(), 1u);
 
-    algo.estimateAoAForClusters();
+    algo.estimateAoAForClusters(3);
 
     // Cost function should work
-    double cost = algo.getCost(25.0, 0.0);
+    double cost = algo.getCost(25.0, 0.0, 0);
     EXPECT_TRUE(std::isfinite(cost));
 }
