@@ -309,6 +309,12 @@ def random_search(
         # Check for failed files
         if re.search(r"No output from app for file:", output):
             print(f"  -> INVALID: Some files failed to produce output")
+            
+            failed_files = re.findall(r"No output from app for file:\s*(\S+)", output)
+            if failed_files:
+                print("Failed files:")
+                for f in failed_files:
+                    print(f"  {f}")
             _results.append((params, None))
             continue
         
