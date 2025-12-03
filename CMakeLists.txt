@@ -31,6 +31,9 @@ target_include_directories(signal-triangulation
 
 include(FetchContent)
 
+# Find OpenMP
+find_package(OpenMP)
+
 FetchContent_Declare(
     nlohmann_json
     GIT_REPOSITORY https://github.com/nlohmann/json.git
@@ -51,6 +54,12 @@ target_link_libraries(signal-triangulation
     nlohmann_json::nlohmann_json
     spdlog::spdlog
 )
+
+# Link OpenMP if found
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(signal-triangulation PRIVATE OpenMP::OpenMP_CXX)
+    target_compile_definitions(signal-triangulation PRIVATE USE_OPENMP)
+endif()
 
 # Install target (optional)
 install(TARGETS signal-triangulation RUNTIME DESTINATION bin)
