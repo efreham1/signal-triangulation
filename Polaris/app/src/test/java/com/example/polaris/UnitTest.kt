@@ -2,10 +2,7 @@ package com.example.polaris
 
 import org.junit.Test
 import org.junit.Assert.*
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.math.sqrt
+
 
 /**
  * Unit tests for the Polaris signal triangulation application.
@@ -14,7 +11,7 @@ class UnitTest {
 
     // ==================== SignalRecord Tests ====================
 
-    @org.junit.jupiter.api.Test
+    @Test
     fun signalRecord_creation_hasCorrectDefaults() {
         val record = SignalRecord(
             latitude = 51.5074,
@@ -244,7 +241,7 @@ class UnitTest {
     }
 
     @Test
-    fun ssidMerge_handlesduplicates() {
+    fun ssidMerge_handlesDuplicates() {
         val existing = mutableListOf("Network_A", "Network_B")
         val newSsids = listOf("Network_B", "Network_C")
 
