@@ -155,7 +155,16 @@ def run_eval_cmd(cmd: str, timeout: Optional[float] = None) -> Tuple[int, str]:
 
 
 def extract_metric(output: str, metric_regex: str) -> Optional[float]:
-    """Extracts a float metric from a string using regex."""
+    """Extracts a float metric from a string using regex.
+    
+    Returns None if:
+    - No metric found
+    - Any file failed to produce output
+    """
+    # Check for failed files first (handles [DEBUG] prefix)
+    if re.search(r"No output from app for file:", output):
+        return None
+    
     match = re.search(metric_regex, output)
     if match:
         try:
@@ -243,6 +252,13 @@ def grid_search(
             continue
         
         rc, output = run_eval_cmd(cmd, cmd_timeout)
+        
+        # Check for failed files
+        if re.search(r"No output from app for file:", output):
+            print(f"  -> INVALID: Some files failed to produce output")
+            _results.append((params, None))
+            continue
+        
         metric = extract_metric(output, metric_regex)
         
         if metric is not None:
@@ -289,6 +305,13 @@ def random_search(
             continue
         
         rc, output = run_eval_cmd(cmd, cmd_timeout)
+        
+        # Check for failed files
+        if re.search(r"No output from app for file:", output):
+            print(f"  -> INVALID: Some files failed to produce output")
+            _results.append((params, None))
+            continue
+        
         metric = extract_metric(output, metric_regex)
         
         if metric is not None:
@@ -310,9 +333,10 @@ def report_results(results: List[Tuple[Dict[str, Any], Optional[float]]], minimi
     print("=" * 60)
     
     valid_results = [(p, m) for p, m in results if m is not None]
+    invalid_count = len(results) - len(valid_results)
     
     if not valid_results:
-        print("No valid results collected.")
+        print(f"No valid results collected. ({invalid_count} invalid runs)")
         return
     
     # Sort by metric
@@ -323,7 +347,7 @@ def report_results(results: List[Tuple[Dict[str, Any], Optional[float]]], minimi
     best_args = " ".join(f"--{k.replace('_', '-')} {v}" for k, v in best_params.items())
     
     print(f"\nBest {'(lowest)' if minimize else '(highest)'} metric: {best_metric:.6f}")
-    print(f"Full Command: ./build/tests/integration_tests --gtest_filter=Triangulation.GlobalSummary {best_args}")
+    print(f"Parameters: {best_args}")
     
     # Top 5
     num_to_show = min(5, len(sorted_results))
@@ -334,7 +358,7 @@ def report_results(results: List[Tuple[Dict[str, Any], Optional[float]]], minimi
     
     # Statistics
     metrics = [m for _, m in valid_results]
-    print(f"\nStatistics ({len(valid_results)} valid runs):")
+    print(f"\nStatistics ({len(valid_results)} valid runs, {invalid_count} invalid):")
     print(f"  Min:    {min(metrics):.6f}")
     print(f"  Max:    {max(metrics):.6f}")
     print(f"  Mean:   {sum(metrics)/len(metrics):.6f}")
