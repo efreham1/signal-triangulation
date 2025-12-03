@@ -5,6 +5,9 @@ include(FetchContent)
 include(GoogleTest)
 enable_testing()
 
+# Find OpenMP
+find_package(OpenMP)
+
 # GoogleTest
 FetchContent_Declare(
   googletest
@@ -21,6 +24,12 @@ list(FILTER TRIANGULATION_CORE_SOURCES EXCLUDE REGEX ".*/main\\.cpp$")
 add_library(core_test_lib STATIC ${TRIANGULATION_CORE_SOURCES})
 target_include_directories(core_test_lib PUBLIC "${CMAKE_SOURCE_DIR}/src")
 target_link_libraries(core_test_lib PUBLIC spdlog::spdlog nlohmann_json::nlohmann_json)
+
+# Link OpenMP to core_test_lib if found
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(core_test_lib PUBLIC OpenMP::OpenMP_CXX)
+    target_compile_definitions(core_test_lib PUBLIC USE_OPENMP)
+endif()
 
 add_executable(unit_tests
     test_main.cpp

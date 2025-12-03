@@ -9,6 +9,10 @@
 #include <random>
 #include <spdlog/spdlog.h>
 
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
 namespace core
 {
 
@@ -73,122 +77,201 @@ namespace core
 
 	void ClusteredTriangulationAlgorithm2::findBestClusters()
 	{
-		double total_time_left = CLUSTER_FORMATION_TIMEOUT;
+		auto clustering_start = std::chrono::high_resolution_clock::now();
+		m_combinations_explored = 0;
+		m_clusters_evaluated = 0;
 
 		int n_points = static_cast<int>(m_points.size());
 		std::vector<int> point_order = strideOrder(n_points);
 
-		auto start_time = std::chrono::steady_clock::now();
+		// Pre-allocate per-seed metrics (thread-safe access by index)
+		std::vector<size_t> combinations_per_seed(n_points, 0);
+		std::vector<double> time_per_seed_ms(n_points, 0.0);
+		std::vector<int> candidates_per_seed(n_points, 0);
+		std::vector<bool> seed_timed_out(n_points, false);
+
+		// Thread-local results to avoid lock contention
+		std::vector<std::pair<PointCluster, bool>> seed_results(n_points);
+
+		// Calculate per-seed timeout (divide total timeout among seeds)
+		double per_seed_timeout = PER_SEED_TIMEOUT;
+
+#ifdef USE_OPENMP
+		int num_threads = omp_get_max_threads();
+		spdlog::info("ClusteredTriangulationAlgorithm2: using OpenMP with {} threads, per-seed timeout: {:.2f}s",
+					 num_threads, per_seed_timeout);
+#else
+		spdlog::info("ClusteredTriangulationAlgorithm2: running single-threaded (OpenMP not available), per-seed timeout: {:.2f}s",
+					 per_seed_timeout);
+#endif
+
+// Parallel loop over seed points
+#ifdef USE_OPENMP
+#pragma omp parallel for schedule(dynamic, 1)
+#endif
 		for (int idx = 0; idx < n_points; ++idx)
 		{
+			auto seed_start_time = std::chrono::high_resolution_clock::now();
+			size_t seed_combinations = 0;
+			bool timeout_reached = false;
+
 			int i = point_order[idx];
-			auto current_time = std::chrono::steady_clock::now();
-			std::chrono::duration<double> elapsed = current_time - start_time;
-			total_time_left = CLUSTER_FORMATION_TIMEOUT - elapsed.count();
 
-			double alloted_time = total_time_left / static_cast<double>(n_points - idx);
-			bool found_valid = false;
-
-			PointCluster best_cluster = PointCluster();
+			PointCluster best_cluster;
 			double best_score = -std::numeric_limits<double>::max();
-			int best_seed_index = -1;
-			// Check timeout inside seed loop
+			bool found_valid = false;
 
 			std::vector<int> candidate_indices;
 
-			// Find ALL other points within distance
+			// Does not create a race condition since all distances are calculated beforehand
+			// TODO: Could make an explicitly thread-safe version
 			getCandidates(i, candidate_indices);
 
 			int n_candidates = static_cast<int>(candidate_indices.size());
-			int min_additional = getClusterMinPoints() - 1;
+			candidates_per_seed[idx] = n_candidates;
 
-			spdlog::info("ClusteredTriangulationAlgorithm2: forming clusters with seed point index {}, {} candidates found, alloted time {:.2f}s",
-						 i, n_candidates, alloted_time);
-			PointCluster cluster = PointCluster();
+			// Skip if not enough candidates
+			if (n_candidates < static_cast<int>(getClusterMinPoints()) - 1)
+			{
+				seed_results[idx] = {PointCluster(), false};
+				time_per_seed_ms[idx] = 0.0;
+				combinations_per_seed[idx] = 0;
+				continue;
+			}
+
+			PointCluster cluster;
 			cluster.addPoint(m_points[i]); // seed
 
-			auto combinations_start_time = std::chrono::steady_clock::now();
-			// Generate and evaluate combinations ON-THE-FLY
-			for (int k = min_additional; k <= n_candidates; ++k)
+			std::vector<int> current_selection;
+			current_selection.reserve(n_candidates);
+
+			std::vector<int> stack;
+			stack.push_back(0);
+
+			// DFS exploration with timeout
+			while (!stack.empty() && !timeout_reached)
 			{
-				bool timeout_reached = false;
-				std::vector<int> indices(k);
-
-				cluster = PointCluster();
-				cluster.addPoint(m_points[i]); // seed
-
-				// Initialize indices for combination of size k
-				for (int idx = 0; idx < k; ++idx)
+				// Check timeout periodically (every 100 iterations to reduce overhead)
+				if (seed_combinations % 100 == 0)
 				{
-					cluster.addPoint(m_points[candidate_indices[idx]]);
-					indices[idx] = idx;
+					auto current_time = std::chrono::high_resolution_clock::now();
+					double elapsed_s = std::chrono::duration<double>(current_time - seed_start_time).count();
+					if (elapsed_s > per_seed_timeout)
+					{
+						timeout_reached = true;
+						seed_timed_out[idx] = true;
+						break;
+					}
 				}
 
-				while (true)
+				int candidate_idx = stack.back();
+
+				if (candidate_idx >= n_candidates)
 				{
-					// Evaluate current combination
-					if (checkCluster(cluster, best_cluster, best_score, best_seed_index, i))
+					stack.pop_back();
+					if (!current_selection.empty())
+					{
+						cluster.removePoint(m_points[candidate_indices[current_selection.back()]]);
+						current_selection.pop_back();
+					}
+					if (!stack.empty())
+					{
+						stack.back()++;
+					}
+					continue;
+				}
+
+				current_selection.push_back(candidate_idx);
+				cluster.addPoint(m_points[candidate_indices[candidate_idx]]);
+
+				int cluster_size = static_cast<int>(current_selection.size()) + 1;
+				if (cluster_size >= static_cast<int>(getClusterMinPoints()))
+				{
+					seed_combinations++;
+					// Evaluate cluster (thread-local, no locking needed here)
+					if (checkCluster(cluster, best_cluster, best_score))
 					{
 						found_valid = true;
 					}
-
-					auto current_time = std::chrono::steady_clock::now();
-					std::chrono::duration<double> elapsed = current_time - combinations_start_time;
-					if (elapsed.count() > alloted_time)
-					{
-						spdlog::warn("ClusteredTriangulationAlgorithm2: timeout reached during cluster formation inside combinations ({:.2f}s)", elapsed.count());
-						timeout_reached = true;
-						break;
-					}
-
-					int pos = k - 1;
-					while (pos >= 0 && indices[pos] == n_candidates - k + pos)
-					{
-						--pos;
-					}
-
-					if (pos < 0)
-					{
-						break;
-					}
-
-					// Increment and reset all following elements
-					cluster.removePoint(m_points[candidate_indices[indices[pos]]]);
-					indices[pos]++;
-					cluster.addPoint(m_points[candidate_indices[indices[pos]]]);
-					for (int j = pos + 1; j < k; ++j)
-					{
-						cluster.removePoint(m_points[candidate_indices[indices[j]]]);
-						indices[j] = indices[j - 1] + 1;
-						cluster.addPoint(m_points[candidate_indices[indices[j]]]);
-					}
 				}
-				if (timeout_reached)
+
+				if (candidate_idx + 1 < n_candidates)
 				{
-					break;
+					stack.push_back(candidate_idx + 1);
+				}
+				else
+				{
+					cluster.removePoint(m_points[candidate_indices[current_selection.back()]]);
+					current_selection.pop_back();
+					stack.back()++;
 				}
 			}
+
+			// Record per-seed metrics
+			auto seed_end_time = std::chrono::high_resolution_clock::now();
+			time_per_seed_ms[idx] = std::chrono::duration<double, std::milli>(seed_end_time - seed_start_time).count();
+			combinations_per_seed[idx] = seed_combinations;
+
+			// Store result for this seed
+			seed_results[idx] = {best_cluster, found_valid};
+
+			// Update atomic counters
+			m_combinations_explored += seed_combinations;
+		}
+
+		// Count timeouts
+		int total_timeouts = static_cast<int>(std::count(seed_timed_out.begin(), seed_timed_out.end(), true));
+		if (total_timeouts > 0)
+		{
+			spdlog::warn("ClusteredTriangulationAlgorithm2: {} seeds timed out (using best cluster found before timeout)",
+						 total_timeouts);
+		}
+
+		// Sequential post-processing: merge results and check overlaps
+		// TODO: In case there is a lot of overlap, consider a more sophisticated merging strategy
+		for (int idx = 0; idx < n_points; ++idx)
+		{
+			const auto &[cluster, found_valid] = seed_results[idx];
 
 			if (found_valid)
 			{
-				best_cluster.getAndSetScore(
-					IDEAL_GEOMETRIC_RATIO_FOR_BEST_CLUSTER,
-					IDEAL_AREA_FOR_BEST_CLUSTER,
-					MIN_RSSI_VARIANCE_FOR_BEST_CLUSTER,
-					WEIGHT_GEOMETRIC_RATIO,
-					WEIGHT_AREA,
-					WEIGHT_RSSI_VARIANCE,
-					BOTTOM_RSSI_FOR_BEST_CLUSTER,
-					WEIGHT_RSSI);
-				m_clusters.push_back(best_cluster);
-				spdlog::info("ClusteredTriangulationAlgorithm2: formed cluster with {} points, geometric ratio {:.3f}, area {:.2f}, seed index {}",
-							 best_cluster.size(), best_cluster.geometricRatio(), best_cluster.area(), best_seed_index);
-			}
-			else
-			{
-				spdlog::info("ClusteredTriangulationAlgorithm2: no valid clusters found with seed point index {}", i);
+				// Check overlap with already-added clusters
+				bool has_overlap = false;
+				for (const auto &existing_cluster : m_clusters)
+				{
+					if (cluster.overlapWith(existing_cluster) > MAX_OVERLAP_BETWEEN_CLUSTERS)
+					{
+						has_overlap = true;
+						break;
+					}
+				}
+
+				if (!has_overlap)
+				{
+					m_clusters.push_back(cluster);
+					m_clusters_evaluated++;
+				}
 			}
 		}
+
+		// Store metrics
+		m_combinations_per_seed = std::move(combinations_per_seed);
+		m_time_per_seed_ms = std::move(time_per_seed_ms);
+		m_candidates_per_seed = std::move(candidates_per_seed);
+		m_seed_timed_out = std::move(seed_timed_out);
+
+		auto clustering_end = std::chrono::high_resolution_clock::now();
+		m_clustering_time_ms = std::chrono::duration<double, std::milli>(clustering_end - clustering_start).count();
+
+		// Log performance summary
+		logPerformanceSummary();
+	}
+
+	void ClusteredTriangulationAlgorithm2::logPerformanceSummary()
+	{
+		spdlog::info("ClusteredTriangulationAlgorithm2: === Performance Summary ===");
+		spdlog::info("  Total combinations explored: {}", m_combinations_explored.load());
+		spdlog::info("  Total clustering time: {:.2f} ms", m_clustering_time_ms);
 	}
 
 	void ClusteredTriangulationAlgorithm2::getCandidates(int i, std::vector<int> &candidate_indices)
@@ -208,11 +291,11 @@ namespace core
 		}
 	}
 
-	bool ClusteredTriangulationAlgorithm2::checkCluster(PointCluster &cluster, PointCluster &best_cluster, double &best_score, int &best_seed_index, int i)
+	bool ClusteredTriangulationAlgorithm2::checkCluster(PointCluster &cluster, PointCluster &best_cluster, double &best_score)
 	{
 		double ratio = cluster.geometricRatio();
 		double clusterArea = cluster.area();
-		bool found_valid_for_this_seed = false;
+		bool found_valid = false;
 
 		bool valid = (ratio >= MIN_GEOMETRIC_RATIO_FOR_BEST_CLUSTER &&
 					  clusterArea >= MIN_AREA_FOR_BEST_CLUSTER &&
@@ -220,43 +303,28 @@ namespace core
 
 		if (valid)
 		{
-			// Check overlap with existing clusters
-			bool has_overlap = false;
-			for (const auto &existing_cluster : m_clusters)
-			{
-				if (cluster.overlapWith(existing_cluster) > MAX_OVERLAP_BETWEEN_CLUSTERS)
-				{
-					has_overlap = true;
-					break;
-				}
-			}
+			found_valid = true;
+			double current_score = cluster.getAndSetScore(
+				IDEAL_GEOMETRIC_RATIO_FOR_BEST_CLUSTER,
+				IDEAL_AREA_FOR_BEST_CLUSTER,
+				MIN_RSSI_VARIANCE_FOR_BEST_CLUSTER,
+				WEIGHT_GEOMETRIC_RATIO,
+				WEIGHT_AREA,
+				WEIGHT_RSSI_VARIANCE,
+				BOTTOM_RSSI_FOR_BEST_CLUSTER,
+				WEIGHT_RSSI);
 
-			if (!has_overlap)
+			if (current_score > best_score)
 			{
-				found_valid_for_this_seed = true;
-				double current_score = cluster.getAndSetScore(
-					IDEAL_GEOMETRIC_RATIO_FOR_BEST_CLUSTER,
-					IDEAL_AREA_FOR_BEST_CLUSTER,
-					MIN_RSSI_VARIANCE_FOR_BEST_CLUSTER,
-					WEIGHT_GEOMETRIC_RATIO,
-					WEIGHT_AREA,
-					WEIGHT_RSSI_VARIANCE,
-					BOTTOM_RSSI_FOR_BEST_CLUSTER,
-					WEIGHT_RSSI);
-
-				if (current_score > best_score)
+				best_score = current_score;
+				best_cluster = PointCluster();
+				for (const auto &pt : cluster.points)
 				{
-					best_score = current_score;
-					best_seed_index = i;
-					best_cluster = PointCluster();
-					for (const auto &pt : cluster.points)
-					{
-						best_cluster.addPoint(pt);
-					}
+					best_cluster.addPoint(pt);
 				}
 			}
 		}
-		return found_valid_for_this_seed;
+		return found_valid;
 	}
 
 	void ClusteredTriangulationAlgorithm2::clusterData()
