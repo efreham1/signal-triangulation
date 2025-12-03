@@ -28,6 +28,12 @@ android {
     buildFeatures {
         viewBinding = true
     }
+
+    testOptions {
+        unitTests.all {
+            it.useJUnitPlatform()
+        }
+    }
 }
 
 dependencies {
@@ -40,5 +46,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("com.google.code.gson:gson:2.11.0")
     implementation(libs.androidx.preference.ktx)
+    testImplementation(libs.junit.jupiter)
     kapt("androidx.room:room-compiler:2.6.1")
+    testImplementation(kotlin("test"))
 }
