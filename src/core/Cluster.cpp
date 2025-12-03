@@ -110,6 +110,11 @@ namespace core
         return sum_sq_diff / static_cast<double>(points.size() - 1);
     }
 
+    void PointCluster::setScore(double input_score)
+    {
+        this->score = input_score;
+    }
+
     double PointCluster::getAndSetScore(double ideal_geometric_ratio, double ideal_area,
                                     double ideal_rssi_variance, double gr_weight, double area_weight,
                                     double variance_weight, double bottom_rssi_threshold, double rssi_weight)

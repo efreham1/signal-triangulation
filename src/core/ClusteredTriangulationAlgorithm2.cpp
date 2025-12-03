@@ -278,6 +278,8 @@ namespace core
 			time_per_seed_ms[idx] = std::chrono::duration<double, std::milli>(seed_end_time - seed_start_time).count();
 			combinations_per_seed[idx] = seed_combinations;
 
+			best_cluster.setScore(best_score);
+
 			// Store result for this seed
 			seed_results[idx] = {best_cluster, found_valid};
 
