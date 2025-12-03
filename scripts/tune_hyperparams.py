@@ -323,7 +323,6 @@ def random_search(
     
     return _results
 
-
 def report_results(results: List[Tuple[Dict[str, Any], Optional[float]]], minimize: bool = True):
     """Print summary of results."""
     print("\n" + "=" * 60)
@@ -333,10 +332,9 @@ def report_results(results: List[Tuple[Dict[str, Any], Optional[float]]], minimi
     print("=" * 60)
     
     valid_results = [(p, m) for p, m in results if m is not None]
-    invalid_count = len(results) - len(valid_results)
     
     if not valid_results:
-        print(f"No valid results collected. ({invalid_count} invalid runs)")
+        print("No valid results collected.")
         return
     
     # Sort by metric
@@ -347,7 +345,7 @@ def report_results(results: List[Tuple[Dict[str, Any], Optional[float]]], minimi
     best_args = " ".join(f"--{k.replace('_', '-')} {v}" for k, v in best_params.items())
     
     print(f"\nBest {'(lowest)' if minimize else '(highest)'} metric: {best_metric:.6f}")
-    print(f"Parameters: {best_args}")
+    print(f"Full Command: ./build/tests/integration_tests --gtest_filter=Triangulation.GlobalSummary {best_args}")
     
     # Top 5
     num_to_show = min(5, len(sorted_results))
@@ -358,7 +356,7 @@ def report_results(results: List[Tuple[Dict[str, Any], Optional[float]]], minimi
     
     # Statistics
     metrics = [m for _, m in valid_results]
-    print(f"\nStatistics ({len(valid_results)} valid runs, {invalid_count} invalid):")
+    print(f"\nStatistics ({len(valid_results)} valid runs):")
     print(f"  Min:    {min(metrics):.6f}")
     print(f"  Max:    {max(metrics):.6f}")
     print(f"  Mean:   {sum(metrics)/len(metrics):.6f}")
