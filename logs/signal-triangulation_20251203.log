@@ -1,0 +1,54 @@
+[2025-12-03 12:51:18.751] [file_logger] [info] Logging initialized. level=info
+[2025-12-03 12:51:18.755] [file_logger] [info] ClusteredTriangulationBase: optimized path. Length reduced from 473.27m to 397.07m (6 iterations)
+[2025-12-03 12:51:18.755] [file_logger] [info] ClusteredTriangulationAlgorithm2: using OpenMP with 24 threads, per-seed timeout: 3.00s
+[2025-12-03 12:51:27.758] [file_logger] [warning] ClusteredTriangulationAlgorithm2: 59 seeds timed out (using best cluster found before timeout)
+[2025-12-03 12:51:27.758] [file_logger] [info] ClusteredTriangulationAlgorithm2: === Performance Summary ===
+[2025-12-03 12:51:27.762] [file_logger] [info]   Total combinations explored: 103119844
+[2025-12-03 12:51:27.762] [file_logger] [info]   Total clustering time: 9003.49 ms
+[2025-12-03 12:51:27.762] [file_logger] [info] ClusteredTriangulationAlgorithm2: formed 4 clusters from 66 data points
+[2025-12-03 12:51:27.762] [file_logger] [info] ClusteredTriangulationBase: cluster AoA estimated at -123.25155534490064 degrees (grad_x=-0.15932811844766448, grad_y=-0.24300138054710052)
+[2025-12-03 12:51:27.762] [file_logger] [info] ClusteredTriangulationBase: cluster AoA estimated at -141.9114455824434 degrees (grad_x=-0.24798475589669167, grad_y=-0.1943649038965345)
+[2025-12-03 12:51:27.762] [file_logger] [info] ClusteredTriangulationBase: cluster AoA estimated at 47.072257894145864 degrees (grad_x=0.1554358520564345, grad_y=0.16710656624341524)
+[2025-12-03 12:51:27.762] [file_logger] [info] ClusteredTriangulationBase: cluster AoA estimated at -25.209719924729722 degrees (grad_x=0.3402508772393775, grad_y=-0.16018041823469553)
+[2025-12-03 12:51:27.794] [file_logger] [info] ClusteredTriangulationAlgorithm2: brute force search iteration found best point (x=1.3, y=-7.299999999999997) with cost 139.47515044676723
+[2025-12-03 12:51:27.816] [file_logger] [info] ClusteredTriangulationAlgorithm2: brute force search iteration found best point (x=1.3, y=-7.299999999999997) with cost 139.47515044676723
+[2025-12-03 12:51:27.816] [file_logger] [info] ClusteredTriangulationAlgorithm2: brute force search completed with best point (x=1.3, y=-7.299999999999997) and cost 139.47515044676723
+[2025-12-03 12:51:27.841] [file_logger] [info] Logging initialized. level=info
+[2025-12-03 12:51:27.843] [file_logger] [info] ClusteredTriangulationBase: optimized path. Length reduced from 199.20m to 171.78m (3 iterations)
+[2025-12-03 12:51:27.843] [file_logger] [info] ClusteredTriangulationAlgorithm2: using OpenMP with 24 threads, per-seed timeout: 3.00s
+[2025-12-03 12:51:30.856] [file_logger] [warning] ClusteredTriangulationAlgorithm2: 6 seeds timed out (using best cluster found before timeout)
+[2025-12-03 12:51:30.856] [file_logger] [info] ClusteredTriangulationAlgorithm2: === Performance Summary ===
+[2025-12-03 12:51:30.859] [file_logger] [info]   Total combinations explored: 28779016
+[2025-12-03 12:51:30.859] [file_logger] [info]   Total clustering time: 3012.59 ms
+[2025-12-03 12:51:30.859] [file_logger] [info] ClusteredTriangulationAlgorithm2: formed 4 clusters from 29 data points
+[2025-12-03 12:51:30.859] [file_logger] [info] ClusteredTriangulationBase: cluster AoA estimated at -171.4094101652781 degrees (grad_x=-0.16392465454494243, grad_y=-0.024763735327574476)
+[2025-12-03 12:51:30.859] [file_logger] [info] ClusteredTriangulationBase: cluster AoA estimated at -159.20598757706034 degrees (grad_x=-0.2375425468345238, grad_y=-0.09020554405291703)
+[2025-12-03 12:51:30.859] [file_logger] [info] ClusteredTriangulationBase: cluster AoA estimated at 154.02980654663227 degrees (grad_x=-0.4695434666595837, grad_y=0.22870935310380536)
+[2025-12-03 12:51:30.859] [file_logger] [info] ClusteredTriangulationBase: cluster AoA estimated at -131.59037902393476 degrees (grad_x=-0.24852906664453792, grad_y=-0.28001971732847286)
+[2025-12-03 12:51:30.891] [file_logger] [info] ClusteredTriangulationAlgorithm2: brute force search iteration found best point (x=-18.599999999999994, y=19.8) with cost 104.06439269216554
+[2025-12-03 12:51:30.911] [file_logger] [info] ClusteredTriangulationAlgorithm2: brute force search iteration found best point (x=-18.599999999999994, y=19.8) with cost 104.06439269216554
+[2025-12-03 12:51:30.911] [file_logger] [info] ClusteredTriangulationAlgorithm2: brute force search completed with best point (x=-18.599999999999994, y=19.8) and cost 104.06439269216554
+[2025-12-03 12:51:30.936] [file_logger] [info] Logging initialized. level=info
+[2025-12-03 12:51:30.938] [file_logger] [info] ClusteredTriangulationBase: optimized path. Length reduced from 252.38m to 218.92m (4 iterations)
+[2025-12-03 12:51:30.938] [file_logger] [info] ClusteredTriangulationAlgorithm2: using OpenMP with 24 threads, per-seed timeout: 3.00s
+[2025-12-03 12:51:36.942] [file_logger] [warning] ClusteredTriangulationAlgorithm2: 28 seeds timed out (using best cluster found before timeout)
+[2025-12-03 12:51:36.942] [file_logger] [info] ClusteredTriangulationAlgorithm2: === Performance Summary ===
+[2025-12-03 12:51:36.942] [file_logger] [info]   Total combinations explored: 60893131
+[2025-12-03 12:51:36.942] [file_logger] [info]   Total clustering time: 6003.67 ms
+[2025-12-03 12:51:36.942] [file_logger] [info] ClusteredTriangulationAlgorithm2: formed 4 clusters from 40 data points
+[2025-12-03 12:51:36.942] [file_logger] [info] ClusteredTriangulationBase: cluster AoA estimated at 102.08329161473202 degrees (grad_x=-0.014435088830216714, grad_y=0.06742960541516796)
+[2025-12-03 12:51:36.942] [file_logger] [info] ClusteredTriangulationBase: cluster AoA estimated at -152.3181003507567 degrees (grad_x=-1.0685519627110913, grad_y=-0.5605717807350199)
+[2025-12-03 12:51:36.942] [file_logger] [info] ClusteredTriangulationBase: cluster AoA estimated at 136.4827080883272 degrees (grad_x=-0.16869053235438614, grad_y=0.16017812361954298)
+[2025-12-03 12:51:36.942] [file_logger] [info] ClusteredTriangulationBase: cluster AoA estimated at -6.612891702098687 degrees (grad_x=0.13138997603683844, grad_y=-0.015232298558412792)
+[2025-12-03 12:51:36.976] [file_logger] [info] ClusteredTriangulationAlgorithm2: brute force search iteration found best point (x=1.8, y=20.700000000000003) with cost 304.03520465369536
+[2025-12-03 12:51:37.000] [file_logger] [info] ClusteredTriangulationAlgorithm2: brute force search iteration found best point (x=1.8, y=20.700000000000003) with cost 304.03520465369536
+[2025-12-03 12:51:37.000] [file_logger] [info] ClusteredTriangulationAlgorithm2: brute force search completed with best point (x=1.8, y=20.700000000000003) and cost 304.03520465369536
+[2025-12-03 12:51:37.026] [file_logger] [info] Logging initialized. level=info
+[2025-12-03 12:51:37.028] [file_logger] [info] ClusteredTriangulationBase: optimized path. Length reduced from 135.48m to 122.41m (3 iterations)
+[2025-12-03 12:51:37.028] [file_logger] [info] ClusteredTriangulationAlgorithm2: using OpenMP with 24 threads, per-seed timeout: 3.00s
+[2025-12-03 12:51:43.032] [file_logger] [warning] ClusteredTriangulationAlgorithm2: 30 seeds timed out (using best cluster found before timeout)
+[2025-12-03 12:51:43.032] [file_logger] [info] ClusteredTriangulationAlgorithm2: === Performance Summary ===
+[2025-12-03 12:51:43.037] [file_logger] [info]   Total combinations explored: 25677100
+[2025-12-03 12:51:43.037] [file_logger] [info]   Total clustering time: 6003.55 ms
+[2025-12-03 12:51:43.037] [file_logger] [info] ClusteredTriangulationAlgorithm2: formed 1 clusters from 30 data points
+[2025-12-03 12:51:43.040] [file_logger] [error] Calculation error: ClusteredTriangulationAlgorithm2: insufficient clusters formed for AoA estimation

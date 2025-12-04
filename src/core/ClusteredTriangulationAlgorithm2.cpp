@@ -17,13 +17,79 @@ namespace core
 {
 
 	ClusteredTriangulationAlgorithm2::ClusteredTriangulationAlgorithm2() = default;
+	ClusteredTriangulationAlgorithm2::ClusteredTriangulationAlgorithm2(const AlgorithmParameters &params)
+	{
+		applyParameters(params);
+	}
 	ClusteredTriangulationAlgorithm2::~ClusteredTriangulationAlgorithm2() = default;
+
+	void ClusteredTriangulationAlgorithm2::applyParameters(const AlgorithmParameters &params)
+	{
+		// Only override if parameter was explicitly set
+		// This keeps defaults from member initialization
+
+		if (params.has("per_seed_timeout"))
+			m_per_seed_timeout = params.get<double>("per_seed_timeout");
+
+		if (params.has("extra_weight"))
+			m_extra_weight = params.get<double>("extra_weight");
+
+		if (params.has("grid_half_size"))
+			m_grid_half_size = params.get<int>("grid_half_size");
+
+		if (params.has("coalition_distance"))
+			m_coalition_distance = params.get<double>("coalition_distance");
+
+		if (params.has("cluster_min_points"))
+			m_cluster_min_points = static_cast<unsigned int>(params.get<int>("cluster_min_points"));
+
+		if (params.has("max_internal_distance"))
+			m_max_internal_distance = params.get<int>("max_internal_distance");
+
+		if (params.has("min_geometric_ratio"))
+			m_min_geometric_ratio = params.get<double>("min_geometric_ratio");
+
+		if (params.has("ideal_geometric_ratio"))
+			m_ideal_geometric_ratio = params.get<double>("ideal_geometric_ratio");
+
+		if (params.has("min_area"))
+			m_min_area = params.get<double>("min_area");
+
+		if (params.has("ideal_area"))
+			m_ideal_area = params.get<double>("ideal_area");
+
+		if (params.has("max_area"))
+			m_max_area = params.get<double>("max_area");
+
+		if (params.has("min_rssi_variance"))
+			m_min_rssi_variance = params.get<double>("min_rssi_variance");
+
+		if (params.has("bottom_rssi"))
+			m_bottom_rssi = params.get<double>("bottom_rssi");
+
+		if (params.has("max_overlap"))
+			m_max_overlap = params.get<double>("max_overlap");
+
+		if (params.has("weight_geometric_ratio"))
+			m_weight_geometric_ratio = params.get<double>("weight_geometric_ratio");
+
+		if (params.has("weight_area"))
+			m_weight_area = params.get<double>("weight_area");
+
+		if (params.has("weight_rssi_variance"))
+			m_weight_rssi_variance = params.get<double>("weight_rssi_variance");
+
+		if (params.has("weight_rssi"))
+			m_weight_rssi = params.get<double>("weight_rssi");
+
+		spdlog::debug("CTA2: Parameters applied");
+	}
 
 	void ClusteredTriangulationAlgorithm2::calculatePosition(double &out_latitude, double &out_longitude, double precision, double timeout)
 	{
 		reorderDataPointsByDistance();
 		clusterData();
-		estimateAoAForClusters();
+		estimateAoAForClusters(m_cluster_min_points);
 
 		double global_best_x = 0.0;
 		double global_best_y = 0.0;
@@ -94,7 +160,7 @@ namespace core
 		std::vector<std::pair<PointCluster, bool>> seed_results(n_points);
 
 		// Calculate per-seed timeout (divide total timeout among seeds)
-		double per_seed_timeout = PER_SEED_TIMEOUT;
+		double per_seed_timeout = m_per_seed_timeout;
 
 #ifdef USE_OPENMP
 		int num_threads = omp_get_max_threads();
@@ -131,7 +197,7 @@ namespace core
 			candidates_per_seed[idx] = n_candidates;
 
 			// Skip if not enough candidates
-			if (n_candidates < static_cast<int>(getClusterMinPoints()) - 1)
+			if (n_candidates < static_cast<int>(m_cluster_min_points) - 1)
 			{
 				seed_results[idx] = {PointCluster(), false};
 				time_per_seed_ms[idx] = 0.0;
@@ -185,7 +251,7 @@ namespace core
 				cluster.addPoint(m_points[candidate_indices[candidate_idx]]);
 
 				int cluster_size = static_cast<int>(current_selection.size()) + 1;
-				if (cluster_size >= static_cast<int>(getClusterMinPoints()))
+				if (cluster_size >= static_cast<int>(m_cluster_min_points))
 				{
 					seed_combinations++;
 					// Evaluate cluster (thread-local, no locking needed here)
@@ -211,6 +277,8 @@ namespace core
 			auto seed_end_time = std::chrono::high_resolution_clock::now();
 			time_per_seed_ms[idx] = std::chrono::duration<double, std::milli>(seed_end_time - seed_start_time).count();
 			combinations_per_seed[idx] = seed_combinations;
+
+			best_cluster.setScore(best_score);
 
 			// Store result for this seed
 			seed_results[idx] = {best_cluster, found_valid};
@@ -239,7 +307,7 @@ namespace core
 				bool has_overlap = false;
 				for (const auto &existing_cluster : m_clusters)
 				{
-					if (cluster.overlapWith(existing_cluster) > MAX_OVERLAP_BETWEEN_CLUSTERS)
+					if (cluster.overlapWith(existing_cluster) > m_max_overlap)
 					{
 						has_overlap = true;
 						break;
@@ -284,7 +352,7 @@ namespace core
 			}
 
 			double distance = getDistance(m_points[i], m_points[j]);
-			if (distance <= MAX_INTERNAL_CLUSTER_DISTANCE)
+			if (distance <= m_max_internal_distance)
 			{
 				candidate_indices.push_back(j);
 			}
@@ -297,22 +365,22 @@ namespace core
 		double clusterArea = cluster.area();
 		bool found_valid = false;
 
-		bool valid = (ratio >= MIN_GEOMETRIC_RATIO_FOR_BEST_CLUSTER &&
-					  clusterArea >= MIN_AREA_FOR_BEST_CLUSTER &&
-					  clusterArea <= MAX_AREA_FOR_BEST_CLUSTER);
+		bool valid = (ratio >= m_min_geometric_ratio &&
+					  clusterArea >= m_min_area &&
+					  clusterArea <= m_max_area);
 
 		if (valid)
 		{
 			found_valid = true;
 			double current_score = cluster.getAndSetScore(
-				IDEAL_GEOMETRIC_RATIO_FOR_BEST_CLUSTER,
-				IDEAL_AREA_FOR_BEST_CLUSTER,
-				MIN_RSSI_VARIANCE_FOR_BEST_CLUSTER,
-				WEIGHT_GEOMETRIC_RATIO,
-				WEIGHT_AREA,
-				WEIGHT_RSSI_VARIANCE,
-				BOTTOM_RSSI_FOR_BEST_CLUSTER,
-				WEIGHT_RSSI);
+				m_ideal_geometric_ratio,
+				m_ideal_area,
+				m_min_rssi_variance,
+				m_weight_geometric_ratio,
+				m_weight_area,
+				m_weight_rssi_variance,
+				m_bottom_rssi,
+				m_weight_rssi);
 
 			if (current_score > best_score)
 			{
@@ -329,7 +397,7 @@ namespace core
 
 	void ClusteredTriangulationAlgorithm2::clusterData()
 	{
-		coalescePoints(getCoalitionDistance());
+		coalescePoints(m_coalition_distance);
 
 		findBestClusters();
 
@@ -349,10 +417,10 @@ namespace core
 	{
 		global_best_x = 0.0;
 		global_best_y = 0.0;
-		double global_best_cost = getCost(global_best_x, global_best_y);
+		double global_best_cost = getCost(global_best_x, global_best_y, m_extra_weight);
 
-		double zone_x = -precision * HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS;
-		double zone_y = -precision * HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS;
+		double zone_x = -precision * m_grid_half_size;
+		double zone_y = -precision * m_grid_half_size;
 
 		if (plottingEnabled)
 		{
@@ -381,8 +449,8 @@ namespace core
 
 			for (int q = 0; q < 4; ++q)
 			{
-				double quadrant_x = zone_x + (q % 2) * HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS * precision;
-				double quadrant_y = zone_y + (q / 2) * HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS * precision;
+				double quadrant_x = zone_x + (q % 2) * m_grid_half_size * precision;
+				double quadrant_y = zone_y + (q / 2) * m_grid_half_size * precision;
 
 				if (visited_quadrants.find({quadrant_x, quadrant_y}) != visited_quadrants.end())
 				{
@@ -390,13 +458,13 @@ namespace core
 				}
 				visited_quadrants.insert({quadrant_x, quadrant_y});
 
-				for (int ix = 0; ix < HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS; ++ix)
+				for (int ix = 0; ix < m_grid_half_size; ++ix)
 				{
-					for (int iy = 0; iy < HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS; ++iy)
+					for (int iy = 0; iy < m_grid_half_size; ++iy)
 					{
 						double x = quadrant_x + ix * precision;
 						double y = quadrant_y + iy * precision;
-						double cost = getCost(x, y);
+						double cost = getCost(x, y, m_extra_weight);
 
 						if (cost < best_cost)
 						{
@@ -422,10 +490,10 @@ namespace core
 				global_best_x = best_x;
 				global_best_y = best_y;
 
-				zone_x += precision * HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS *
-						  (best_x < zone_x + precision * HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS ? -1.0 : 1.0);
-				zone_y += precision * HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS *
-						  (best_y < zone_y + precision * HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS ? -1.0 : 1.0);
+				zone_x += precision * m_grid_half_size *
+						  (best_x < zone_x + precision * m_grid_half_size ? -1.0 : 1.0);
+				zone_y += precision * m_grid_half_size *
+						  (best_y < zone_y + precision * m_grid_half_size ? -1.0 : 1.0);
 			}
 			else
 			{

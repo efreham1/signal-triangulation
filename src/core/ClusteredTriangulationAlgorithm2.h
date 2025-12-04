@@ -2,88 +2,72 @@
 #define CLUSTERED_TRIANGULATION_ALGORITHM2_H
 
 #include "ClusteredTriangulationBase.h"
+#include "AlgorithmParameters.h"
 #include <atomic>
 
 namespace core
 {
 
-    /**
-     * @class ClusteredTriangulationAlgorithm2
-     * @brief Cluster-based triangulation using geometric ratio splitting for clustering
-     * and brute force grid search for position estimation, with cluster weighting.
-     */
     class ClusteredTriangulationAlgorithm2 : public ClusteredTriangulationBase
     {
     public:
         ClusteredTriangulationAlgorithm2();
+        explicit ClusteredTriangulationAlgorithm2(const AlgorithmParameters &params);
         ~ClusteredTriangulationAlgorithm2() override;
 
         void calculatePosition(double &out_latitude, double &out_longitude, double precision, double timeout) override;
 
-    protected:
-        // Override parameters for this algorithm
-        double getCoalitionDistance() const override { return 2.0; }
-        unsigned int getClusterMinPoints() const override { return 3u; }
-        double getClusterRatioSplitThreshold() const override { return 0.25; }
-
-        // CTA2 uses weighting
-        double getVarianceWeight() const override { return 0.3; }
-        double getRssiWeight() const override { return 0.1; }
-        double getBottomRssi() const override { return -90.0; }
-        double getExtraWeight() const override { return 1.0; }
-
-        // Implement clustering
-        void clusterData() override;
     private:
-        // CTA2-specific methods
+        void clusterData();
+        void applyParameters(const AlgorithmParameters &params);
         void bruteForceSearch(double &out_x, double &out_y, double precision, double timeout);
         void findBestClusters();
         void getCandidates(int i, std::vector<int> &candidate_indices);
         bool checkCluster(PointCluster &cluster, PointCluster &best_cluster, double &best_score);
         void logPerformanceSummary();
 
-        // Performance counters (thread-safe versions)
+        // Performance counters
         std::atomic<size_t> m_combinations_explored{0};
         std::atomic<size_t> m_clusters_evaluated{0};
         double m_clustering_time_ms = 0.0;
-
-        // Per-seed metrics
         std::vector<size_t> m_combinations_per_seed;
         std::vector<double> m_time_per_seed_ms;
         std::vector<int> m_candidates_per_seed;
         std::vector<bool> m_seed_timed_out;
 
-        static constexpr double PER_SEED_TIMEOUT = 1.0; // seconds
+        // Timing
+        double m_per_seed_timeout = 5.0;
 
-        // CTA2-specific constants
-        static constexpr int HALF_SQUARE_SIZE_NUMBER_OF_PRECISIONS = 500; // 500x500 grid per precision step
+        // Grid search
+        int m_grid_half_size = 500;
 
-        // Brute-force clustering thresholds
-        static constexpr int MAX_INTERNAL_CLUSTER_DISTANCE = 20; // Meters
+        // Clustering
+        double m_coalition_distance = 2.0;
+        unsigned int m_cluster_min_points = 3;
+        int m_max_internal_distance = 20;
 
         // Geometric ratio
-        static constexpr double MIN_GEOMETRIC_RATIO_FOR_BEST_CLUSTER = 0.15;  // Prefer clusters closer to square
-        static constexpr double IDEAL_GEOMETRIC_RATIO_FOR_BEST_CLUSTER = 1.0; // Perfect square
+        double m_min_geometric_ratio = 0.15;
+        double m_ideal_geometric_ratio = 1.0;
 
         // Area
-        static constexpr double MIN_AREA_FOR_BEST_CLUSTER = 10.0;   // Square meters
-        static constexpr double IDEAL_AREA_FOR_BEST_CLUSTER = 50.0; // Square meters
-        static constexpr double MAX_AREA_FOR_BEST_CLUSTER = 1000.0; // Square meters
+        double m_min_area = 10.0;
+        double m_ideal_area = 50.0;
+        double m_max_area = 1000.0;
 
-        // RSSI variance
-        static constexpr double MIN_RSSI_VARIANCE_FOR_BEST_CLUSTER = 5.0; // (dBm)^2
+        // RSSI
+        double m_min_rssi_variance = 5.0;
+        double m_bottom_rssi = -90.0;
 
         // Overlap
-        static constexpr double MAX_OVERLAP_BETWEEN_CLUSTERS = 0.05; // 5%
+        double m_max_overlap = 0.05;
 
-        // RSSI strength
-        static constexpr double BOTTOM_RSSI_FOR_BEST_CLUSTER = -90.0; // dBm
-
-        // Weights for best cluster selection
-        static constexpr double WEIGHT_GEOMETRIC_RATIO = 1;
-        static constexpr double WEIGHT_AREA = 1;
-        static constexpr double WEIGHT_RSSI_VARIANCE = 1;
-        static constexpr double WEIGHT_RSSI = 1;
+        // Weights
+        double m_weight_geometric_ratio = 1.0;
+        double m_weight_area = 1.0;
+        double m_weight_rssi_variance = 1.0;
+        double m_weight_rssi = 1.0;
+        double m_extra_weight = 1.0;
     };
 
 } // namespace core

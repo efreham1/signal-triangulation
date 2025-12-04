@@ -12,13 +12,41 @@ namespace core
 {
 
 	ClusteredTriangulationAlgorithm1::ClusteredTriangulationAlgorithm1() = default;
+
+	ClusteredTriangulationAlgorithm1::ClusteredTriangulationAlgorithm1(const AlgorithmParameters &params)
+	{
+		applyParameters(params);
+	}
+
 	ClusteredTriangulationAlgorithm1::~ClusteredTriangulationAlgorithm1() = default;
+
+	void ClusteredTriangulationAlgorithm1::applyParameters(const AlgorithmParameters &params)
+	{
+		if (params.has("coalition_distance"))
+			m_coalition_distance = params.get<double>("coalition_distance");
+
+		if (params.has("cluster_min_points"))
+			m_cluster_min_points = static_cast<unsigned int>(params.get<int>("cluster_min_points"));
+
+		if (params.has("cluster_ratio_threshold"))
+			m_cluster_ratio_threshold = params.get<double>("cluster_ratio_threshold");
+
+		if (params.has("extra_weight"))
+			m_extra_weight = params.get<double>("extra_weight");
+
+		spdlog::debug("CTA1: Parameters applied");
+	}
 
 	void ClusteredTriangulationAlgorithm1::calculatePosition(double &out_latitude, double &out_longitude, double precision, double timeout)
 	{
+		if (m_points.size() < m_cluster_min_points)
+		{
+			throw std::runtime_error("ClusteredTriangulationAlgorithm1: not enough data points");
+		}
+
 		reorderDataPointsByDistance();
 		clusterData();
-		estimateAoAForClusters();
+		estimateAoAForClusters(m_cluster_min_points);
 
 		std::vector<std::pair<double, double>> intersections = findIntersections();
 		if (intersections.empty())
@@ -55,7 +83,7 @@ namespace core
 
 	void ClusteredTriangulationAlgorithm1::clusterData()
 	{
-		coalescePoints(getCoalitionDistance());
+		coalescePoints(m_coalition_distance);
 
 		unsigned int cluster_id = 0;
 		unsigned int current_cluster_size = 0;
@@ -71,7 +99,7 @@ namespace core
 			current_cluster_size = static_cast<unsigned int>(m_clusters[cluster_id].points.size());
 			auto &c = m_clusters[cluster_id];
 
-			if (c.geometricRatio() > getClusterRatioSplitThreshold() && current_cluster_size >= getClusterMinPoints())
+			if (c.geometricRatio() > m_cluster_ratio_threshold && current_cluster_size >= m_cluster_min_points)
 			{
 				spdlog::debug("ClusteredTriangulationAlgorithm1: created new cluster (id={}) after splitting (id={}) due to geometric ratio {}",
 							  cluster_id + 1, cluster_id, c.geometricRatio());
@@ -167,7 +195,7 @@ namespace core
 			bool continue_gradient_descent = true;
 			double current_x = inter.first;
 			double current_y = inter.second;
-			double current_cost = getCost(current_x, current_y);
+			double current_cost = getCost(current_x, current_y, m_extra_weight);
 
 			std::set<std::pair<double, double>> visited_points;
 			bool explored_new_point = true;
@@ -205,7 +233,7 @@ namespace core
 						visited_points.insert({x, y});
 						explored_new_point = true;
 
-						double neighbor_cost = getCost(x, y);
+						double neighbor_cost = getCost(x, y, m_extra_weight);
 						if (neighbor_cost <= best_cost)
 						{
 							best_cost = neighbor_cost;

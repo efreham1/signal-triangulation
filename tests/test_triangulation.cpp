@@ -42,6 +42,9 @@ static std::string runAppAndCapture(const std::string &full_command)
     return output;
 }
 
+std::string g_single_file_path;
+std::string g_algorithm_arg;
+
 // Helper to calculate error for a single file
 // Returns -1.0 on failure (parsing/running)
 double calculateErrorForFile(const std::string &filePath, const std::string &forward_args)
@@ -76,7 +79,7 @@ double calculateErrorForFile(const std::string &filePath, const std::string &for
     double srcLon = j["source_pos"]["y"].get<double>();
 
     // Run app and capture stdout (expects the line: "New position calculated: Lat=..., Lon=...")
-    std::string full_command = std::string(APP_BIN_PATH) + " --signals-file " + filePath + " " + forward_args;
+    std::string full_command = std::string(APP_BIN_PATH) + " --signals-file " + filePath + " " + g_algorithm_arg;
     std::string out = runAppAndCapture(full_command);
     
     std::regex re(R"(Calculated Position: Latitude\s*=\s*([0-9\.\-eE]+)\s*,\s*Longitude\s*=\s*([0-9\.\-eE]+))");
@@ -98,9 +101,6 @@ double calculateErrorForFile(const std::string &filePath, const std::string &for
 
     return core::distanceBetween(srcLat, srcLon, lat, lon);
 }
-
-std::string g_single_file_path;
-std::string g_algorithm_arg;
 
 TEST(Triangulation, SingleFileErrorCheck)
 {
@@ -203,7 +203,7 @@ int main (int argc, char **argv)
                 g_single_file_path = argv[++i];
             }
         }
-        else if (arg.rfind("--cta-", 0) == 0) {
+        else {
             if (i + 1 < argc && std::string(argv[i+1]).rfind("--", 0) != 0) {
                 g_algorithm_arg += std::string(argv[i]) + " " + std::string(argv[i+1]) + " ";
                 i++;
@@ -212,5 +212,9 @@ int main (int argc, char **argv)
             }
         }
     }
+
+    // Print full command for debugging
+    std::cout << "[DEBUG] Running tests with algorithm args: " << g_algorithm_arg << std::endl;
+
     return RUN_ALL_TESTS();
 }
