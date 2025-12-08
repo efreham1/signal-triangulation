@@ -249,8 +249,28 @@ namespace core
             {
                 cluster_cost = cross_prod_mag / cluster_grad_mag;
             }
+            
+            double ptc_norm = std::sqrt(point_to_centroid[0] * point_to_centroid[0] +
+                                        point_to_centroid[1] * point_to_centroid[1]);
+            
+            if (std::abs(ptc_norm) < std::numeric_limits<double>::epsilon())
+            {
+                continue;
+            }
+            
+            double cos_theta = dot_prod / (cluster_grad_mag * ptc_norm);
+
+            if (cos_theta < -1.0 || cos_theta > 1.0)
+            {
+                spdlog::warn("ClusteredTriangulationBase: numerical issue in cost calculation, cos_theta={}", cos_theta);
+                continue;
+            }
+
+            double theta = std::acos(cos_theta);
 
             double weight = extra_weight;
+            weight += theta*10;
+            
             if (cluster.score > 0.0)
             {
                 weight += cluster.score;
