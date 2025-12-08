@@ -67,6 +67,10 @@ object LocationStream {
         started = false
     }
 
+    fun lastKnownLocation(): Location? = synchronized(buffer) { 
+        buffer.firstOrNull() 
+    }
+
     fun isStarted(): Boolean = started
 
     // Currently unused

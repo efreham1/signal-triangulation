@@ -117,4 +117,6 @@
     <string name="summary_direct_suffix"> direct=%1$.2f</string>
     <string name="collecting_stream_samples_s">Collecting stream samples… %1$ds</string>
 
+    <string name="map_current_location">Current Location</string>
+    <string name="map_signal_source">Signal Source</string>
 </resources>
