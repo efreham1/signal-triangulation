@@ -240,24 +240,22 @@ namespace core
             double cluster_grad_mag = std::sqrt(cluster_grad[0] * cluster_grad[0] + cluster_grad[1] * cluster_grad[1]);
             double dot_prod = point_to_centroid[0] * cluster_grad[0] + point_to_centroid[1] * cluster_grad[1];
 
-            double cluster_cost = 0.0;
-            if (dot_prod < 0)
-            {
-                cluster_cost = -dot_prod / cluster_grad_mag +
-                               std::sqrt(point_to_centroid[0] * point_to_centroid[0] +
-                                         point_to_centroid[1] * point_to_centroid[1]);
-            }
-            else
-            {
-                cluster_cost = cross_prod_mag / cluster_grad_mag;
-            }
-            
             double ptc_norm = std::sqrt(point_to_centroid[0] * point_to_centroid[0] +
                                         point_to_centroid[1] * point_to_centroid[1]);
             
             if (std::abs(ptc_norm) < std::numeric_limits<double>::epsilon())
             {
                 continue;
+            }
+
+            double cluster_cost = 0.0;
+            if (dot_prod < 0)
+            {
+                cluster_cost = -dot_prod / cluster_grad_mag + ptc_norm;
+            }
+            else
+            {
+                cluster_cost = cross_prod_mag / cluster_grad_mag;
             }
             
             double cos_theta = dot_prod / (cluster_grad_mag * ptc_norm);
