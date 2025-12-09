@@ -243,7 +243,7 @@ namespace core
             double ptc_norm = std::sqrt(point_to_centroid[0] * point_to_centroid[0] +
                                         point_to_centroid[1] * point_to_centroid[1]);
             
-            if (std::abs(ptc_norm) < std::numeric_limits<double>::epsilon())
+            if (ptc_norm < std::numeric_limits<double>::epsilon())
             {
                 continue;
             }
