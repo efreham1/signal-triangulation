@@ -153,10 +153,12 @@ namespace core
     {
         for (int i = 0; i < static_cast<int>(m_points.size()); ++i)
         {
+            double old_x_i = m_points[i].getX();
+            double old_y_i = m_points[i].getY();
             for (int j = i + 1; j < static_cast<int>(m_points.size()); ++j)
             {
-                double dx = m_points[i].getX() - m_points[j].getX();
-                double dy = m_points[i].getY() - m_points[j].getY();
+                double dx = old_x_i - m_points[j].getX();
+                double dy = old_y_i - m_points[j].getY();
                 double dist2 = dx * dx + dy * dy;
 
                 if (dist2 <= coalition_distance * coalition_distance)
@@ -221,7 +223,7 @@ namespace core
         }
     }
 
-    double ClusteredTriangulationBase::getCost(double x, double y, double extra_weight) const
+    double ClusteredTriangulationBase::getCost(double x, double y, double extra_weight, double angle_weight) const
     {
         double total_cost = 0.0;
 
@@ -269,7 +271,7 @@ namespace core
             double theta = std::acos(cos_theta);
 
             double weight = extra_weight;
-            weight += theta*10;
+            weight += theta * angle_weight;
             
             if (cluster.score > 0.0)
             {

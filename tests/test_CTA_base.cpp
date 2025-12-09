@@ -388,10 +388,10 @@ TEST(CTABase, CoalescePoints_ChainMerge)
     algo.processDataPoint(makePoint(2, 0.5, 0.0, -50));
     algo.processDataPoint(makePoint(3, 1.0, 0.0, -60));
 
-    algo.coalescePoints(0.6); // Threshold slightly larger than spacing
+    algo.coalescePoints(0.8); // Threshold slightly larger than spacing
 
-    // Points 1 and 2 merge, then result may merge with 3
-    EXPECT_LT(algo.m_points.size(), 3u);
+    // Points 1 and 2 merge, then result shouldn't merge with 3
+    EXPECT_EQ(algo.m_points.size(), 2u);
 }
 
 // ====================
@@ -453,7 +453,7 @@ TEST(CTABase, GetCost_ZeroForPointOnRay)
     algo.setClusters({cluster});
 
     // Point along the ray (positive x)
-    double cost = algo.getCost(10.0, 0.0, 0);
+    double cost = algo.getCost(10.0, 0.0, 0, 0);
     EXPECT_NEAR(cost, 0.0, 0.1);
 }
 
@@ -471,7 +471,7 @@ TEST(CTABase, GetCost_HighForPointOffRay)
     algo.setClusters({cluster});
 
     // Point perpendicular to ray
-    double cost = algo.getCost(0.0, 10.0, 0);
+    double cost = algo.getCost(0.0, 10.0, 0, 0);
     EXPECT_GT(cost, 5.0);
 }
 
@@ -489,8 +489,8 @@ TEST(CTABase, GetCost_PenalizesBehindCentroid)
     algo.setClusters({cluster});
 
     // Point behind centroid (negative x)
-    double cost_behind = algo.getCost(-10.0, 0.0, 0);
-    double cost_front = algo.getCost(10.0, 0.0, 0);
+    double cost_behind = algo.getCost(-10.0, 0.0, 0, 0);
+    double cost_front = algo.getCost(10.0, 0.0, 0, 0);
 
     EXPECT_GT(cost_behind, cost_front);
 }
@@ -508,7 +508,7 @@ TEST(CTABase, GetCost_SkipsZeroGradient)
 
     algo.setClusters({cluster});
 
-    double cost = algo.getCost(10.0, 10.0, 0);
+    double cost = algo.getCost(10.0, 10.0, 0, 0);
     EXPECT_DOUBLE_EQ(cost, 0.0); // Cluster should be skipped
 }
 
@@ -532,9 +532,9 @@ TEST(CTABase, GetCost_MultipleClusters)
     algo.setClusters({c1, c2});
 
     // Point between clusters should have low cost
-    double cost_middle = algo.getCost(10.0, 0.0, 0);
+    double cost_middle = algo.getCost(10.0, 0.0, 0, 0);
     // Point far from intersection should have high cost
-    double cost_far = algo.getCost(10.0, 50.0, 0);
+    double cost_far = algo.getCost(10.0, 50.0, 0, 0);
 
     EXPECT_LT(cost_middle, cost_far);
 }
@@ -568,6 +568,6 @@ TEST(CTABase, FullPipeline)
     algo.estimateAoAForClusters(3);
 
     // Cost function should work
-    double cost = algo.getCost(25.0, 0.0, 0);
+    double cost = algo.getCost(25.0, 0.0, 0, 0);
     EXPECT_TRUE(std::isfinite(cost));
 }
