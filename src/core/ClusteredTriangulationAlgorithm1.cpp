@@ -39,13 +39,17 @@ namespace core
 
 	void ClusteredTriangulationAlgorithm1::calculatePosition(double &out_latitude, double &out_longitude, double precision, double timeout)
 	{
-		if (m_points.size() < m_cluster_min_points)
+		if (m_total_points < m_cluster_min_points)
 		{
 			throw std::runtime_error("ClusteredTriangulationAlgorithm1: not enough data points");
 		}
 
 		reorderDataPointsByDistance();
-		clusterData();
+		for (auto &pair : m_point_map)
+		{
+			auto &m_points = pair.second;
+			clusterData(m_points);
+		}
 		estimateAoAForClusters(m_cluster_min_points);
 
 		std::vector<std::pair<double, double>> intersections = findIntersections();
@@ -68,8 +72,8 @@ namespace core
 		DataPoint result_point;
 		result_point.setX(global_best_x);
 		result_point.setY(global_best_y);
-		result_point.zero_latitude = m_points[0].zero_latitude;
-		result_point.zero_longitude = m_points[0].zero_longitude;
+		result_point.zero_latitude = m_zero_latitude;
+		result_point.zero_longitude = m_zero_longitude;
 		result_point.computeCoordinates();
 
 		if (!result_point.validCoordinates())
@@ -81,9 +85,9 @@ namespace core
 		out_longitude = result_point.getLongitude();
 	}
 
-	void ClusteredTriangulationAlgorithm1::clusterData()
+	void ClusteredTriangulationAlgorithm1::clusterData(std::vector<DataPoint> &m_points)
 	{
-		coalescePoints(m_coalition_distance);
+		coalescePoints(m_coalition_distance, m_points);
 
 		unsigned int cluster_id = 0;
 		unsigned int current_cluster_size = 0;
@@ -108,7 +112,7 @@ namespace core
 			}
 		}
 
-		spdlog::info("ClusteredTriangulationAlgorithm1: formed {} clusters from {} data points", m_clusters.size(), m_points.size());
+		spdlog::info("ClusteredTriangulationAlgorithm1: formed {} clusters from {} data points", m_clusters.size(), m_total_points);
 
 		if (m_clusters.size() < 2)
 		{

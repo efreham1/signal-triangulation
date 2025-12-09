@@ -18,11 +18,11 @@ namespace core
         void calculatePosition(double &out_latitude, double &out_longitude, double precision, double timeout) override;
 
     private:
-        void clusterData();
+        void clusterData(std::vector<DataPoint> &m_points);
         void applyParameters(const AlgorithmParameters &params);
         void bruteForceSearch(double &out_x, double &out_y, double precision, double timeout);
-        void findBestClusters();
-        void getCandidates(int i, std::vector<int> &candidate_indices);
+        void findBestClusters(std::vector<DataPoint> &m_points);
+        void getCandidates(int i, std::vector<int> &candidate_indices, const std::vector<DataPoint> &points);
         bool checkCluster(PointCluster &cluster, PointCluster &best_cluster, double &best_score);
         void logPerformanceSummary();
 

@@ -19,26 +19,23 @@ namespace core
     ClusteredTriangulationBase::ClusteredTriangulationBase() = default;
     ClusteredTriangulationBase::~ClusteredTriangulationBase() = default;
 
-    void ClusteredTriangulationBase::processDataPoint(const DataPoint &point)
+    void ClusteredTriangulationBase::addDataPointMap(std::map<std::string, std::vector<core::DataPoint>> dp_map, double zero_latitude, double zero_longitude)
     {
-        if (!point.validCoordinates())
+        m_point_map = std::move(dp_map);
+        m_zero_latitude = zero_latitude;
+        m_zero_longitude = zero_longitude;
+        for (const auto &pair : m_point_map)
         {
-            throw std::invalid_argument("ClusteredTriangulationBase: invalid coordinates");
+            m_total_points += pair.second.size();
+
+            // Print info
+            spdlog::info("ClusteredTriangulationBase: Device '{}' has {} data points", pair.first, pair.second.size());
         }
-
-        auto it = std::lower_bound(
-            m_points.begin(), m_points.end(), point.timestamp_ms,
-            [](const DataPoint &a, const int64_t t)
-            { return a.timestamp_ms < t; });
-        m_points.insert(it, point);
-
-        spdlog::debug("ClusteredTriangulationBase: added DataPoint (x={}, y={}, rssi={}, timestamp={})",
-                      point.getX(), point.getY(), point.rssi, point.timestamp_ms);
     }
 
     void ClusteredTriangulationBase::reset()
     {
-        m_points.clear();
+        m_point_map.clear();
         m_clusters.clear();
         distance_cache.clear();
     }
@@ -71,85 +68,90 @@ namespace core
 
     void ClusteredTriangulationBase::reorderDataPointsByDistance()
     {
-        if (m_points.size() < 3)
+        for (auto &pair : m_point_map)
         {
-            return;
-        }
+            auto &m_points = pair.second;
 
-        // Initial Solution: Greedy Nearest Neighbor
-        std::vector<DataPoint> current_path;
-        current_path.reserve(m_points.size());
-        std::vector<DataPoint> remaining = m_points;
-
-        current_path.push_back(remaining[0]);
-        remaining.erase(remaining.begin());
-
-        while (!remaining.empty())
-        {
-            const DataPoint &last = current_path.back();
-            double best_dist = std::numeric_limits<double>::max();
-            size_t best_idx = 0;
-
-            for (size_t i = 0; i < remaining.size(); ++i)
+            if (m_points.size() < 3)
             {
-                double d = getDistance(last, remaining[i]);
-                if (d < best_dist)
-                {
-                    best_dist = d;
-                    best_idx = i;
-                }
+                return;
             }
-            current_path.push_back(remaining[best_idx]);
-            remaining.erase(remaining.begin() + best_idx);
-        }
 
-        // Calculate initial total distance
-        double total_dist = 0.0;
-        for (size_t i = 0; i < current_path.size() - 1; ++i)
-        {
-            total_dist += getDistance(current_path[i], current_path[i + 1]);
-        }
-        double initial_dist = total_dist;
+            // Initial Solution: Greedy Nearest Neighbor
+            std::vector<DataPoint> current_path;
+            current_path.reserve(m_points.size());
+            std::vector<DataPoint> remaining = m_points;
 
-        // 2-Opt Local Search optimization
-        bool improved = true;
-        int iterations = 0;
-        const int MAX_ITERATIONS = 100;
+            current_path.push_back(remaining[0]);
+            remaining.erase(remaining.begin());
 
-        while (improved && iterations < MAX_ITERATIONS)
-        {
-            improved = false;
-            iterations++;
-
-            for (size_t i = 0; i < current_path.size() - 2; ++i)
+            while (!remaining.empty())
             {
-                for (size_t j = i + 1; j < current_path.size() - 1; ++j)
+                const DataPoint &last = current_path.back();
+                double best_dist = std::numeric_limits<double>::max();
+                size_t best_idx = 0;
+
+                for (size_t i = 0; i < remaining.size(); ++i)
                 {
-                    double d_ab = getDistance(current_path[i], current_path[i + 1]);
-                    double d_cd = getDistance(current_path[j], current_path[j + 1]);
-                    double current_cost = d_ab + d_cd;
-
-                    double d_ac = getDistance(current_path[i], current_path[j]);
-                    double d_bd = getDistance(current_path[i + 1], current_path[j + 1]);
-                    double new_cost = d_ac + d_bd;
-
-                    if (new_cost < current_cost)
+                    double d = getDistance(last, remaining[i]);
+                    if (d < best_dist)
                     {
-                        std::reverse(current_path.begin() + i + 1, current_path.begin() + j + 1);
-                        total_dist -= (current_cost - new_cost);
-                        improved = true;
+                        best_dist = d;
+                        best_idx = i;
+                    }
+                }
+                current_path.push_back(remaining[best_idx]);
+                remaining.erase(remaining.begin() + best_idx);
+            }
+
+            // Calculate initial total distance
+            double total_dist = 0.0;
+            for (size_t i = 0; i < current_path.size() - 1; ++i)
+            {
+                total_dist += getDistance(current_path[i], current_path[i + 1]);
+            }
+            double initial_dist = total_dist;
+
+            // 2-Opt Local Search optimization
+            bool improved = true;
+            int iterations = 0;
+            const int MAX_ITERATIONS = 100;
+
+            while (improved && iterations < MAX_ITERATIONS)
+            {
+                improved = false;
+                iterations++;
+
+                for (size_t i = 0; i < current_path.size() - 2; ++i)
+                {
+                    for (size_t j = i + 1; j < current_path.size() - 1; ++j)
+                    {
+                        double d_ab = getDistance(current_path[i], current_path[i + 1]);
+                        double d_cd = getDistance(current_path[j], current_path[j + 1]);
+                        double current_cost = d_ab + d_cd;
+
+                        double d_ac = getDistance(current_path[i], current_path[j]);
+                        double d_bd = getDistance(current_path[i + 1], current_path[j + 1]);
+                        double new_cost = d_ac + d_bd;
+
+                        if (new_cost < current_cost)
+                        {
+                            std::reverse(current_path.begin() + i + 1, current_path.begin() + j + 1);
+                            total_dist -= (current_cost - new_cost);
+                            improved = true;
+                        }
                     }
                 }
             }
+
+            m_point_map[pair.first] = current_path;
+
+            spdlog::info("ClusteredTriangulationBase: optimized path. Length reduced from {:.2f}m to {:.2f}m ({} iterations)",
+                         initial_dist, total_dist, iterations);
         }
-
-        m_points = std::move(current_path);
-
-        spdlog::info("ClusteredTriangulationBase: optimized path. Length reduced from {:.2f}m to {:.2f}m ({} iterations)",
-                     initial_dist, total_dist, iterations);
     }
 
-    void ClusteredTriangulationBase::coalescePoints(double coalition_distance)
+    void ClusteredTriangulationBase::coalescePoints(double coalition_distance, std::vector<DataPoint> &m_points)
     {
         for (int i = 0; i < static_cast<int>(m_points.size()); ++i)
         {
@@ -265,10 +267,15 @@ namespace core
 
     void ClusteredTriangulationBase::printPointsAndClusters() const
     {
-        std::cout << "Data Points:" << std::endl;
-        for (const auto &point : m_points)
+        for (const auto &pair : m_point_map)
         {
-            std::cout << "  x: " << point.getX() << ", y: " << point.getY() << ", rssi: " << point.rssi << std::endl;
+            auto &m_points = pair.second;
+
+            std::cout << "Data Points:" << std::endl;
+            for (const auto &point : m_points)
+            {
+                std::cout << "  x: " << point.getX() << ", y: " << point.getY() << ", rssi: " << point.rssi << std::endl;
+            }
         }
 
         std::cout << "Clusters:" << std::endl;
@@ -291,22 +298,26 @@ namespace core
 
         // Print point-to-cluster membership summary
         std::cout << "Point Membership:" << std::endl;
-        for (const auto &point : m_points)
+        for (const auto &pair : m_point_map)
         {
-            std::cout << "  point (" << point.getX() << ", " << point.getY() << ") in clusters:";
-            for (size_t i = 0; i < m_clusters.size(); ++i)
+            auto &m_points = pair.second;
+            for (const auto &point : m_points)
             {
-                for (const auto &cp : m_clusters[i].points)
+                std::cout << "  point (" << point.getX() << ", " << point.getY() << ") in clusters:";
+                for (size_t i = 0; i < m_clusters.size(); ++i)
                 {
-                    if (std::abs(cp.getX() - point.getX()) < 1e-9 &&
-                        std::abs(cp.getY() - point.getY()) < 1e-9)
+                    for (const auto &cp : m_clusters[i].points)
                     {
-                        std::cout << " " << i;
-                        break;
+                        if (std::abs(cp.getX() - point.getX()) < 1e-9 &&
+                            std::abs(cp.getY() - point.getY()) < 1e-9)
+                        {
+                            std::cout << " " << i;
+                            break;
+                        }
                     }
                 }
+                std::cout << std::endl;
             }
-            std::cout << std::endl;
         }
     }
 

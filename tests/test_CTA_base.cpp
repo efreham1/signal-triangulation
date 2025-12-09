@@ -193,7 +193,7 @@ TEST(PlaneFit, MismatchedVectorSizes)
 }
 
 // ====================
-// processDataPoint Tests
+// addDataPointMap Tests
 // ====================
 
 TEST(CTABase, ProcessDataPoint_SinglePoint)
@@ -201,7 +201,7 @@ TEST(CTABase, ProcessDataPoint_SinglePoint)
     TestableTriangulationBase algo;
     auto p = makePoint(1, 10.0, 20.0, -50);
 
-    algo.processDataPoint(p);
+    algo.addDataPointMap(p);
 
     ASSERT_EQ(algo.m_points.size(), 1u);
     EXPECT_DOUBLE_EQ(algo.m_points[0].getX(), 10.0);
@@ -213,9 +213,9 @@ TEST(CTABase, ProcessDataPoint_OrderedByTimestamp)
     TestableTriangulationBase algo;
 
     // Add points out of order
-    algo.processDataPoint(makePoint(3, 30.0, 30.0, -50));
-    algo.processDataPoint(makePoint(1, 10.0, 10.0, -50));
-    algo.processDataPoint(makePoint(2, 20.0, 20.0, -50));
+    algo.addDataPointMap(makePoint(3, 30.0, 30.0, -50));
+    algo.addDataPointMap(makePoint(1, 10.0, 10.0, -50));
+    algo.addDataPointMap(makePoint(2, 20.0, 20.0, -50));
 
     ASSERT_EQ(algo.m_points.size(), 3u);
     // Should be sorted by timestamp (point_id * 1000)
@@ -231,7 +231,7 @@ TEST(CTABase, ProcessDataPoint_InvalidCoordinates)
     invalid.point_id = 1;
     // Don't set coordinates - they're invalid
 
-    EXPECT_THROW(algo.processDataPoint(invalid), std::invalid_argument);
+    EXPECT_THROW(algo.addDataPointMap(invalid), std::invalid_argument);
 }
 
 // ====================
@@ -241,8 +241,8 @@ TEST(CTABase, ProcessDataPoint_InvalidCoordinates)
 TEST(CTABase, Reset_ClearsAll)
 {
     TestableTriangulationBase algo;
-    algo.processDataPoint(makePoint(1, 10.0, 20.0, -50));
-    algo.processDataPoint(makePoint(2, 20.0, 30.0, -60));
+    algo.addDataPointMap(makePoint(1, 10.0, 20.0, -50));
+    algo.addDataPointMap(makePoint(2, 20.0, 30.0, -60));
 
     // Force distance cache population
     algo.getDistance(algo.m_points[0], algo.m_points[1]);
@@ -264,8 +264,8 @@ TEST(CTABase, GetDistance_CorrectCalculation)
     auto p1 = makePoint(1, 0.0, 0.0, -50);
     auto p2 = makePoint(2, 3.0, 4.0, -50);
 
-    algo.processDataPoint(p1);
-    algo.processDataPoint(p2);
+    algo.addDataPointMap(p1);
+    algo.addDataPointMap(p2);
 
     double dist = algo.getDistance(algo.m_points[0], algo.m_points[1]);
     EXPECT_DOUBLE_EQ(dist, 5.0); // 3-4-5 triangle
@@ -277,8 +277,8 @@ TEST(CTABase, GetDistance_CachesResult)
     auto p1 = makePoint(1, 0.0, 0.0, -50);
     auto p2 = makePoint(2, 10.0, 0.0, -50);
 
-    algo.processDataPoint(p1);
-    algo.processDataPoint(p2);
+    algo.addDataPointMap(p1);
+    algo.addDataPointMap(p2);
 
     EXPECT_TRUE(algo.distance_cache.empty());
 
@@ -297,8 +297,8 @@ TEST(CTABase, GetDistance_SymmetricKey)
     auto p1 = makePoint(1, 0.0, 0.0, -50);
     auto p2 = makePoint(2, 10.0, 0.0, -50);
 
-    algo.processDataPoint(p1);
-    algo.processDataPoint(p2);
+    algo.addDataPointMap(p1);
+    algo.addDataPointMap(p2);
 
     // Call with different order
     double dist1 = algo.getDistance(algo.m_points[0], algo.m_points[1]);
@@ -315,8 +315,8 @@ TEST(CTABase, GetDistance_SymmetricKey)
 TEST(CTABase, ReorderByDistance_TooFewPoints)
 {
     TestableTriangulationBase algo;
-    algo.processDataPoint(makePoint(1, 0.0, 0.0, -50));
-    algo.processDataPoint(makePoint(2, 10.0, 0.0, -50));
+    algo.addDataPointMap(makePoint(1, 0.0, 0.0, -50));
+    algo.addDataPointMap(makePoint(2, 10.0, 0.0, -50));
 
     // Should not throw with < 3 points
     algo.reorderDataPointsByDistance();
@@ -330,10 +330,10 @@ TEST(CTABase, ReorderByDistance_OptimizesPath)
 
     // Add points in a suboptimal order
     // Optimal path: 1 -> 2 -> 3 -> 4 (in a line)
-    algo.processDataPoint(makePoint(1, 0.0, 0.0, -50));
-    algo.processDataPoint(makePoint(3, 20.0, 0.0, -50));
-    algo.processDataPoint(makePoint(2, 10.0, 0.0, -50));
-    algo.processDataPoint(makePoint(4, 30.0, 0.0, -50));
+    algo.addDataPointMap(makePoint(1, 0.0, 0.0, -50));
+    algo.addDataPointMap(makePoint(3, 20.0, 0.0, -50));
+    algo.addDataPointMap(makePoint(2, 10.0, 0.0, -50));
+    algo.addDataPointMap(makePoint(4, 30.0, 0.0, -50));
 
     algo.reorderDataPointsByDistance();
 
@@ -357,8 +357,8 @@ TEST(CTABase, CoalescePoints_MergesClosePoints)
     TestableTriangulationBase algo;
 
     // Two points within coalition distance
-    algo.processDataPoint(makePoint(1, 0.0, 0.0, -40));
-    algo.processDataPoint(makePoint(2, 0.5, 0.0, -60)); // 0.5m apart
+    algo.addDataPointMap(makePoint(1, 0.0, 0.0, -40));
+    algo.addDataPointMap(makePoint(2, 0.5, 0.0, -60)); // 0.5m apart
 
     algo.coalescePoints(1.0); // 1m threshold
 
@@ -371,8 +371,8 @@ TEST(CTABase, CoalescePoints_KeepsFarPoints)
 {
     TestableTriangulationBase algo;
 
-    algo.processDataPoint(makePoint(1, 0.0, 0.0, -40));
-    algo.processDataPoint(makePoint(2, 5.0, 0.0, -60)); // 5m apart
+    algo.addDataPointMap(makePoint(1, 0.0, 0.0, -40));
+    algo.addDataPointMap(makePoint(2, 5.0, 0.0, -60)); // 5m apart
 
     algo.coalescePoints(1.0); // 1m threshold
 
@@ -384,9 +384,9 @@ TEST(CTABase, CoalescePoints_ChainMerge)
     TestableTriangulationBase algo;
 
     // Three points in a line, each close to the next
-    algo.processDataPoint(makePoint(1, 0.0, 0.0, -40));
-    algo.processDataPoint(makePoint(2, 0.5, 0.0, -50));
-    algo.processDataPoint(makePoint(3, 1.0, 0.0, -60));
+    algo.addDataPointMap(makePoint(1, 0.0, 0.0, -40));
+    algo.addDataPointMap(makePoint(2, 0.5, 0.0, -50));
+    algo.addDataPointMap(makePoint(3, 1.0, 0.0, -60));
 
     algo.coalescePoints(0.6); // Threshold slightly larger than spacing
 
@@ -553,7 +553,7 @@ TEST(CTABase, FullPipeline)
         double x = i * 5.0;
         double y = std::sin(i * 0.5) * 10.0;
         double rssi = -50.0 - i; // Decreasing RSSI
-        algo.processDataPoint(makePoint(i + 1, x, y, rssi));
+        algo.addDataPointMap(makePoint(i + 1, x, y, rssi));
     }
 
     EXPECT_EQ(algo.m_points.size(), 10u);

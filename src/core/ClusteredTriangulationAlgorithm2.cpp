@@ -88,7 +88,11 @@ namespace core
 	void ClusteredTriangulationAlgorithm2::calculatePosition(double &out_latitude, double &out_longitude, double precision, double timeout)
 	{
 		reorderDataPointsByDistance();
-		clusterData();
+		for (auto &pair : m_point_map)
+		{
+			auto &m_points = pair.second;
+			clusterData(m_points);
+		}
 		estimateAoAForClusters(m_cluster_min_points);
 
 		double global_best_x = 0.0;
@@ -105,8 +109,8 @@ namespace core
 		DataPoint result_point;
 		result_point.setX(global_best_x);
 		result_point.setY(global_best_y);
-		result_point.zero_latitude = m_points[0].zero_latitude;
-		result_point.zero_longitude = m_points[0].zero_longitude;
+		result_point.zero_latitude = m_zero_latitude;
+		result_point.zero_longitude = m_zero_longitude;
 		result_point.computeCoordinates();
 
 		if (!result_point.validCoordinates())
@@ -141,7 +145,7 @@ namespace core
 		return order;
 	}
 
-	void ClusteredTriangulationAlgorithm2::findBestClusters()
+	void ClusteredTriangulationAlgorithm2::findBestClusters(std::vector<DataPoint> &m_points)
 	{
 		auto clustering_start = std::chrono::high_resolution_clock::now();
 		m_combinations_explored = 0;
@@ -191,7 +195,7 @@ namespace core
 
 			// Does not create a race condition since all distances are calculated beforehand
 			// TODO: Could make an explicitly thread-safe version
-			getCandidates(i, candidate_indices);
+			getCandidates(i, candidate_indices, m_points);
 
 			int n_candidates = static_cast<int>(candidate_indices.size());
 			candidates_per_seed[idx] = n_candidates;
@@ -342,16 +346,16 @@ namespace core
 		spdlog::info("  Total clustering time: {:.2f} ms", m_clustering_time_ms);
 	}
 
-	void ClusteredTriangulationAlgorithm2::getCandidates(int i, std::vector<int> &candidate_indices)
+	void ClusteredTriangulationAlgorithm2::getCandidates(int i, std::vector<int> &candidate_indices, const std::vector<DataPoint> &points)
 	{
-		for (int j = 0; j < static_cast<int>(m_points.size()); ++j)
+		for (int j = 0; j < static_cast<int>(points.size()); ++j)
 		{
 			if (i == j)
 			{
 				continue;
 			}
 
-			double distance = getDistance(m_points[i], m_points[j]);
+			double distance = getDistance(points[i], points[j]);
 			if (distance <= m_max_internal_distance)
 			{
 				candidate_indices.push_back(j);
@@ -395,13 +399,13 @@ namespace core
 		return found_valid;
 	}
 
-	void ClusteredTriangulationAlgorithm2::clusterData()
+	void ClusteredTriangulationAlgorithm2::clusterData(std::vector<DataPoint> &m_points)
 	{
-		coalescePoints(m_coalition_distance);
+		coalescePoints(m_coalition_distance, m_points);
 
-		findBestClusters();
+		findBestClusters(m_points);
 
-		spdlog::info("ClusteredTriangulationAlgorithm2: formed {} clusters from {} data points", m_clusters.size(), m_points.size());
+		spdlog::info("ClusteredTriangulationAlgorithm2: formed {} clusters from {} data points", m_clusters.size(), m_total_points);
 
 		if (m_clusters.size() < 2)
 		{

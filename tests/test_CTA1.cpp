@@ -45,8 +45,8 @@ TEST(CTA1, ClusterData_InsufficientPoints)
     core::ClusteredTriangulationAlgorithm1 algo;
 
     // Add only 2 points - not enough for clustering
-    algo.processDataPoint(makePoint(1, 0.0, 0.0, -50));
-    algo.processDataPoint(makePoint(2, 1.0, 0.0, -50));
+    algo.addDataPointMap(makePoint(1, 0.0, 0.0, -50));
+    algo.addDataPointMap(makePoint(2, 1.0, 0.0, -50));
 
     double lat, lon;
     EXPECT_THROW(algo.calculatePosition(lat, lon, 1.0, 5.0), std::runtime_error);
@@ -59,24 +59,24 @@ TEST(CTA1, ClusterData_MinimumViable)
     // Create multiple distinct clusters around a target point at (50, 50)
 
     // Cluster 1: points from south approaching source
-    algo.processDataPoint(makePoint(1, 50.0, 0.0, -70));
-    algo.processDataPoint(makePoint(2, 50.0, 10.0, -60));
-    algo.processDataPoint(makePoint(3, 50.0, 20.0, -50));
+    algo.addDataPointMap(makePoint(1, 50.0, 0.0, -70));
+    algo.addDataPointMap(makePoint(2, 50.0, 10.0, -60));
+    algo.addDataPointMap(makePoint(3, 50.0, 20.0, -50));
 
     // Cluster 2: points from west approaching source
-    algo.processDataPoint(makePoint(4, 0.0, 50.0, -70));
-    algo.processDataPoint(makePoint(5, 10.0, 50.0, -60));
-    algo.processDataPoint(makePoint(6, 20.0, 50.0, -50));
+    algo.addDataPointMap(makePoint(4, 0.0, 50.0, -70));
+    algo.addDataPointMap(makePoint(5, 10.0, 50.0, -60));
+    algo.addDataPointMap(makePoint(6, 20.0, 50.0, -50));
 
     // Cluster 3: points from north approaching source
-    algo.processDataPoint(makePoint(7, 50.0, 100.0, -70));
-    algo.processDataPoint(makePoint(8, 50.0, 90.0, -60));
-    algo.processDataPoint(makePoint(9, 50.0, 80.0, -50));
+    algo.addDataPointMap(makePoint(7, 50.0, 100.0, -70));
+    algo.addDataPointMap(makePoint(8, 50.0, 90.0, -60));
+    algo.addDataPointMap(makePoint(9, 50.0, 80.0, -50));
 
     // Cluster 4: points from east approaching source
-    algo.processDataPoint(makePoint(10, 100.0, 50.0, -70));
-    algo.processDataPoint(makePoint(11, 90.0, 50.0, -60));
-    algo.processDataPoint(makePoint(12, 80.0, 50.0, -50));
+    algo.addDataPointMap(makePoint(10, 100.0, 50.0, -70));
+    algo.addDataPointMap(makePoint(11, 90.0, 50.0, -60));
+    algo.addDataPointMap(makePoint(12, 80.0, 50.0, -50));
 
     double lat, lon;
     // With 4 clusters from different directions, algorithm should work
@@ -107,7 +107,7 @@ TEST(CTA1, FindIntersections_ParallelRays)
     // Points in a line all pointing the same direction
     for (int i = 0; i < 8; ++i)
     {
-        algo.processDataPoint(makePoint(i + 1, i * 10.0, 0.0, -50 - i));
+        algo.addDataPointMap(makePoint(i + 1, i * 10.0, 0.0, -50 - i));
     }
 
     double lat, lon;
@@ -141,13 +141,13 @@ TEST(CTA1, GradientDescent_Timeout)
     {
         double dist = std::sqrt((50.0 - i * 10.0) * (50.0 - i * 10.0));
         int rssi = static_cast<int>(-30 - dist / 5.0);
-        algo.processDataPoint(makePoint(i + 1, i * 10.0, 0.0, rssi));
+        algo.addDataPointMap(makePoint(i + 1, i * 10.0, 0.0, rssi));
     }
     for (int i = 0; i < 5; ++i)
     {
         double dist = std::sqrt(50.0 * 50.0 + (50.0 - i * 10.0) * (50.0 - i * 10.0));
         int rssi = static_cast<int>(-30 - dist / 5.0);
-        algo.processDataPoint(makePoint(i + 6, 50.0, i * 10.0, rssi));
+        algo.addDataPointMap(makePoint(i + 6, 50.0, i * 10.0, rssi));
     }
 
     double lat, lon;
@@ -186,7 +186,7 @@ TEST(CTA1, GradientDescent_Precision)
         double y = src_y + radius * std::sin(angle);
         double dist = std::sqrt((x - src_x) * (x - src_x) + (y - src_y) * (y - src_y));
         int rssi = static_cast<int>(-30 - dist / 2.0);
-        algo.processDataPoint(makePoint(i + 1, x, y, rssi));
+        algo.addDataPointMap(makePoint(i + 1, x, y, rssi));
     }
 
     double lat, lon;
@@ -215,11 +215,11 @@ TEST(CTA1, CalculatePosition_ReturnsValidCoordinates)
     // Create L-shaped measurement path
     for (int i = 0; i < 6; ++i)
     {
-        algo.processDataPoint(makePoint(i + 1, i * 8.0, 0.0, -50 + i * 2));
+        algo.addDataPointMap(makePoint(i + 1, i * 8.0, 0.0, -50 + i * 2));
     }
     for (int i = 0; i < 6; ++i)
     {
-        algo.processDataPoint(makePoint(i + 7, 40.0, i * 8.0, -50 + i * 2));
+        algo.addDataPointMap(makePoint(i + 7, 40.0, i * 8.0, -50 + i * 2));
     }
 
     double lat, lon;
@@ -249,11 +249,11 @@ TEST(CTA1, CalculatePosition_DifferentPrecisions)
     {
         for (int i = 0; i < 6; ++i)
         {
-            algo.processDataPoint(makePoint(i + 1, i * 10.0, 0.0, -60 + i * 3));
+            algo.addDataPointMap(makePoint(i + 1, i * 10.0, 0.0, -60 + i * 3));
         }
         for (int i = 0; i < 6; ++i)
         {
-            algo.processDataPoint(makePoint(i + 7, 50.0, i * 10.0, -60 + i * 3));
+            algo.addDataPointMap(makePoint(i + 7, 50.0, i * 10.0, -60 + i * 3));
         }
     };
 
@@ -297,7 +297,7 @@ TEST(CTA1, CalculatePosition_Reset)
     // Add data
     for (int i = 0; i < 8; ++i)
     {
-        algo.processDataPoint(makePoint(i + 1, i * 5.0, i * 5.0, -50));
+        algo.addDataPointMap(makePoint(i + 1, i * 5.0, i * 5.0, -50));
     }
 
     algo.reset();
@@ -318,7 +318,7 @@ TEST(CTA1, EdgeCase_AllSameRSSI)
     // All points have identical RSSI - gradient is zero
     for (int i = 0; i < 10; ++i)
     {
-        algo.processDataPoint(makePoint(i + 1, i * 5.0, (i % 2) * 10.0, -50));
+        algo.addDataPointMap(makePoint(i + 1, i * 5.0, (i % 2) * 10.0, -50));
     }
 
     double lat, lon;
@@ -343,7 +343,7 @@ TEST(CTA1, EdgeCase_VeryClosePoints)
     {
         double x = (i / 5) * 20.0 + (i % 5) * 0.1;
         double y = ((i / 5) % 2) * 20.0;
-        algo.processDataPoint(makePoint(i + 1, x, y, -50 + (i / 5) * 5));
+        algo.addDataPointMap(makePoint(i + 1, x, y, -50 + (i / 5) * 5));
     }
 
     double lat, lon;
@@ -367,11 +367,11 @@ TEST(CTA1, EdgeCase_NegativeCoordinates)
     // Points in negative coordinate space
     for (int i = 0; i < 6; ++i)
     {
-        algo.processDataPoint(makePoint(i + 1, -i * 10.0, 0.0, -50 + i * 2));
+        algo.addDataPointMap(makePoint(i + 1, -i * 10.0, 0.0, -50 + i * 2));
     }
     for (int i = 0; i < 6; ++i)
     {
-        algo.processDataPoint(makePoint(i + 7, -50.0, -i * 10.0, -50 + i * 2));
+        algo.addDataPointMap(makePoint(i + 7, -50.0, -i * 10.0, -50 + i * 2));
     }
 
     double lat, lon;
