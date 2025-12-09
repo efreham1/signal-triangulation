@@ -1,0 +1,2 @@
+/usr/bin/ar qc libcore_test_lib.a CMakeFiles/core_test_lib.dir/__/src/core/CliParser.cpp.o CMakeFiles/core_test_lib.dir/__/src/core/Cluster.cpp.o CMakeFiles/core_test_lib.dir/__/src/core/ClusteredTriangulationAlgorithm1.cpp.o CMakeFiles/core_test_lib.dir/__/src/core/ClusteredTriangulationAlgorithm2.cpp.o CMakeFiles/core_test_lib.dir/__/src/core/ClusteredTriangulationBase.cpp.o CMakeFiles/core_test_lib.dir/__/src/core/DataPoint.cpp.o CMakeFiles/core_test_lib.dir/__/src/core/JsonSignalParser.cpp.o
+/usr/bin/ranlib libcore_test_lib.a
