@@ -68,6 +68,7 @@ namespace core
         double m_weight_rssi_variance = 1.0;
         double m_weight_rssi = 1.0;
         double m_extra_weight = 1.0;
+        double m_angle_weight = 10.0;
     };
 
 } // namespace core
