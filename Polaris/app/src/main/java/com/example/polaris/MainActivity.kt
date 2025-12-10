@@ -107,6 +107,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var measureSourceBtn: Button
     private lateinit var accuracyTestBtn: Button
     private lateinit var sourceNameText: TextView
+    private lateinit var wifiHostInput: EditText
+    private lateinit var wifiPortInput: EditText
+    private lateinit var sendWifiBtn: Button
 
     // SSID list & selection
     private val ssidList = mutableListOf<String>()
@@ -144,6 +147,7 @@ class MainActivity : AppCompatActivity() {
     private val deviceID: String by lazy {
         Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID) ?: "unknown"
     }
+    private var lastExportedFile: File? = null
 
     private fun handleScanBatch(batch: RSSIStream.ScanBatch) {
         val newSsids = batch.results.mapNotNull { it.SSID.takeIf { ss -> ss.isNotBlank() } }
@@ -394,6 +398,9 @@ class MainActivity : AppCompatActivity() {
         measureSourceBtn = findViewById(R.id.measureSourceBtn)
         accuracyTestBtn = findViewById(R.id.accuracyTestBtn)
         sourceNameText = findViewById(R.id.source_name_text)
+        wifiHostInput = findViewById(R.id.wifiHostInput)
+        wifiPortInput = findViewById(R.id.wifiPortInput)
+        sendWifiBtn = findViewById(R.id.sendWifiBtn)
         statusText.text = getString(R.string.status_ready)
 
         // UI actions
@@ -437,6 +444,8 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(this, AccuracyTestActivity::class.java)
             startActivity(intent)
         }
+
+        sendWifiBtn.setOnClickListener { triggerWifiSend() }
 
         val missing = requiredPermissions.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }.toTypedArray()
         if (missing.isNotEmpty()) {
@@ -683,7 +692,61 @@ class MainActivity : AppCompatActivity() {
             val fileName = "${System.currentTimeMillis()}_${deviceID}_${timeStr}_${freeText}.json"
             val file = java.io.File(getExternalFilesDir(null)?.absolutePath ?: filesDir.absolutePath, fileName)
             file.writeText(jsonString)
+            lastExportedFile = file
             runOnUiThread { allRecordsText.text = getString(R.string.exported_to, file.absolutePath) }
+        }
+    }
+
+    private fun triggerWifiSend() {
+        val host = wifiHostInput.text.toString().trim()
+        val portVal = wifiPortInput.text.toString().toIntOrNull()
+        when {
+            host.isEmpty() -> {
+                Toast.makeText(this, getString(R.string.wifi_host_required), Toast.LENGTH_SHORT).show()
+                return
+            }
+            portVal == null || portVal !in 1..65535 -> {
+                Toast.makeText(this, getString(R.string.wifi_port_invalid), Toast.LENGTH_SHORT).show()
+                return
+            }
+        }
+        sendLastExportedFile(host, portVal)
+    }
+
+    private fun sendLastExportedFile(host: String, port: Int) {
+        val file = lastExportedFile
+        if (file == null || !file.exists()) {
+            Toast.makeText(this, getString(R.string.wifi_send_missing_export), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        lifecycleScope.launch {
+            statusText.text = getString(R.string.wifi_sending_status)
+            try {
+                withContext(Dispatchers.IO) {
+                    val url = URL("http://$host:$port/upload")
+                    val conn = (url.openConnection() as HttpURLConnection).apply {
+                        doOutput = true
+                        requestMethod = "POST"
+                        connectTimeout = 5000
+                        readTimeout = 5000
+                        setRequestProperty("Content-Type", "application/json")
+                        setRequestProperty("X-Filename", file.name)
+                    }
+                    file.inputStream().use { input ->
+                        conn.outputStream.use { output -> input.copyTo(output) }
+                    }
+                    val code = conn.responseCode
+                    if (code !in 200..299) throw IOException("HTTP $code")
+                    conn.disconnect()
+                }
+                statusText.text = getString(R.string.wifi_send_success)
+                Toast.makeText(this@MainActivity, getString(R.string.wifi_send_success), Toast.LENGTH_SHORT).show()
+            } catch (ex: Exception) {
+                val msg = ex.message ?: "unknown"
+                statusText.text = getString(R.string.wifi_send_error, msg)
+                Toast.makeText(this@MainActivity, getString(R.string.wifi_send_error, msg), Toast.LENGTH_LONG).show()
+            }
         }
     }
 }

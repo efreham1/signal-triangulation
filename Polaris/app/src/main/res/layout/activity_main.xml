@@ -89,6 +89,36 @@
         android:text="@string/export_json"
         android:layout_marginTop="8dp" />
 
+    <TextView
+        android:id="@+id/wifiTransferLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="@string/wifi_transfer_title"
+        android:textStyle="bold" />
+
+    <EditText
+        android:id="@+id/wifiHostInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/wifi_host_hint"
+        android:inputType="textUri|textNoSuggestions" />
+
+    <EditText
+        android:id="@+id/wifiPortInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/wifi_port_hint"
+        android:inputType="number"
+        android:text="8000" />
+
+    <Button
+        android:id="@+id/sendWifiBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="@string/wifi_send" />
+
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"

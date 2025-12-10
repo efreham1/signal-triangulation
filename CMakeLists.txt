@@ -16,15 +16,26 @@ endif()
 # Source layout: all sources live under ./src
 set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 
-# Gather sources
-file(GLOB_RECURSE PROJECT_SOURCES
-    "${SRC_DIR}/*.cpp"
-)
+# Gather sources for main triangulation app (exclude file_receiver_main.cpp)
+file(GLOB_RECURSE ALL_SOURCES "${SRC_DIR}/*.cpp")
+list(FILTER ALL_SOURCES EXCLUDE REGEX ".*file_receiver_main\\.cpp$")
+set(PROJECT_SOURCES ${ALL_SOURCES})
 
-# Create executable
+# Create main triangulation executable
 add_executable(signal-triangulation ${PROJECT_SOURCES})
 
 target_include_directories(signal-triangulation
+    PRIVATE
+    ${SRC_DIR}
+)
+
+# Create file receiver executable
+add_executable(file-receiver 
+    ${SRC_DIR}/file_receiver_main.cpp
+    ${SRC_DIR}/utils/FileReceiver.cpp
+)
+
+target_include_directories(file-receiver
     PRIVATE
     ${SRC_DIR}
 )
@@ -55,6 +66,11 @@ target_link_libraries(signal-triangulation
     spdlog::spdlog
 )
 
+target_link_libraries(file-receiver
+    PRIVATE
+    spdlog::spdlog
+)
+
 # Link OpenMP if found
 if(OpenMP_CXX_FOUND)
     target_link_libraries(signal-triangulation PRIVATE OpenMP::OpenMP_CXX)
@@ -62,7 +78,7 @@ if(OpenMP_CXX_FOUND)
 endif()
 
 # Install target (optional)
-install(TARGETS signal-triangulation RUNTIME DESTINATION bin)
+install(TARGETS signal-triangulation file-receiver RUNTIME DESTINATION bin)
 
 set(APP_TARGET_NAME signal-triangulation)
 
