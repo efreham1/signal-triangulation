@@ -94,7 +94,7 @@ namespace core
 
 		for (auto &pair : m_point_map)
 		{
-			spdlog::info("ClusteredTriangulationBase: Device '{}' has {} data points", pair.first, pair.second.size());
+			spdlog::info("ClusteredTriangulationAlgorithm2: Device '{}' has {} data points", pair.first, pair.second.size());
 			
 			auto &m_points = pair.second;
 

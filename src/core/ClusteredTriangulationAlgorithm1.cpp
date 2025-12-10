@@ -42,6 +42,8 @@ namespace core
 
 	void ClusteredTriangulationAlgorithm1::calculatePosition(double &out_latitude, double &out_longitude, double precision, double timeout)
 	{
+		m_clusters.clear();
+
 		if (m_total_points < m_cluster_min_points)
 		{
 			throw std::runtime_error("ClusteredTriangulationAlgorithm1: not enough data points");

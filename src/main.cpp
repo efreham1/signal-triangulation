@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
     std::map<std::string, std::vector<core::DataPoint>> points;
     double zero_latitude = 0.0;
     double zero_longitude = 0.0;
-    // std::vector<std::vector<core::DataPoint>> points;
+
     try
     {
         points = core::JsonSignalParser::parseFileToVector(cli.signals_file, zero_latitude, zero_longitude);

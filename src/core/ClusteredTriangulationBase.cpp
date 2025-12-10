@@ -20,7 +20,13 @@ namespace core
     ClusteredTriangulationBase::~ClusteredTriangulationBase() = default;
 
     void ClusteredTriangulationBase::addDataPointMap(std::map<std::string, std::vector<core::DataPoint>> dp_map, double zero_latitude, double zero_longitude)
-    {
+    {   
+        if (dp_map.empty() || dp_map.begin()->second.empty())
+        {
+            throw std::invalid_argument("ClusteredTriangulationBase: empty data point map provided");
+        }
+
+        m_total_points = 0;
         m_point_map = std::move(dp_map);
         m_zero_latitude = zero_latitude;
         m_zero_longitude = zero_longitude;
@@ -35,6 +41,7 @@ namespace core
         m_point_map.clear();
         m_clusters.clear();
         distance_cache.clear();
+        m_total_points = 0;
     }
 
     std::pair<int64_t, int64_t> ClusteredTriangulationBase::makeDistanceKey(int64_t id1, int64_t id2) const
