@@ -82,6 +82,9 @@ namespace core
 		if (params.has("weight_rssi"))
 			m_weight_rssi = params.get<double>("weight_rssi");
 
+		if (params.has("angle_weight"))
+			m_angle_weight = params.get<double>("angle_weight");
+
 		spdlog::debug("CTA2: Parameters applied");
 	}
 
@@ -436,7 +439,7 @@ namespace core
 	{
 		global_best_x = 0.0;
 		global_best_y = 0.0;
-		double global_best_cost = getCost(global_best_x, global_best_y, m_extra_weight);
+		double global_best_cost = getCost(global_best_x, global_best_y, m_extra_weight, m_angle_weight);
 
 		double zone_x = -precision * m_grid_half_size;
 		double zone_y = -precision * m_grid_half_size;
@@ -483,7 +486,7 @@ namespace core
 					{
 						double x = quadrant_x + ix * precision;
 						double y = quadrant_y + iy * precision;
-						double cost = getCost(x, y, m_extra_weight);
+						double cost = getCost(x, y, m_extra_weight, m_angle_weight);
 
 						if (cost < best_cost)
 						{

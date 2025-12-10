@@ -38,6 +38,7 @@ namespace core
 
         // Cost function
         double m_extra_weight = 1.0;
+        double m_angle_weight = 10.0;
     };
 
 } // namespace core

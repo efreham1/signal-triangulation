@@ -34,6 +34,9 @@ namespace core
 		if (params.has("extra_weight"))
 			m_extra_weight = params.get<double>("extra_weight");
 
+		if (params.has("angle_weight"))
+			m_angle_weight = params.get<double>("angle_weight");
+
 		spdlog::debug("CTA1: Parameters applied");
 	}
 
@@ -199,7 +202,7 @@ namespace core
 			bool continue_gradient_descent = true;
 			double current_x = inter.first;
 			double current_y = inter.second;
-			double current_cost = getCost(current_x, current_y, m_extra_weight);
+			double current_cost = getCost(current_x, current_y, m_extra_weight, m_angle_weight);
 
 			std::set<std::pair<double, double>> visited_points;
 			bool explored_new_point = true;
@@ -237,7 +240,7 @@ namespace core
 						visited_points.insert({x, y});
 						explored_new_point = true;
 
-						double neighbor_cost = getCost(x, y, m_extra_weight);
+						double neighbor_cost = getCost(x, y, m_extra_weight, m_angle_weight);
 						if (neighbor_cost <= best_cost)
 						{
 							best_cost = neighbor_cost;

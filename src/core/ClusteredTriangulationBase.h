@@ -32,7 +32,7 @@ namespace core
         void reorderDataPointsByDistance(std::vector<DataPoint> &m_points);
         void coalescePoints(double coalition_distance, std::vector<DataPoint> &m_points);
         void estimateAoAForClusters(unsigned int min_points);
-        double getCost(double x, double y, double extra_weight) const;
+        double getCost(double x, double y, double extra_weight, double angle_weight) const;
 
         // Distance caching
         double getDistance(const DataPoint &p1, const DataPoint &p2);
