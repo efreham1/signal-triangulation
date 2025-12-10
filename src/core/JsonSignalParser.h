@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <map>
 
 namespace core
 {
@@ -13,7 +14,7 @@ namespace core
     {
     public:
         // Parse entire file and return vector of DataPoint. zero_lat/zero_lon are used as reference for DataPoint projection.
-        static std::vector<DataPoint> parseFileToVector(const std::string &path);
+        static std::map<std::string, std::vector<core::DataPoint>> parseFileToVector(const std::string &path, double &zero_latitude, double &zero_longitude);
         static std::pair<double, double> parseFileToSourcePos(const std::string &path);
     };
 } // namespace core

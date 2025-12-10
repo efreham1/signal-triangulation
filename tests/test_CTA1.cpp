@@ -4,7 +4,8 @@
 #include <spdlog/spdlog.h>
 
 // Disable logging for tests
-static struct DisableLogging {
+static struct DisableLogging
+{
     DisableLogging() { spdlog::set_level(spdlog::level::off); }
 } _disableLogging;
 
@@ -21,6 +22,20 @@ static core::DataPoint makePoint(int id, double x, double y, int rssi, double ze
     dp.timestamp_ms = id * 1000;
     dp.computeCoordinates();
     return dp;
+}
+
+// Helper to create a point map from a vector of points
+static std::map<std::string, std::vector<core::DataPoint>> makePointMap(const std::vector<core::DataPoint> &points, const std::string &device = "default")
+{
+    std::map<std::string, std::vector<core::DataPoint>> m;
+    m[device] = points;
+    return m;
+}
+
+// Helper to add points to an algorithm
+static void addPoints(core::ClusteredTriangulationAlgorithm1 &algo, const std::vector<core::DataPoint> &points, double zero_lat = 57.0, double zero_lon = 11.0)
+{
+    algo.addDataPointMap(makePointMap(points), zero_lat, zero_lon);
 }
 
 // ====================
@@ -45,8 +60,10 @@ TEST(CTA1, ClusterData_InsufficientPoints)
     core::ClusteredTriangulationAlgorithm1 algo;
 
     // Add only 2 points - not enough for clustering
-    algo.processDataPoint(makePoint(1, 0.0, 0.0, -50));
-    algo.processDataPoint(makePoint(2, 1.0, 0.0, -50));
+    std::vector<core::DataPoint> points;
+    points.push_back(makePoint(1, 0.0, 0.0, -50));
+    points.push_back(makePoint(2, 1.0, 0.0, -50));
+    addPoints(algo, points);
 
     double lat, lon;
     EXPECT_THROW(algo.calculatePosition(lat, lon, 1.0, 5.0), std::runtime_error);
@@ -57,26 +74,29 @@ TEST(CTA1, ClusterData_MinimumViable)
     core::ClusteredTriangulationAlgorithm1 algo;
 
     // Create multiple distinct clusters around a target point at (50, 50)
+    std::vector<core::DataPoint> points;
 
     // Cluster 1: points from south approaching source
-    algo.processDataPoint(makePoint(1, 50.0, 0.0, -70));
-    algo.processDataPoint(makePoint(2, 50.0, 10.0, -60));
-    algo.processDataPoint(makePoint(3, 50.0, 20.0, -50));
+    points.push_back(makePoint(1, 50.0, 0.0, -70));
+    points.push_back(makePoint(2, 50.0, 10.0, -60));
+    points.push_back(makePoint(3, 50.0, 20.0, -50));
 
     // Cluster 2: points from west approaching source
-    algo.processDataPoint(makePoint(4, 0.0, 50.0, -70));
-    algo.processDataPoint(makePoint(5, 10.0, 50.0, -60));
-    algo.processDataPoint(makePoint(6, 20.0, 50.0, -50));
+    points.push_back(makePoint(4, 0.0, 50.0, -70));
+    points.push_back(makePoint(5, 10.0, 50.0, -60));
+    points.push_back(makePoint(6, 20.0, 50.0, -50));
 
     // Cluster 3: points from north approaching source
-    algo.processDataPoint(makePoint(7, 50.0, 100.0, -70));
-    algo.processDataPoint(makePoint(8, 50.0, 90.0, -60));
-    algo.processDataPoint(makePoint(9, 50.0, 80.0, -50));
+    points.push_back(makePoint(7, 50.0, 100.0, -70));
+    points.push_back(makePoint(8, 50.0, 90.0, -60));
+    points.push_back(makePoint(9, 50.0, 80.0, -50));
 
     // Cluster 4: points from east approaching source
-    algo.processDataPoint(makePoint(10, 100.0, 50.0, -70));
-    algo.processDataPoint(makePoint(11, 90.0, 50.0, -60));
-    algo.processDataPoint(makePoint(12, 80.0, 50.0, -50));
+    points.push_back(makePoint(10, 100.0, 50.0, -70));
+    points.push_back(makePoint(11, 90.0, 50.0, -60));
+    points.push_back(makePoint(12, 80.0, 50.0, -50));
+
+    addPoints(algo, points);
 
     double lat, lon;
     // With 4 clusters from different directions, algorithm should work
@@ -105,10 +125,12 @@ TEST(CTA1, FindIntersections_ParallelRays)
     // Create clusters that would produce parallel rays (same direction)
     // This should result in no valid intersections
     // Points in a line all pointing the same direction
+    std::vector<core::DataPoint> points;
     for (int i = 0; i < 8; ++i)
     {
-        algo.processDataPoint(makePoint(i + 1, i * 10.0, 0.0, -50 - i));
+        points.push_back(makePoint(i + 1, i * 10.0, 0.0, -50 - i));
     }
+    addPoints(algo, points);
 
     double lat, lon;
     // May throw due to insufficient intersections or produce unreliable result
@@ -137,18 +159,20 @@ TEST(CTA1, GradientDescent_Timeout)
 
     // Create a valid scenario
     // L-shaped path around a target point
+    std::vector<core::DataPoint> points;
     for (int i = 0; i < 5; ++i)
     {
         double dist = std::sqrt((50.0 - i * 10.0) * (50.0 - i * 10.0));
         int rssi = static_cast<int>(-30 - dist / 5.0);
-        algo.processDataPoint(makePoint(i + 1, i * 10.0, 0.0, rssi));
+        points.push_back(makePoint(i + 1, i * 10.0, 0.0, rssi));
     }
     for (int i = 0; i < 5; ++i)
     {
         double dist = std::sqrt(50.0 * 50.0 + (50.0 - i * 10.0) * (50.0 - i * 10.0));
         int rssi = static_cast<int>(-30 - dist / 5.0);
-        algo.processDataPoint(makePoint(i + 6, 50.0, i * 10.0, rssi));
+        points.push_back(makePoint(i + 6, 50.0, i * 10.0, rssi));
     }
+    addPoints(algo, points);
 
     double lat, lon;
     auto start = std::chrono::steady_clock::now();
@@ -178,6 +202,7 @@ TEST(CTA1, GradientDescent_Precision)
     double src_x = 50.0, src_y = 50.0;
 
     // Points around the source in a circle-ish pattern
+    std::vector<core::DataPoint> points;
     for (int i = 0; i < 20; ++i)
     {
         double angle = i * M_PI / 10.0;
@@ -186,8 +211,9 @@ TEST(CTA1, GradientDescent_Precision)
         double y = src_y + radius * std::sin(angle);
         double dist = std::sqrt((x - src_x) * (x - src_x) + (y - src_y) * (y - src_y));
         int rssi = static_cast<int>(-30 - dist / 2.0);
-        algo.processDataPoint(makePoint(i + 1, x, y, rssi));
+        points.push_back(makePoint(i + 1, x, y, rssi));
     }
+    addPoints(algo, points);
 
     double lat, lon;
     try
@@ -213,14 +239,16 @@ TEST(CTA1, CalculatePosition_ReturnsValidCoordinates)
     core::ClusteredTriangulationAlgorithm1 algo;
 
     // Create L-shaped measurement path
+    std::vector<core::DataPoint> points;
     for (int i = 0; i < 6; ++i)
     {
-        algo.processDataPoint(makePoint(i + 1, i * 8.0, 0.0, -50 + i * 2));
+        points.push_back(makePoint(i + 1, i * 8.0, 0.0, -50 + i * 2));
     }
     for (int i = 0; i < 6; ++i)
     {
-        algo.processDataPoint(makePoint(i + 7, 40.0, i * 8.0, -50 + i * 2));
+        points.push_back(makePoint(i + 7, 40.0, i * 8.0, -50 + i * 2));
     }
+    addPoints(algo, points);
 
     double lat, lon;
     try
@@ -245,20 +273,22 @@ TEST(CTA1, CalculatePosition_DifferentPrecisions)
     core::ClusteredTriangulationAlgorithm1 algo1, algo2;
 
     // Same data for both
-    auto addData = [](core::ClusteredTriangulationAlgorithm1 &algo)
+    auto createPoints = []()
     {
+        std::vector<core::DataPoint> points;
         for (int i = 0; i < 6; ++i)
         {
-            algo.processDataPoint(makePoint(i + 1, i * 10.0, 0.0, -60 + i * 3));
+            points.push_back(makePoint(i + 1, i * 10.0, 0.0, -60 + i * 3));
         }
         for (int i = 0; i < 6; ++i)
         {
-            algo.processDataPoint(makePoint(i + 7, 50.0, i * 10.0, -60 + i * 3));
+            points.push_back(makePoint(i + 7, 50.0, i * 10.0, -60 + i * 3));
         }
+        return points;
     };
 
-    addData(algo1);
-    addData(algo2);
+    addPoints(algo1, createPoints());
+    addPoints(algo2, createPoints());
 
     double lat1, lon1, lat2, lon2;
     bool success1 = false, success2 = false;
@@ -295,10 +325,12 @@ TEST(CTA1, CalculatePosition_Reset)
     core::ClusteredTriangulationAlgorithm1 algo;
 
     // Add data
+    std::vector<core::DataPoint> points;
     for (int i = 0; i < 8; ++i)
     {
-        algo.processDataPoint(makePoint(i + 1, i * 5.0, i * 5.0, -50));
+        points.push_back(makePoint(i + 1, i * 5.0, i * 5.0, -50));
     }
+    addPoints(algo, points);
 
     algo.reset();
 
@@ -316,10 +348,12 @@ TEST(CTA1, EdgeCase_AllSameRSSI)
     core::ClusteredTriangulationAlgorithm1 algo;
 
     // All points have identical RSSI - gradient is zero
+    std::vector<core::DataPoint> points;
     for (int i = 0; i < 10; ++i)
     {
-        algo.processDataPoint(makePoint(i + 1, i * 5.0, (i % 2) * 10.0, -50));
+        points.push_back(makePoint(i + 1, i * 5.0, (i % 2) * 10.0, -50));
     }
+    addPoints(algo, points);
 
     double lat, lon;
     // Should handle gracefully (may throw or return some result)
@@ -339,12 +373,14 @@ TEST(CTA1, EdgeCase_VeryClosePoints)
     core::ClusteredTriangulationAlgorithm1 algo;
 
     // Points very close together (should be coalesced)
+    std::vector<core::DataPoint> points;
     for (int i = 0; i < 20; ++i)
     {
         double x = (i / 5) * 20.0 + (i % 5) * 0.1;
         double y = ((i / 5) % 2) * 20.0;
-        algo.processDataPoint(makePoint(i + 1, x, y, -50 + (i / 5) * 5));
+        points.push_back(makePoint(i + 1, x, y, -50 + (i / 5) * 5));
     }
+    addPoints(algo, points);
 
     double lat, lon;
     try
@@ -365,14 +401,16 @@ TEST(CTA1, EdgeCase_NegativeCoordinates)
     core::ClusteredTriangulationAlgorithm1 algo;
 
     // Points in negative coordinate space
+    std::vector<core::DataPoint> points;
     for (int i = 0; i < 6; ++i)
     {
-        algo.processDataPoint(makePoint(i + 1, -i * 10.0, 0.0, -50 + i * 2));
+        points.push_back(makePoint(i + 1, -i * 10.0, 0.0, -50 + i * 2));
     }
     for (int i = 0; i < 6; ++i)
     {
-        algo.processDataPoint(makePoint(i + 7, -50.0, -i * 10.0, -50 + i * 2));
+        points.push_back(makePoint(i + 7, -50.0, -i * 10.0, -50 + i * 2));
     }
+    addPoints(algo, points);
 
     double lat, lon;
     try

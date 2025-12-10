@@ -7,9 +7,12 @@ static core::DataPoint makePoint(int id, double x, double y, double rssi)
 {
     core::DataPoint dp;
     dp.point_id = id;
+    dp.zero_latitude = 57.0;
+    dp.zero_longitude = 11.0;
     dp.setX(x);
     dp.setY(y);
     dp.rssi = static_cast<int>(rssi);
+    dp.timestamp_ms = id * 1000;
     return dp;
 }
 
@@ -235,6 +238,19 @@ TEST(Cluster, GeometricRatio_ElongatedCluster)
     EXPECT_LT(ratio, 0.1); // Should be small for elongated cluster
 }
 
+TEST(Cluster, GeometricRatio_SquareCluster)
+{
+    core::PointCluster cluster;
+    // Square cluster should have ratio close to 1.0
+    cluster.addPoint(makePoint(1, 0.0, 0.0, -50.0));
+    cluster.addPoint(makePoint(2, 10.0, 0.0, -50.0));
+    cluster.addPoint(makePoint(3, 10.0, 10.0, -50.0));
+    cluster.addPoint(makePoint(4, 0.0, 10.0, -50.0));
+
+    double ratio = cluster.geometricRatio();
+    EXPECT_GT(ratio, 0.5); // Should be close to 1.0 for a square
+}
+
 TEST(Cluster, GeometricRatio_TooFewPoints)
 {
     core::PointCluster cluster;
@@ -269,6 +285,13 @@ TEST(Cluster, Area_TooFewPoints)
 // Scoring
 // ====================
 
+TEST(Cluster, SetScore)
+{
+    core::PointCluster cluster;
+    cluster.setScore(42.5);
+    EXPECT_DOUBLE_EQ(cluster.score, 42.5);
+}
+
 TEST(Cluster, GetAndSetScore)
 {
     core::PointCluster cluster;
@@ -291,4 +314,38 @@ TEST(Cluster, GetAndSetScore)
     EXPECT_EQ(cluster.score, score);
     // Just verify it returns a finite number
     EXPECT_TRUE(std::isfinite(score));
+}
+
+TEST(Cluster, GetAndSetScore_EmptyCluster)
+{
+    core::PointCluster cluster;
+
+    double score = cluster.getAndSetScore(
+        1.0, 100.0, 50.0, 1.0, 1.0, 1.0, -30.0, 1.0);
+
+    // Empty cluster should still return a valid (possibly 0) score
+    EXPECT_TRUE(std::isfinite(score));
+}
+
+// ====================
+// AoA Properties
+// ====================
+
+TEST(Cluster, AoAProperties)
+{
+    core::PointCluster cluster;
+
+    // Initially zero
+    EXPECT_DOUBLE_EQ(cluster.estimated_aoa, 0.0);
+    EXPECT_DOUBLE_EQ(cluster.aoa_x, 0.0);
+    EXPECT_DOUBLE_EQ(cluster.aoa_y, 0.0);
+
+    // Can be set
+    cluster.estimated_aoa = 1.57; // ~90 degrees
+    cluster.aoa_x = 0.0;
+    cluster.aoa_y = 1.0;
+
+    EXPECT_DOUBLE_EQ(cluster.estimated_aoa, 1.57);
+    EXPECT_DOUBLE_EQ(cluster.aoa_x, 0.0);
+    EXPECT_DOUBLE_EQ(cluster.aoa_y, 1.0);
 }

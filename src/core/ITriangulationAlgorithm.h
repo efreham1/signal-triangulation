@@ -6,6 +6,8 @@
 #include <vector>
 #include <memory>
 #include <functional>
+#include <map>
+#include <string>
 
 namespace core
 {
@@ -20,7 +22,7 @@ namespace core
         bool plottingEnabled = false;
 
         virtual ~ITriangulationAlgorithm() = default;
-        virtual void processDataPoint(const DataPoint &point) = 0;
+        virtual void addDataPointMap(std::map<std::string, std::vector<core::DataPoint>> dp_map, double zero_latitude, double zero_longitude) = 0;
         virtual void calculatePosition(double &out_latitude, double &out_longitude, double precision, double timeout) = 0;
         virtual void reset() = 0;
     };

@@ -43,11 +43,10 @@ static std::string runAppAndCapture(const std::string &full_command)
 }
 
 std::string g_single_file_path;
-std::string g_algorithm_arg;
 
 // Helper to calculate error for a single file
 // Returns -1.0 on failure (parsing/running)
-double calculateErrorForFile(const std::string &filePath, const std::string &forward_args)
+double calculateErrorForFile(const std::string &filePath)
 {
     if (!fs::exists(filePath))
     {
@@ -79,7 +78,7 @@ double calculateErrorForFile(const std::string &filePath, const std::string &for
     double srcLon = j["source_pos"]["y"].get<double>();
 
     // Run app and capture stdout (expects the line: "New position calculated: Lat=..., Lon=...")
-    std::string full_command = std::string(APP_BIN_PATH) + " --signals-file " + filePath + " " + g_algorithm_arg;
+    std::string full_command = std::string(APP_BIN_PATH) + " --signals-file " + filePath;
     std::string out = runAppAndCapture(full_command);
     
     std::regex re(R"(Calculated Position: Latitude\s*=\s*([0-9\.\-eE]+)\s*,\s*Longitude\s*=\s*([0-9\.\-eE]+))");
@@ -109,7 +108,7 @@ TEST(Triangulation, SingleFileErrorCheck)
         GTEST_SKIP() << "g_single_file_path not set";
     }
 
-    double err = calculateErrorForFile(g_single_file_path, g_algorithm_arg);
+    double err = calculateErrorForFile(g_single_file_path);
 
     ASSERT_GE(err, 0.0) << "Failed to calculate error for file: " << g_single_file_path;
 
@@ -142,7 +141,7 @@ TEST(Triangulation, GlobalSummary)
     {
         if (entry.path().extension() == ".json")
         {
-            double err = calculateErrorForFile(entry.path().string(), "");
+            double err = calculateErrorForFile(entry.path().string());
             if (err >= 0.0)
             {
                 results.push_back({entry.path().filename().string(), err});
@@ -203,18 +202,10 @@ int main (int argc, char **argv)
                 g_single_file_path = argv[++i];
             }
         }
-        else {
-            if (i + 1 < argc && std::string(argv[i+1]).rfind("--", 0) != 0) {
-                g_algorithm_arg += std::string(argv[i]) + " " + std::string(argv[i+1]) + " ";
-                i++;
-            } else {
-                std::cerr << "[WARNING] " << arg << " flag requires a value, but none was provided or next argument is another flag." << std::endl;
-            }
-        }
     }
 
     // Print full command for debugging
-    std::cout << "[DEBUG] Running tests with algorithm args: " << g_algorithm_arg << std::endl;
+    std::cout << "[DEBUG] Running tests" << std::endl;
 
     return RUN_ALL_TESTS();
 }

@@ -7,7 +7,7 @@ using json = nlohmann::json;
 
 namespace core
 {
-    std::vector<DataPoint> JsonSignalParser::parseFileToVector(const std::string &path)
+    std::map<std::string, std::vector<core::DataPoint>> JsonSignalParser::parseFileToVector(const std::string &path, double &zero_latitude, double &zero_longitude)
     {
         std::ifstream file(path);
         if (!file.is_open())
@@ -30,11 +30,10 @@ namespace core
             throw std::runtime_error("JSON measurements array is empty");
         }
         // Set zero latitude and longitude to the first entry's values
-        double zero_latitude = arr[0].value("latitude", 0.0);
-        double zero_longitude = arr[0].value("longitude", 0.0);
+        zero_latitude = arr[0].value("latitude", 0.0);
+        zero_longitude = arr[0].value("longitude", 0.0);
 
-        std::vector<DataPoint> result;
-        result.reserve(arr.size());
+        std::map<std::string, std::vector<core::DataPoint>> result;
 
         for (const auto &item : arr)
         {
@@ -47,7 +46,7 @@ namespace core
 
             DataPoint dp(lat, lon, zero_latitude, zero_longitude, rssi, timestamp, ssid_in, dev_id);
 
-            result.push_back(dp);
+            result[dev_id].push_back(dp);
         }
 
         return result;

@@ -25,7 +25,7 @@ namespace core
         void applyParameters(const AlgorithmParameters &params);
 
         // CTA1-specific methods
-        void clusterData();
+        void clusterData(std::vector<DataPoint> &m_points);
         std::vector<std::pair<double, double>> findIntersections();
         void gradientDescent(double &out_x, double &out_y,
                              std::vector<std::pair<double, double>> intersections,

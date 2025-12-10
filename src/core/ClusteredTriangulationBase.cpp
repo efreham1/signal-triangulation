@@ -19,28 +19,29 @@ namespace core
     ClusteredTriangulationBase::ClusteredTriangulationBase() = default;
     ClusteredTriangulationBase::~ClusteredTriangulationBase() = default;
 
-    void ClusteredTriangulationBase::processDataPoint(const DataPoint &point)
-    {
-        if (!point.validCoordinates())
+    void ClusteredTriangulationBase::addDataPointMap(std::map<std::string, std::vector<core::DataPoint>> dp_map, double zero_latitude, double zero_longitude)
+    {   
+        if (dp_map.empty() || dp_map.begin()->second.empty())
         {
-            throw std::invalid_argument("ClusteredTriangulationBase: invalid coordinates");
+            throw std::invalid_argument("ClusteredTriangulationBase: empty data point map provided");
         }
 
-        auto it = std::lower_bound(
-            m_points.begin(), m_points.end(), point.timestamp_ms,
-            [](const DataPoint &a, const int64_t t)
-            { return a.timestamp_ms < t; });
-        m_points.insert(it, point);
-
-        spdlog::debug("ClusteredTriangulationBase: added DataPoint (x={}, y={}, rssi={}, timestamp={})",
-                      point.getX(), point.getY(), point.rssi, point.timestamp_ms);
+        m_total_points = 0;
+        m_point_map = std::move(dp_map);
+        m_zero_latitude = zero_latitude;
+        m_zero_longitude = zero_longitude;
+        for (const auto &pair : m_point_map)
+        {
+            m_total_points += pair.second.size();
+        }
     }
 
     void ClusteredTriangulationBase::reset()
     {
-        m_points.clear();
+        m_point_map.clear();
         m_clusters.clear();
         distance_cache.clear();
+        m_total_points = 0;
     }
 
     std::pair<int64_t, int64_t> ClusteredTriangulationBase::makeDistanceKey(int64_t id1, int64_t id2) const
@@ -69,7 +70,7 @@ namespace core
         return distance;
     }
 
-    void ClusteredTriangulationBase::reorderDataPointsByDistance()
+    void ClusteredTriangulationBase::reorderDataPointsByDistance(std::vector<DataPoint> &m_points)
     {
         if (m_points.size() < 3)
         {
@@ -143,13 +144,13 @@ namespace core
             }
         }
 
-        m_points = std::move(current_path);
+        m_points = current_path;
 
         spdlog::info("ClusteredTriangulationBase: optimized path. Length reduced from {:.2f}m to {:.2f}m ({} iterations)",
                      initial_dist, total_dist, iterations);
     }
 
-    void ClusteredTriangulationBase::coalescePoints(double coalition_distance)
+    void ClusteredTriangulationBase::coalescePoints(double coalition_distance, std::vector<DataPoint> &m_points)
     {
         for (int i = 0; i < static_cast<int>(m_points.size()); ++i)
         {
@@ -285,10 +286,15 @@ namespace core
 
     void ClusteredTriangulationBase::printPointsAndClusters() const
     {
-        std::cout << "Data Points:" << std::endl;
-        for (const auto &point : m_points)
+        for (const auto &pair : m_point_map)
         {
-            std::cout << "  x: " << point.getX() << ", y: " << point.getY() << ", rssi: " << point.rssi << std::endl;
+            auto &m_points = pair.second;
+
+            std::cout << "Data Points:" << std::endl;
+            for (const auto &point : m_points)
+            {
+                std::cout << "  x: " << point.getX() << ", y: " << point.getY() << ", rssi: " << point.rssi << std::endl;
+            }
         }
 
         std::cout << "Clusters:" << std::endl;
@@ -311,22 +317,26 @@ namespace core
 
         // Print point-to-cluster membership summary
         std::cout << "Point Membership:" << std::endl;
-        for (const auto &point : m_points)
+        for (const auto &pair : m_point_map)
         {
-            std::cout << "  point (" << point.getX() << ", " << point.getY() << ") in clusters:";
-            for (size_t i = 0; i < m_clusters.size(); ++i)
+            auto &m_points = pair.second;
+            for (const auto &point : m_points)
             {
-                for (const auto &cp : m_clusters[i].points)
+                std::cout << "  point (" << point.getX() << ", " << point.getY() << ") in clusters:";
+                for (size_t i = 0; i < m_clusters.size(); ++i)
                 {
-                    if (std::abs(cp.getX() - point.getX()) < 1e-9 &&
-                        std::abs(cp.getY() - point.getY()) < 1e-9)
+                    for (const auto &cp : m_clusters[i].points)
                     {
-                        std::cout << " " << i;
-                        break;
+                        if (std::abs(cp.getX() - point.getX()) < 1e-9 &&
+                            std::abs(cp.getY() - point.getY()) < 1e-9)
+                        {
+                            std::cout << " " << i;
+                            break;
+                        }
                     }
                 }
+                std::cout << std::endl;
             }
-            std::cout << std::endl;
         }
     }
 
