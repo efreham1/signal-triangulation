@@ -44,10 +44,10 @@ namespace core
 			throw std::runtime_error("ClusteredTriangulationAlgorithm1: not enough data points");
 		}
 
-		reorderDataPointsByDistance();
 		for (auto &pair : m_point_map)
 		{
 			auto &m_points = pair.second;
+			reorderDataPointsByDistance(m_points);
 			clusterData(m_points);
 		}
 		estimateAoAForClusters(m_cluster_min_points);

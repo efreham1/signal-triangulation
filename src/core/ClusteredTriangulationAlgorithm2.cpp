@@ -87,12 +87,21 @@ namespace core
 
 	void ClusteredTriangulationAlgorithm2::calculatePosition(double &out_latitude, double &out_longitude, double precision, double timeout)
 	{
-		reorderDataPointsByDistance();
+		m_clusters.clear();
+
 		for (auto &pair : m_point_map)
 		{
+			spdlog::info("ClusteredTriangulationBase: Device '{}' has {} data points", pair.first, pair.second.size());
+			
 			auto &m_points = pair.second;
+
+			reorderDataPointsByDistance(m_points);
 			clusterData(m_points);
 		}
+
+		spdlog::info("ClusteredTriangulationAlgorithm2: formed a total of {} clusters from {} data points",
+					 m_clusters.size(), m_total_points);
+
 		estimateAoAForClusters(m_cluster_min_points);
 
 		double global_best_x = 0.0;
@@ -322,6 +331,9 @@ namespace core
 				{
 					m_clusters.push_back(cluster);
 					m_clusters_evaluated++;
+
+					spdlog::info("ClusteredTriangulationAlgorithm2: added cluster with {} points, score {:.2f}",
+								 cluster.size(), cluster.score);
 				}
 			}
 		}
@@ -403,9 +415,12 @@ namespace core
 	{
 		coalescePoints(m_coalition_distance, m_points);
 
+		size_t clusters_before = m_clusters.size();
 		findBestClusters(m_points);
+		size_t clusters_added = m_clusters.size() - clusters_before;
 
-		spdlog::info("ClusteredTriangulationAlgorithm2: formed {} clusters from {} data points", m_clusters.size(), m_total_points);
+		spdlog::info("ClusteredTriangulationAlgorithm2: added {} clusters from this device ({} total)",
+					 clusters_added, m_clusters.size());
 
 		if (m_clusters.size() < 2)
 		{
