@@ -113,21 +113,6 @@ static std::map<std::string, std::vector<core::DataPoint>> makePointMap(const st
     return m;
 }
 
-// Helper to add a single point to an algorithm (using default device)
-static void addPoint(TestableTriangulationBase &algo, const core::DataPoint &p, double zero_lat = 57.0, double zero_lon = 12.0)
-{
-    // Check if we already have data - if so, add to existing
-    if (algo.m_point_map.find("default") != algo.m_point_map.end())
-    {
-        algo.m_point_map["default"].push_back(p);
-        algo.m_total_points++;
-    }
-    else
-    {
-        algo.addDataPointMap(makePointMap(p), zero_lat, zero_lon);
-    }
-}
-
 // ====================
 // fitPlaneNormal Tests
 // ====================
@@ -401,7 +386,7 @@ TEST(CTABase, ReorderByDistance_TooFewPoints)
     algo.addDataPointMap(makePointMap(points), 57.0, 12.0);
 
     // Should not throw with < 3 points
-    algo.reorderDataPointsByDistance();
+    algo.reorderDataPointsByDistance(points);
 
     EXPECT_EQ(algo.m_point_map["default"].size(), 2u);
 }
@@ -419,9 +404,9 @@ TEST(CTABase, ReorderByDistance_OptimizesPath)
     points.push_back(makePoint(4, 30.0, 0.0, -50));
     algo.addDataPointMap(makePointMap(points), 57.0, 12.0);
 
-    algo.reorderDataPointsByDistance();
-
     auto &devicePoints = algo.m_point_map["default"];
+    algo.reorderDataPointsByDistance(devicePoints);
+
 
     // After optimization, consecutive points should be close
     double total_dist = 0.0;
@@ -652,7 +637,7 @@ TEST(CTABase, FullPipeline)
 
     EXPECT_EQ(algo.m_total_points, 10u);
 
-    algo.reorderDataPointsByDistance();
+    algo.reorderDataPointsByDistance(points);
     algo.coalescePoints(2.0, algo.m_point_map["default"]);
     algo.clusterData();
 
