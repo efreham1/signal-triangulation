@@ -1,5 +1,6 @@
 #include "../src/core/ClusteredTriangulationBase.h"
 #include "../src/core/Cluster.h"
+#include "../src/core/PointDistanceCache.hpp"
 
 #include <vector>
 #include <random>
@@ -23,10 +24,8 @@ class TestableTriangulationBase : public core::ClusteredTriangulationBase
 public:
     // Expose protected members for testing
     using ClusteredTriangulationBase::coalescePoints;
-    using ClusteredTriangulationBase::distance_cache;
     using ClusteredTriangulationBase::estimateAoAForClusters;
     using ClusteredTriangulationBase::getCost;
-    using ClusteredTriangulationBase::getDistance;
     using ClusteredTriangulationBase::m_clusters;
     using ClusteredTriangulationBase::m_point_map;
     using ClusteredTriangulationBase::m_total_points;
@@ -302,75 +301,12 @@ TEST(CTABase, Reset_ClearsAll)
     points.push_back(makePoint(2, 20.0, 30.0, -60));
     algo.addDataPointMap(makePointMap(points), 57.0, 12.0);
 
-    // Force distance cache population
-    auto &devicePoints = algo.m_point_map["default"];
-    algo.getDistance(devicePoints[0], devicePoints[1]);
-
     algo.reset();
 
     EXPECT_TRUE(algo.m_point_map.empty());
     EXPECT_TRUE(algo.m_clusters.empty());
-    EXPECT_TRUE(algo.distance_cache.empty());
 }
 
-// ====================
-// getDistance Tests
-// ====================
-
-TEST(CTABase, GetDistance_CorrectCalculation)
-{
-    TestableTriangulationBase algo;
-    auto p1 = makePoint(1, 0.0, 0.0, -50);
-    auto p2 = makePoint(2, 3.0, 4.0, -50);
-
-    std::vector<core::DataPoint> points = {p1, p2};
-    algo.addDataPointMap(makePointMap(points), 57.0, 12.0);
-
-    auto &devicePoints = algo.m_point_map["default"];
-    double dist = algo.getDistance(devicePoints[0], devicePoints[1]);
-    EXPECT_DOUBLE_EQ(dist, 5.0); // 3-4-5 triangle
-}
-
-TEST(CTABase, GetDistance_CachesResult)
-{
-    TestableTriangulationBase algo;
-    auto p1 = makePoint(1, 0.0, 0.0, -50);
-    auto p2 = makePoint(2, 10.0, 0.0, -50);
-
-    std::vector<core::DataPoint> points = {p1, p2};
-    algo.addDataPointMap(makePointMap(points), 57.0, 12.0);
-
-    auto &devicePoints = algo.m_point_map["default"];
-
-    EXPECT_TRUE(algo.distance_cache.empty());
-
-    algo.getDistance(devicePoints[0], devicePoints[1]);
-    EXPECT_EQ(algo.distance_cache.size(), 1u);
-
-    // Second call should use cache
-    double dist = algo.getDistance(devicePoints[0], devicePoints[1]);
-    EXPECT_DOUBLE_EQ(dist, 10.0);
-    EXPECT_EQ(algo.distance_cache.size(), 1u); // Still just one entry
-}
-
-TEST(CTABase, GetDistance_SymmetricKey)
-{
-    TestableTriangulationBase algo;
-    auto p1 = makePoint(1, 0.0, 0.0, -50);
-    auto p2 = makePoint(2, 10.0, 0.0, -50);
-
-    std::vector<core::DataPoint> points = {p1, p2};
-    algo.addDataPointMap(makePointMap(points), 57.0, 12.0);
-
-    auto &devicePoints = algo.m_point_map["default"];
-
-    // Call with different order
-    double dist1 = algo.getDistance(devicePoints[0], devicePoints[1]);
-    double dist2 = algo.getDistance(devicePoints[1], devicePoints[0]);
-
-    EXPECT_DOUBLE_EQ(dist1, dist2);
-    EXPECT_EQ(algo.distance_cache.size(), 1u); // Same key
-}
 
 // ====================
 // reorderDataPointsByDistance Tests
@@ -412,7 +348,7 @@ TEST(CTABase, ReorderByDistance_OptimizesPath)
     double total_dist = 0.0;
     for (size_t i = 0; i < devicePoints.size() - 1; ++i)
     {
-        total_dist += algo.getDistance(devicePoints[i], devicePoints[i + 1]);
+        total_dist += core::PointDistanceCache::getInstance().getDistance(devicePoints[i], devicePoints[i + 1]);
     }
 
     // Optimal path length is 30m (0->10->20->30)

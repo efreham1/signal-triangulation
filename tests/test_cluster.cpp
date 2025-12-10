@@ -189,7 +189,7 @@ TEST(Cluster, BoundingBox_TooFewPoints)
     cluster.addPoint(makePoint(1, 0.0, 0.0, -50.0));
     cluster.addPoint(makePoint(2, 1.0, 0.0, -50.0));
 
-    auto bbox = cluster.computePrincipalBoundingBox();
+    auto bbox = cluster.bbox;
     EXPECT_FALSE(bbox.valid);
 }
 
@@ -202,7 +202,8 @@ TEST(Cluster, BoundingBox_SquareCluster)
     cluster.addPoint(makePoint(3, 10.0, 10.0, -50.0));
     cluster.addPoint(makePoint(4, 0.0, 10.0, -50.0));
 
-    auto bbox = cluster.computePrincipalBoundingBox();
+    auto bbox = cluster.bbox;
+
     EXPECT_TRUE(bbox.valid);
 
     // For a square, the diagonal is the principal axis
@@ -220,7 +221,7 @@ TEST(Cluster, BoundingBox_ElongatedCluster)
     cluster.addPoint(makePoint(2, 100.0, 0.0, -50.0));
     cluster.addPoint(makePoint(3, 50.0, 1.0, -50.0));
 
-    auto bbox = cluster.computePrincipalBoundingBox();
+    auto bbox = cluster.bbox;
     EXPECT_TRUE(bbox.valid);
     EXPECT_GT(bbox.range_u, bbox.range_v); // Principal axis is longer
 }

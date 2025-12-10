@@ -1,4 +1,5 @@
 #include "ClusteredTriangulationAlgorithm2.h"
+#include "PointDistanceCache.hpp"
 
 #include <stdexcept>
 #include <algorithm>
@@ -370,7 +371,8 @@ namespace core
 				continue;
 			}
 
-			double distance = getDistance(points[i], points[j]);
+			double distance = core::PointDistanceCache::getInstance().getDistance(points[i], points[j]); 
+				
 			if (distance <= m_max_internal_distance)
 			{
 				candidate_indices.push_back(j);

@@ -10,6 +10,16 @@ namespace core
     class PointCluster
     {
     public:
+    /**
+     * @brief Bounding box in principal axis coordinate system.
+     * The principal axis is defined by the two furthest points in the cluster.
+     */
+    struct BoundingBox
+    {
+        double range_u; // Range along principal axis (longest dimension)
+        double range_v; // Range along perpendicular axis
+        bool valid;     // Whether computation succeeded
+    };
         std::vector<DataPoint> points;
         double estimated_aoa;
         double avg_rssi;
@@ -18,6 +28,10 @@ namespace core
         double aoa_x;
         double aoa_y;
         double score;
+        BoundingBox bbox;
+        size_t furthest_idx1;
+        size_t furthest_idx2;
+        double furthest_distance;
 
         PointCluster();
         ~PointCluster() = default;
@@ -33,24 +47,6 @@ namespace core
                         double variance_weight, double bottom_rssi_threshold, double rssi_weight);
 
         /**
-         * @brief Bounding box in principal axis coordinate system.
-         * The principal axis is defined by the two furthest points in the cluster.
-         */
-        struct BoundingBox
-        {
-            double range_u; // Range along principal axis (longest dimension)
-            double range_v; // Range along perpendicular axis
-            bool valid;     // Whether computation succeeded
-        };
-
-        /**
-         * @brief Compute bounding box aligned to principal axes.
-         * Principal axis is the line connecting the two furthest points.
-         * @return BoundingBox with range_u (principal) and range_v (perpendicular)
-         */
-        BoundingBox computePrincipalBoundingBox() const;
-
-        /**
          * @brief Ratio of perpendicular range to principal range.
          * A value close to 1.0 means the cluster is roughly square.
          * A value close to 0.0 means the cluster is elongated.
@@ -63,6 +59,10 @@ namespace core
          * @return Area in square units, or 0.0 if invalid
          */
         double area() const;
+
+    private:
+        void recomputeBoundingBox(size_t new_idx);
+        void computeBoundingBox();
     };
 
 } // namespace core

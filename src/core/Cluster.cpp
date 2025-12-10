@@ -1,4 +1,5 @@
 #include "Cluster.h"
+#include "PointDistanceCache.hpp"
 
 #include <cmath>
 #include <limits>
@@ -23,11 +24,13 @@ namespace core
         // Update centroid
         double previous_total_x = centroid_x * static_cast<double>(points.size() - 1);
         double previous_total_y = centroid_y * static_cast<double>(points.size() - 1);
-        centroid_x = (previous_total_x + point.getX()) / static_cast<double>(points.size());
-        centroid_y = (previous_total_y + point.getY()) / static_cast<double>(points.size());
+        centroid_x = (previous_total_x + point.getXUnsafe()) / static_cast<double>(points.size());
+        centroid_y = (previous_total_y + point.getYUnsafe()) / static_cast<double>(points.size());
 
         spdlog::debug("PointCluster: added point (x={}, y={}, rssi={}), new centroid (x={}, y={}), avg_rssi={}",
-                      point.getX(), point.getY(), point.rssi, centroid_x, centroid_y, avg_rssi);
+                      point.getXUnsafe(), point.getYUnsafe(), point.rssi, centroid_x, centroid_y, avg_rssi);
+        
+        recomputeBoundingBox(points.size() - 1);
     }
 
     void PointCluster::removePoint(const DataPoint &point)
@@ -37,6 +40,7 @@ namespace core
 
         if (it != points.end())
         {
+            size_t idx = std::distance(points.begin(), it);
             points.erase(it);
 
             // Recalculate average RSSI
@@ -49,8 +53,8 @@ namespace core
                 for (const auto &p : points)
                 {
                     total_rssi += p.rssi;
-                    total_x += p.getX();
-                    total_y += p.getY();
+                    total_x += p.getXUnsafe();
+                    total_y += p.getYUnsafe();
                 }
 
                 avg_rssi = total_rssi / static_cast<double>(points.size());
@@ -66,6 +70,11 @@ namespace core
 
             spdlog::debug("PointCluster: removed point (id={}), new centroid (x={}, y={}), avg_rssi={}",
                           point.point_id, centroid_x, centroid_y, avg_rssi);
+
+            if (idx == furthest_idx1 || idx == furthest_idx2)
+            {
+                computeBoundingBox();
+            }
         }
     }
 
@@ -137,53 +146,53 @@ namespace core
         return points.size();
     }
 
-    PointCluster::BoundingBox PointCluster::computePrincipalBoundingBox() const
+    void PointCluster::recomputeBoundingBox(size_t new_idx)
     {
-        BoundingBox bbox = {0.0, 0.0, false};
 
         if (points.size() < 3)
         {
-            return bbox;
+            furthest_distance = 0.0;
+            furthest_idx1 = 0;
+            furthest_idx2 = 0;
+            bbox.valid = false;
+            return;
         }
 
-        // Find the two furthest points
-        int idx1 = 0, idx2 = 1;
-        double furthest_distance = 0.0;
+        double sqrdist = furthest_distance*furthest_distance;
+        size_t idx1 = furthest_idx1;;
+        size_t idx2 = furthest_idx2;
 
-        for (size_t i = 0; i < points.size(); ++i)
+        for (size_t j = 0; j < points.size(); ++j)
         {
-            for (size_t j = i + 1; j < points.size(); ++j)
+            if (j == new_idx)
             {
-                double dx = points[i].getX() - points[j].getX();
-                double dy = points[i].getY() - points[j].getY();
-                double d = dx * dx + dy * dy;
-                if (d > furthest_distance)
-                {
-                    furthest_distance = d;
-                    idx1 = static_cast<int>(i);
-                    idx2 = static_cast<int>(j);
-                }
+                continue;
+            }
+
+            double dx = points[new_idx].getXUnsafe() - points[j].getXUnsafe();
+            double dy = points[new_idx].getYUnsafe() - points[j].getYUnsafe();
+            double d = dx * dx + dy * dy;
+            if (d > sqrdist)
+            {
+                sqrdist = d;
+                idx1 = new_idx;
+                idx2 = j;
             }
         }
 
-        if (furthest_distance == 0.0)
-        {
-            return bbox;
-        }
+        furthest_distance = std::sqrt(sqrdist);
+        furthest_idx1 = idx1;
+        furthest_idx2 = idx2;
 
         // Get unit vector along the line between the two furthest points
-        double x1 = points[idx1].getX();
-        double y1 = points[idx1].getY();
-        double x2 = points[idx2].getX();
-        double y2 = points[idx2].getY();
+        double x1 = points[furthest_idx1].getXUnsafe();
+        double y1 = points[furthest_idx1].getYUnsafe();
+        double x2 = points[furthest_idx2].getXUnsafe();
+        double y2 = points[furthest_idx2].getYUnsafe();
         double ux = x2 - x1;
         double uy = y2 - y1;
-        double un = std::sqrt(ux * ux + uy * uy);
+        double un = furthest_distance;
 
-        if (un == 0.0)
-        {
-            return bbox;
-        }
 
         ux /= un;
         uy /= un;
@@ -191,10 +200,6 @@ namespace core
         // Perpendicular unit vector
         double vx = -uy;
         double vy = ux;
-
-        spdlog::debug("PointCluster: furthest points are {} (x={}, y={}) and {} (x={}, y={}), "
-                      "unit vector ({}, {}), perpendicular ({}, {})",
-                      idx1, x1, y1, idx2, x2, y2, ux, uy, vx, vy);
 
         // Project points into this coordinate system (origin at centroid)
         double min_u = std::numeric_limits<double>::infinity();
@@ -204,8 +209,86 @@ namespace core
 
         for (const auto &p : points)
         {
-            double dx = p.getX() - centroid_x;
-            double dy = p.getY() - centroid_y;
+            double dx = p.getXUnsafe() - centroid_x;
+            double dy = p.getYUnsafe() - centroid_y;
+            double pu = dx * ux + dy * uy;
+            double pv = dx * vx + dy * vy;
+            min_u = std::min(min_u, pu);
+            max_u = std::max(max_u, pu);
+            min_v = std::min(min_v, pv);
+            max_v = std::max(max_v, pv);
+        }
+
+        bbox.range_u = max_u - min_u;
+        bbox.range_v = max_v - min_v;
+        bbox.valid = true;
+    }
+
+    void PointCluster::computeBoundingBox()
+    {
+        if (points.size() < 3)
+        {
+            furthest_distance = 0.0;
+            furthest_idx1 = 0;
+            furthest_idx2 = 0;
+            bbox.valid = false;
+            return;
+        }
+        double sqrdist = 0.0;
+        size_t idx1 = 0;;
+        size_t idx2 = 0;
+        for (size_t i = 0; i < points.size(); ++i)
+        {
+            for (size_t j = i + 1; j < points.size(); ++j)
+            {
+                double dx = points[i].getXUnsafe() - points[j].getXUnsafe();
+                double dy = points[i].getYUnsafe() - points[j].getYUnsafe();
+                double d = dx * dx + dy * dy;
+                if (d > sqrdist)
+                {
+                    sqrdist = d;
+                    idx1 = i;
+                    idx2 = j;
+                }
+            }
+        }
+
+        furthest_distance = std::sqrt(sqrdist);
+        furthest_idx1 = idx1;
+        furthest_idx2 = idx2;
+
+        if (furthest_distance == 0.0)
+        {
+            bbox.valid = false;
+            return;
+        }
+
+        // Get unit vector along the line between the two furthest points
+        double x1 = points[furthest_idx1].getXUnsafe();
+        double y1 = points[furthest_idx1].getYUnsafe();
+        double x2 = points[furthest_idx2].getXUnsafe();
+        double y2 = points[furthest_idx2].getYUnsafe();
+        double ux = x2 - x1;
+        double uy = y2 - y1;
+        double un = furthest_distance;
+
+        ux /= un;
+        uy /= un;
+
+        // Perpendicular unit vector
+        double vx = -uy;
+        double vy = ux;
+
+        // Project points into this coordinate system (origin at centroid)
+        double min_u = std::numeric_limits<double>::infinity();
+        double max_u = -std::numeric_limits<double>::infinity();
+        double min_v = std::numeric_limits<double>::infinity();
+        double max_v = -std::numeric_limits<double>::infinity();
+
+        for (const auto &p : points)
+        {
+            double dx = p.getXUnsafe() - centroid_x;
+            double dy = p.getYUnsafe() - centroid_y;
             double pu = dx * ux + dy * uy;
             double pv = dx * vx + dy * vy;
             min_u = std::min(min_u, pu);
@@ -218,13 +301,10 @@ namespace core
         bbox.range_v = max_v - min_v;
         bbox.valid = true;
 
-        return bbox;
     }
 
     double PointCluster::geometricRatio() const
     {
-        BoundingBox bbox = computePrincipalBoundingBox();
-
         if (!bbox.valid || bbox.range_u == 0.0)
         {
             return 0.0;
@@ -235,8 +315,6 @@ namespace core
 
     double PointCluster::area() const
     {
-        BoundingBox bbox = computePrincipalBoundingBox();
-
         if (!bbox.valid)
         {
             return 0.0;

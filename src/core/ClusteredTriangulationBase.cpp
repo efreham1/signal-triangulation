@@ -1,4 +1,5 @@
 #include "ClusteredTriangulationBase.h"
+#include "PointDistanceCache.hpp"
 
 #include <stdexcept>
 #include <algorithm>
@@ -40,35 +41,10 @@ namespace core
     {
         m_point_map.clear();
         m_clusters.clear();
-        distance_cache.clear();
         m_total_points = 0;
     }
 
-    std::pair<int64_t, int64_t> ClusteredTriangulationBase::makeDistanceKey(int64_t id1, int64_t id2) const
-    {
-        return (id1 < id2) ? std::make_pair(id1, id2) : std::make_pair(id2, id1);
-    }
-
-    void ClusteredTriangulationBase::addToDistanceCache(const DataPoint &p1, const DataPoint &p2, double distance)
-    {
-        distance_cache.try_emplace(makeDistanceKey(p1.point_id, p2.point_id), distance);
-    }
-
-    double ClusteredTriangulationBase::getDistance(const DataPoint &p1, const DataPoint &p2)
-    {
-        auto key = makeDistanceKey(p1.point_id, p2.point_id);
-        auto it = distance_cache.find(key);
-        if (it != distance_cache.end())
-        {
-            return it->second;
-        }
-
-        double dx = p1.getX() - p2.getX();
-        double dy = p1.getY() - p2.getY();
-        double distance = std::sqrt(dx * dx + dy * dy);
-        addToDistanceCache(p1, p2, distance);
-        return distance;
-    }
+    
 
     void ClusteredTriangulationBase::reorderDataPointsByDistance(std::vector<DataPoint> &m_points)
     {
@@ -93,12 +69,16 @@ namespace core
 
             for (size_t i = 0; i < remaining.size(); ++i)
             {
-                double d = getDistance(last, remaining[i]);
+                double d = core::PointDistanceCache::getInstance().getDistance(last, remaining[i]);
                 if (d < best_dist)
                 {
                     best_dist = d;
                     best_idx = i;
                 }
+            }
+            if (remaining[best_idx].validCoordinates() == false)
+            {
+                throw std::runtime_error("ClusteredTriangulationBase: invalid coordinates encountered during reordering");
             }
             current_path.push_back(remaining[best_idx]);
             remaining.erase(remaining.begin() + best_idx);
@@ -108,7 +88,7 @@ namespace core
         double total_dist = 0.0;
         for (size_t i = 0; i < current_path.size() - 1; ++i)
         {
-            total_dist += getDistance(current_path[i], current_path[i + 1]);
+            total_dist += core::PointDistanceCache::getInstance().getDistance(current_path[i], current_path[i + 1]);
         }
         double initial_dist = total_dist;
 
@@ -126,12 +106,12 @@ namespace core
             {
                 for (size_t j = i + 1; j < current_path.size() - 1; ++j)
                 {
-                    double d_ab = getDistance(current_path[i], current_path[i + 1]);
-                    double d_cd = getDistance(current_path[j], current_path[j + 1]);
+                    double d_ab = core::PointDistanceCache::getInstance().getDistance(current_path[i], current_path[i + 1]);
+                    double d_cd = core::PointDistanceCache::getInstance().getDistance(current_path[j], current_path[j + 1]);
                     double current_cost = d_ab + d_cd;
 
-                    double d_ac = getDistance(current_path[i], current_path[j]);
-                    double d_bd = getDistance(current_path[i + 1], current_path[j + 1]);
+                    double d_ac = core::PointDistanceCache::getInstance().getDistance(current_path[i], current_path[j]);
+                    double d_bd = core::PointDistanceCache::getInstance().getDistance(current_path[i + 1], current_path[j + 1]);
                     double new_cost = d_ac + d_bd;
 
                     if (new_cost < current_cost)
@@ -154,22 +134,22 @@ namespace core
     {
         for (int i = 0; i < static_cast<int>(m_points.size()); ++i)
         {
-            double old_x_i = m_points[i].getX();
-            double old_y_i = m_points[i].getY();
+            double old_x_i = m_points[i].getXUnsafe();
+            double old_y_i = m_points[i].getYUnsafe();
             for (int j = i + 1; j < static_cast<int>(m_points.size()); ++j)
             {
-                double dx = old_x_i - m_points[j].getX();
-                double dy = old_y_i - m_points[j].getY();
+                double dx = old_x_i - m_points[j].getXUnsafe();
+                double dy = old_y_i - m_points[j].getYUnsafe();
                 double dist2 = dx * dx + dy * dy;
 
                 if (dist2 <= coalition_distance * coalition_distance)
                 {
-                    double new_x = (m_points[i].getX() + m_points[j].getX()) / 2.0;
-                    double new_y = (m_points[i].getY() + m_points[j].getY()) / 2.0;
+                    double new_x = (m_points[i].getXUnsafe() + m_points[j].getXUnsafe()) / 2.0;
+                    double new_y = (m_points[i].getYUnsafe() + m_points[j].getYUnsafe()) / 2.0;
                     double new_rssi = (m_points[i].rssi + m_points[j].rssi) / 2.0;
 
                     spdlog::debug("ClusteredTriangulationBase: coalesced point (x={}, y={}, rssi={}) into (x={}, y={}, rssi={})",
-                                  m_points[j].getX(), m_points[j].getY(), m_points[j].rssi,
+                                  m_points[j].getXUnsafe(), m_points[j].getYUnsafe(), m_points[j].rssi,
                                   new_x, new_y, new_rssi);
 
                     m_points[i].setX(new_x);
@@ -201,8 +181,8 @@ namespace core
             for (size_t i = 0; i < cluster.points.size(); ++i)
             {
                 const auto &point = cluster.points[i];
-                X[i] = point.getX();
-                Y[i] = point.getY();
+                X[i] = point.getXUnsafe();
+                Y[i] = point.getYUnsafe();
                 Z[i] = static_cast<double>(point.rssi);
             }
 

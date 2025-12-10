@@ -6,14 +6,13 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE OFF)
 
-# Optional: enable extra warnings
-if(MSVC)
-    add_compile_options(/W4 /permissive-)
-else()
-    add_compile_options(-Wall -Wextra -Wpedantic -Wconversion)
-endif()
+add_compile_options(-Wall -Wextra -Wpedantic -Wconversion)
 
-# Source layout: all sources live under ./src
+# Profiling build type
+if(CMAKE_BUILD_TYPE STREQUAL "Profiling")
+    add_compile_options(-pg -O3 -g)
+    add_link_options(-pg)
+endif()# Source layout: all sources live under ./src
 set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 
 # Gather sources
