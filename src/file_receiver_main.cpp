@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <spdlog/spdlog.h>
 
-void printHelp(const char* prog_name)
+void printHelp(const char *prog_name)
 {
     std::cout << "Usage: " << prog_name << " [OPTIONS]\n"
               << "\nTiny Wi-Fi upload receiver\n"
@@ -14,16 +14,16 @@ void printHelp(const char* prog_name)
               << std::endl;
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
-    uint16_t port = 8000;
+    uint16_t port = 8080;
     std::string output_dir = "uploads";
 
     // Parse arguments
     for (int i = 1; i < argc; ++i)
     {
         std::string arg = argv[i];
-        
+
         if (arg == "--help" || arg == "-h")
         {
             printHelp(argv[0]);

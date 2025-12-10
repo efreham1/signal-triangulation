@@ -110,7 +110,7 @@
         android:layout_height="wrap_content"
         android:hint="@string/wifi_port_hint"
         android:inputType="number"
-        android:text="8000" />
+        android:text="8080" />
 
     <Button
         android:id="@+id/sendWifiBtn"

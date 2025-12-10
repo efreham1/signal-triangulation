@@ -120,7 +120,7 @@
     <!-- Wi-Fi transfer -->
     <string name="wifi_transfer_title">Send over Wi-Fi (LAN)</string>
     <string name="wifi_host_hint">Receiver IP (e.g. 192.168.1.42)</string>
-    <string name="wifi_port_hint">Port (e.g. 8000)</string>
+    <string name="wifi_port_hint">Port (e.g. 8080)</string>
     <string name="wifi_send">Send last export</string>
     <string name="wifi_send_missing_export">Export first, then send.</string>
     <string name="wifi_send_success">Sent file over Wi-Fi.</string>
