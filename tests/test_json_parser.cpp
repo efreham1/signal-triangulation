@@ -33,6 +33,28 @@ public:
     }
 };
 
+// Helper to get all points from the map as a flat vector
+static std::vector<core::DataPoint> flattenPointMap(const std::map<std::string, std::vector<core::DataPoint>> &pointMap)
+{
+    std::vector<core::DataPoint> result;
+    for (const auto &[device, points] : pointMap)
+    {
+        result.insert(result.end(), points.begin(), points.end());
+    }
+    return result;
+}
+
+// Helper to get total point count from map
+static size_t totalPointCount(const std::map<std::string, std::vector<core::DataPoint>> &pointMap)
+{
+    size_t count = 0;
+    for (const auto &[device, points] : pointMap)
+    {
+        count += points.size();
+    }
+    return count;
+}
+
 // ====================
 // parseFileToVector Tests
 // ====================
@@ -60,9 +82,15 @@ TEST(JsonSignalParser, ParseFileToVector_ValidFile)
         ]
     })");
 
-    auto points = core::JsonSignalParser::parseFileToVector(file.path);
+    double zero_lat = 0.0, zero_lon = 0.0;
+    auto pointMap = core::JsonSignalParser::parseFileToVector(file.path, zero_lat, zero_lon);
+    auto points = flattenPointMap(pointMap);
 
     ASSERT_EQ(points.size(), 2u);
+
+    // Zero coordinates should be set from first measurement
+    EXPECT_DOUBLE_EQ(zero_lat, 57.7);
+    EXPECT_DOUBLE_EQ(zero_lon, 11.9);
 
     // First point should be at origin (zero_lat/lon set from first entry)
     EXPECT_NEAR(points[0].getX(), 0.0, 1e-9);
@@ -91,7 +119,9 @@ TEST(JsonSignalParser, ParseFileToVector_SingleMeasurement)
         ]
     })");
 
-    auto points = core::JsonSignalParser::parseFileToVector(file.path);
+    double zero_lat = 0.0, zero_lon = 0.0;
+    auto pointMap = core::JsonSignalParser::parseFileToVector(file.path, zero_lat, zero_lon);
+    auto points = flattenPointMap(pointMap);
 
     ASSERT_EQ(points.size(), 1u);
     EXPECT_EQ(points[0].rssi, -45);
@@ -109,7 +139,9 @@ TEST(JsonSignalParser, ParseFileToVector_MissingOptionalFields)
         ]
     })");
 
-    auto points = core::JsonSignalParser::parseFileToVector(file.path);
+    double zero_lat = 0.0, zero_lon = 0.0;
+    auto pointMap = core::JsonSignalParser::parseFileToVector(file.path, zero_lat, zero_lon);
+    auto points = flattenPointMap(pointMap);
 
     ASSERT_EQ(points.size(), 1u);
     EXPECT_EQ(points[0].rssi, 0);          // Default value
@@ -120,8 +152,9 @@ TEST(JsonSignalParser, ParseFileToVector_MissingOptionalFields)
 
 TEST(JsonSignalParser, ParseFileToVector_FileNotFound)
 {
+    double zero_lat = 0.0, zero_lon = 0.0;
     EXPECT_THROW(
-        core::JsonSignalParser::parseFileToVector("/nonexistent/path/file.json"),
+        core::JsonSignalParser::parseFileToVector("/nonexistent/path/file.json", zero_lat, zero_lon),
         std::runtime_error);
 }
 
@@ -129,8 +162,9 @@ TEST(JsonSignalParser, ParseFileToVector_InvalidJson)
 {
     TempJsonFile file("{ not valid json }}}");
 
+    double zero_lat = 0.0, zero_lon = 0.0;
     EXPECT_THROW(
-        core::JsonSignalParser::parseFileToVector(file.path),
+        core::JsonSignalParser::parseFileToVector(file.path, zero_lat, zero_lon),
         std::exception); // nlohmann::json throws parse_error
 }
 
@@ -140,8 +174,9 @@ TEST(JsonSignalParser, ParseFileToVector_MissingMeasurementsArray)
         "source_pos": { "x": 57.0, "y": 11.0 }
     })");
 
+    double zero_lat = 0.0, zero_lon = 0.0;
     EXPECT_THROW(
-        core::JsonSignalParser::parseFileToVector(file.path),
+        core::JsonSignalParser::parseFileToVector(file.path, zero_lat, zero_lon),
         std::runtime_error);
 }
 
@@ -151,8 +186,9 @@ TEST(JsonSignalParser, ParseFileToVector_EmptyMeasurementsArray)
         "measurements": []
     })");
 
+    double zero_lat = 0.0, zero_lon = 0.0;
     EXPECT_THROW(
-        core::JsonSignalParser::parseFileToVector(file.path),
+        core::JsonSignalParser::parseFileToVector(file.path, zero_lat, zero_lon),
         std::runtime_error);
 }
 
@@ -162,9 +198,54 @@ TEST(JsonSignalParser, ParseFileToVector_MeasurementsNotArray)
         "measurements": "not an array"
     })");
 
+    double zero_lat = 0.0, zero_lon = 0.0;
     EXPECT_THROW(
-        core::JsonSignalParser::parseFileToVector(file.path),
+        core::JsonSignalParser::parseFileToVector(file.path, zero_lat, zero_lon),
         std::runtime_error);
+}
+
+TEST(JsonSignalParser, ParseFileToVector_MultipleDevices)
+{
+    TempJsonFile file(R"({
+        "measurements": [
+            {
+                "latitude": 57.7,
+                "longitude": 11.9,
+                "rssi": -50,
+                "timestamp": 1000,
+                "deviceID": "device1"
+            },
+            {
+                "latitude": 57.71,
+                "longitude": 11.91,
+                "rssi": -55,
+                "timestamp": 1001,
+                "deviceID": "device2"
+            },
+            {
+                "latitude": 57.72,
+                "longitude": 11.92,
+                "rssi": -60,
+                "timestamp": 1002,
+                "deviceID": "device1"
+            }
+        ]
+    })");
+
+    double zero_lat = 0.0, zero_lon = 0.0;
+    auto pointMap = core::JsonSignalParser::parseFileToVector(file.path, zero_lat, zero_lon);
+
+    // Should have entries for both devices
+    EXPECT_EQ(pointMap.size(), 2u);
+    EXPECT_EQ(totalPointCount(pointMap), 3u);
+
+    // Check device1 has 2 points
+    ASSERT_TRUE(pointMap.find("device1") != pointMap.end());
+    EXPECT_EQ(pointMap.at("device1").size(), 2u);
+
+    // Check device2 has 1 point
+    ASSERT_TRUE(pointMap.find("device2") != pointMap.end());
+    EXPECT_EQ(pointMap.at("device2").size(), 1u);
 }
 
 // ====================
@@ -343,20 +424,23 @@ TEST(JsonSignalParser, ParseFileToSourcePos_EmptyMeasurements)
 TEST(JsonSignalParser, ParseRealRecording)
 {
     std::string path = std::string(RECORDINGS_DIR) + "/FootballField2.json";
-    
-    auto points = core::JsonSignalParser::parseFileToVector(path);
+
+    double zero_lat = 0.0, zero_lon = 0.0;
+    auto pointMap = core::JsonSignalParser::parseFileToVector(path, zero_lat, zero_lon);
+    auto points = flattenPointMap(pointMap);
+
     EXPECT_GT(points.size(), 0u);
-    
+
     // All points should have valid coordinates
     for (const auto &p : points)
     {
         EXPECT_TRUE(p.validCoordinates());
     }
-    
+
     // First point should be at origin
     EXPECT_NEAR(points[0].getX(), 0.0, 1e-9);
     EXPECT_NEAR(points[0].getY(), 0.0, 1e-9);
-    
+
     auto [src_x, src_y] = core::JsonSignalParser::parseFileToSourcePos(path);
     EXPECT_TRUE(std::isfinite(src_x));
     EXPECT_TRUE(std::isfinite(src_y));
