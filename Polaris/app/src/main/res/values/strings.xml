@@ -53,7 +53,7 @@
     <string name="auto_measurement">Auto</string>
     <string name="status_ready">Ready for new measurement</string>
     <string name="status_no_ssid">Select a network first</string>
-    <string name="status_waiting_rssi">Stand still, waiting for RSSI…</string>
+    <string name="status_waiting_rssi">Stand still, measuring RSSI…</string>
     <string name="status_measurement_taken">Measurement complete (%1$d)! Move to the next location.</string>
     <string name="status_measurement_failed">No GPS data for this measurement</string>
     
@@ -61,7 +61,7 @@
     <string name="auto_stop">Stop</string>
     <string name="auto_delay_title">Auto-measure delay (seconds)</string>
     <string name="auto_delay_hint">Seconds between measurements</string>
-    <string name="auto_next_in">Next measurement in %1$d s</string>
+    <string name="auto_next_in">Move to next location, measuring in %1$d s</string>
     
     <string name="accuracy_test_title">Location Accuracy Test</string>
     <string name="accuracy_test_body">This page will run accuracy experiments</string>

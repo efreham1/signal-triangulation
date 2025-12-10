@@ -200,8 +200,8 @@ class MainActivity : AppCompatActivity() {
             } catch (_: TimeoutCancellationException) {
                 // Timeout - allow retry instead of getting stuck
                 withContext(Dispatchers.Main) {
-                    statusText.text = getString(R.string.status_ready)
                     if (!isAutoMeasuring) {
+                        statusText.text = getString(R.string.status_ready)
                         takeMeasurementBtn.isEnabled = true
                     }
                     Toast.makeText(this@MainActivity, getString(R.string.measurement_timeout), Toast.LENGTH_LONG).show()
@@ -225,8 +225,8 @@ class MainActivity : AppCompatActivity() {
 
             if (avgPair == null) {
                 withContext(Dispatchers.Main) {
-                    statusText.text = getString(R.string.status_measurement_failed)
                     if (!isAutoMeasuring) {
+                        statusText.text = getString(R.string.status_measurement_failed)
                         takeMeasurementBtn.isEnabled = true
                     }
                     Toast.makeText(this@MainActivity, getString(R.string.no_location), Toast.LENGTH_SHORT).show()
@@ -247,8 +247,8 @@ class MainActivity : AppCompatActivity() {
             signalDao.insert(record)
 
             withContext(Dispatchers.Main) {
-                statusText.text = getString(R.string.status_measurement_taken, avgPair.second.size)
                 if (!isAutoMeasuring) {
+                    statusText.text = getString(R.string.status_measurement_taken, avgPair.second.size)
                     takeMeasurementBtn.isEnabled = true
                 }
                 Toast.makeText(
@@ -258,7 +258,7 @@ class MainActivity : AppCompatActivity() {
                 ).show()
                 addMeasurementMarker(avgLoc.latitude, avgLoc.longitude, seenTimeMs)
 
-                refreshRecordsView()
+                //refreshRecordsView()
             }
             measurementTargetSsid = null
         }
@@ -321,15 +321,15 @@ class MainActivity : AppCompatActivity() {
 
                 // Wait the configured delay before next measurement
                 var remainingMs = autoMeasureDelayMs
-                while (remainingMs > 0 && isAutoMeasuring) {
+                while ( remainingMs > 0 && isAutoMeasuring) {
                     val secondsLeft = (remainingMs / 1000).toInt() + if (remainingMs % 1000 > 0) 1 else 0
                     statusText.text = getString(R.string.auto_next_in, secondsLeft)
-                    vibrate()
+                    if (secondsLeft <= 3) vibrate()
                     val step = if (remainingMs >= 1000) 1000L else remainingMs
                     delay(step)
                     remainingMs -= step
                 }
-                vibrate(300L)
+                vibrate(400L)
             }
         }
     }
@@ -379,8 +379,8 @@ class MainActivity : AppCompatActivity() {
     private val measureSourceLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
             isMeasuringSource = true
-            // Refresh UI to show the new source position immediately
-            refreshRecordsView()
+
+            //refreshRecordsView()
         }
     }
 
@@ -401,7 +401,6 @@ class MainActivity : AppCompatActivity() {
 
         // UI bindings
         cleanRecordsBtn = findViewById(R.id.cleanRecordsBtn)
-        //allRecordsText = findViewById(R.id.allRecordsText)
         selectSsidBtn = findViewById(R.id.selectSsidBtn)
         exportBtn = findViewById(R.id.exportBtn)
         takeMeasurementBtn = findViewById(R.id.takeMeasurementBtn)
@@ -436,7 +435,7 @@ class MainActivity : AppCompatActivity() {
                         // Only delete signal records, preserve source position
                         signalDao.deleteAll()
                         clearMeasurementMarkers()
-                        refreshRecordsView()
+                        //refreshRecordsView()
                         Toast.makeText(this@MainActivity, getString(R.string.recordings_deleted), Toast.LENGTH_SHORT).show()
                     }
                 }
@@ -468,7 +467,7 @@ class MainActivity : AppCompatActivity() {
         mapView.controller.setCenter(GeoPoint(59.86621683139928, 17.705304877880913))
 
         loadMeasurementMarkersFromDb()
-        refreshRecordsView()
+        //refreshRecordsView()
     }
 
         private fun addMeasurementMarker(lat: Double, lng: Double, timestamp: Long) {
@@ -562,22 +561,21 @@ class MainActivity : AppCompatActivity() {
         } else {
             ActivityCompat.requestPermissions(this, requiredPermissions, locationPermissionRequestCode)
         }
-        refreshRecordsView()
+        //refreshRecordsView()
         checkAndRefreshSource()
     }
 
     private fun checkAndRefreshSource() {
         lifecycleScope.launch {
             val pos = sourcePositionDao.get()
-            
-            // If we just came back from measuring and we have a new measurement, prompt for a name
+
             if (isMeasuringSource) {
                 isMeasuringSource = false
                 if (pos != null) {
                     promptForSourceName()
                 }
             }
-            
+
             updateSourceUi(pos)
         }
     }
@@ -593,7 +591,6 @@ class MainActivity : AppCompatActivity() {
                 val name = input.text.toString().trim()
                 if (name.isNotEmpty()) {
                     sessionSourceName = name
-                    // Refresh UI to show new name
                     lifecycleScope.launch { updateSourceUi(sourcePositionDao.get()) }
                 }
             }
@@ -622,7 +619,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // Only stop streams when activity is actually being destroyed
         RSSIStream.stop()
         LocationStream.stop()
     }
@@ -632,10 +628,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showSsidChoiceDialog() {
-        // Take a snapshot of the current SSID list
         var snapshotList = ssidList.toList()
 
-        // Create an ArrayAdapter that we can update (even if empty initially)
         val adapter = android.widget.ArrayAdapter(
             this,
             android.R.layout.simple_list_item_single_choice,
@@ -701,34 +695,7 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    @SuppressLint("SetTextI18n")
-    private fun refreshRecordsView() {
-        /*
-        lifecycleScope.launch {
-            val source = sourcePositionDao.get()
-            val all = signalDao.getAll()
-            runOnUiThread {
-                val header = if (source?.latitude != null && source.longitude != null) {
-                    getString(R.string.source_position_label, source.latitude, source.longitude)
-                } else {
-                    getString(R.string.source_position_placeholder)
-                }
-
-                if (all.isEmpty()) {
-                    allRecordsText.text = header + getString(R.string.placeholder_db)
-                } else {
-                    val body = all.joinToString("\n") {
-                        // Use string resource for consistent localization/formatting
-                        getString(R.string.record_item, it.ssid, it.latitude, it.longitude, it.rssi, java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(it.timestamp)))
-                    }
-                    allRecordsText.text = header + body
-                }
-            }
-        }
-        */
-    }
-
-    private fun vibrate(durationMs: Long = 100L) {
+    private fun vibrate(durationMs: Long = 200L) {
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val manager = getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
             manager.defaultVibrator
@@ -792,7 +759,6 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread { 
                 Toast.makeText(this@MainActivity, getString(R.string.exported_to, file.absolutePath), Toast.LENGTH_LONG).show()
             }
-            // runOnUiThread { allRecordsText.text = getString(R.string.exported_to, file.absolutePath) }
         }
     }
 }
