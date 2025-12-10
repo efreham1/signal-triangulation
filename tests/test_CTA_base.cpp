@@ -6,6 +6,13 @@
 #include <cmath>
 #include <iostream>
 #include <gtest/gtest.h>
+#include <spdlog/spdlog.h>
+
+// Disable logging for tests
+static struct DisableLogging
+{
+    DisableLogging() { spdlog::set_level(spdlog::level::off); }
+} _disableLogging;
 
 // ====================
 // Test Fixture: Concrete implementation for testing base class
@@ -21,7 +28,8 @@ public:
     using ClusteredTriangulationBase::getCost;
     using ClusteredTriangulationBase::getDistance;
     using ClusteredTriangulationBase::m_clusters;
-    using ClusteredTriangulationBase::m_points;
+    using ClusteredTriangulationBase::m_point_map;
+    using ClusteredTriangulationBase::m_total_points;
     using ClusteredTriangulationBase::reorderDataPointsByDistance;
 
     void calculatePosition(double &out_latitude, double &out_longitude, double precision, double timeout) override
@@ -34,15 +42,19 @@ public:
 
     void clusterData()
     {
-        // Simple clustering for testing: put all points in one cluster
-        if (m_points.size() >= 3)
+        // Simple clustering for testing: put all points from first device in one cluster
+        for (auto &pair : m_point_map)
         {
-            core::PointCluster cluster;
-            for (const auto &p : m_points)
+            auto &points = pair.second;
+            if (points.size() >= 3)
             {
-                cluster.addPoint(p);
+                core::PointCluster cluster;
+                for (const auto &p : points)
+                {
+                    cluster.addPoint(p);
+                }
+                m_clusters.push_back(cluster);
             }
-            m_clusters.push_back(cluster);
         }
     }
 
@@ -50,6 +62,23 @@ public:
     void setClusters(const std::vector<core::PointCluster> &clusters)
     {
         m_clusters = clusters;
+    }
+
+    // Helper to get all points flattened (for tests that need simple access)
+    std::vector<core::DataPoint> getAllPoints() const
+    {
+        std::vector<core::DataPoint> all;
+        for (const auto &pair : m_point_map)
+        {
+            all.insert(all.end(), pair.second.begin(), pair.second.end());
+        }
+        return all;
+    }
+
+    // Helper to get points for the default device
+    std::vector<core::DataPoint> &getDefaultDevicePoints()
+    {
+        return m_point_map["default"];
     }
 };
 
@@ -66,6 +95,22 @@ static core::DataPoint makePoint(int id, double x, double y, double rssi, double
     dp.timestamp_ms = id * 1000; // Use id as timestamp for ordering
     dp.computeCoordinates();
     return dp;
+}
+
+// Helper to create a single-point map for the new interface
+static std::map<std::string, std::vector<core::DataPoint>> makePointMap(const core::DataPoint &p, const std::string &device = "default")
+{
+    std::map<std::string, std::vector<core::DataPoint>> m;
+    m[device].push_back(p);
+    return m;
+}
+
+// Helper to create a multi-point map for the new interface
+static std::map<std::string, std::vector<core::DataPoint>> makePointMap(const std::vector<core::DataPoint> &points, const std::string &device = "default")
+{
+    std::map<std::string, std::vector<core::DataPoint>> m;
+    m[device] = points;
+    return m;
 }
 
 // ====================
@@ -193,7 +238,7 @@ TEST(PlaneFit, MismatchedVectorSizes)
 }
 
 // ====================
-// processDataPoint Tests
+// addDataPointMap Tests
 // ====================
 
 TEST(CTABase, ProcessDataPoint_SinglePoint)
@@ -201,37 +246,47 @@ TEST(CTABase, ProcessDataPoint_SinglePoint)
     TestableTriangulationBase algo;
     auto p = makePoint(1, 10.0, 20.0, -50);
 
-    algo.processDataPoint(p);
+    algo.addDataPointMap(makePointMap(p), 57.0, 12.0);
 
-    ASSERT_EQ(algo.m_points.size(), 1u);
-    EXPECT_DOUBLE_EQ(algo.m_points[0].getX(), 10.0);
-    EXPECT_DOUBLE_EQ(algo.m_points[0].getY(), 20.0);
+    auto points = algo.getAllPoints();
+    ASSERT_EQ(points.size(), 1u);
+    EXPECT_DOUBLE_EQ(points[0].getX(), 10.0);
+    EXPECT_DOUBLE_EQ(points[0].getY(), 20.0);
 }
 
-TEST(CTABase, ProcessDataPoint_OrderedByTimestamp)
+TEST(CTABase, ProcessDataPoint_MultipleDevices)
 {
     TestableTriangulationBase algo;
 
-    // Add points out of order
-    algo.processDataPoint(makePoint(3, 30.0, 30.0, -50));
-    algo.processDataPoint(makePoint(1, 10.0, 10.0, -50));
-    algo.processDataPoint(makePoint(2, 20.0, 20.0, -50));
+    std::map<std::string, std::vector<core::DataPoint>> pointMap;
+    pointMap["device1"].push_back(makePoint(1, 10.0, 10.0, -50));
+    pointMap["device1"].push_back(makePoint(2, 20.0, 20.0, -60));
+    pointMap["device2"].push_back(makePoint(3, 30.0, 30.0, -70));
 
-    ASSERT_EQ(algo.m_points.size(), 3u);
-    // Should be sorted by timestamp (point_id * 1000)
-    EXPECT_EQ(algo.m_points[0].point_id, 1);
-    EXPECT_EQ(algo.m_points[1].point_id, 2);
-    EXPECT_EQ(algo.m_points[2].point_id, 3);
+    algo.addDataPointMap(pointMap, 57.0, 12.0);
+
+    EXPECT_EQ(algo.m_point_map.size(), 2u);
+    EXPECT_EQ(algo.m_point_map["device1"].size(), 2u);
+    EXPECT_EQ(algo.m_point_map["device2"].size(), 1u);
+    EXPECT_EQ(algo.m_total_points, 3u);
 }
 
-TEST(CTABase, ProcessDataPoint_InvalidCoordinates)
+TEST(CTABase, ProcessDataPoint_OrderPreserved)
 {
     TestableTriangulationBase algo;
-    core::DataPoint invalid;
-    invalid.point_id = 1;
-    // Don't set coordinates - they're invalid
 
-    EXPECT_THROW(algo.processDataPoint(invalid), std::invalid_argument);
+    std::vector<core::DataPoint> points;
+    points.push_back(makePoint(1, 10.0, 10.0, -50));
+    points.push_back(makePoint(2, 20.0, 20.0, -50));
+    points.push_back(makePoint(3, 30.0, 30.0, -50));
+
+    algo.addDataPointMap(makePointMap(points), 57.0, 12.0);
+
+    auto &devicePoints = algo.m_point_map["default"];
+    ASSERT_EQ(devicePoints.size(), 3u);
+    EXPECT_EQ(devicePoints[0].point_id, 1);
+    EXPECT_EQ(devicePoints[1].point_id, 2);
+    EXPECT_EQ(devicePoints[2].point_id, 3);
 }
 
 // ====================
@@ -241,15 +296,19 @@ TEST(CTABase, ProcessDataPoint_InvalidCoordinates)
 TEST(CTABase, Reset_ClearsAll)
 {
     TestableTriangulationBase algo;
-    algo.processDataPoint(makePoint(1, 10.0, 20.0, -50));
-    algo.processDataPoint(makePoint(2, 20.0, 30.0, -60));
+
+    std::vector<core::DataPoint> points;
+    points.push_back(makePoint(1, 10.0, 20.0, -50));
+    points.push_back(makePoint(2, 20.0, 30.0, -60));
+    algo.addDataPointMap(makePointMap(points), 57.0, 12.0);
 
     // Force distance cache population
-    algo.getDistance(algo.m_points[0], algo.m_points[1]);
+    auto &devicePoints = algo.m_point_map["default"];
+    algo.getDistance(devicePoints[0], devicePoints[1]);
 
     algo.reset();
 
-    EXPECT_TRUE(algo.m_points.empty());
+    EXPECT_TRUE(algo.m_point_map.empty());
     EXPECT_TRUE(algo.m_clusters.empty());
     EXPECT_TRUE(algo.distance_cache.empty());
 }
@@ -264,10 +323,11 @@ TEST(CTABase, GetDistance_CorrectCalculation)
     auto p1 = makePoint(1, 0.0, 0.0, -50);
     auto p2 = makePoint(2, 3.0, 4.0, -50);
 
-    algo.processDataPoint(p1);
-    algo.processDataPoint(p2);
+    std::vector<core::DataPoint> points = {p1, p2};
+    algo.addDataPointMap(makePointMap(points), 57.0, 12.0);
 
-    double dist = algo.getDistance(algo.m_points[0], algo.m_points[1]);
+    auto &devicePoints = algo.m_point_map["default"];
+    double dist = algo.getDistance(devicePoints[0], devicePoints[1]);
     EXPECT_DOUBLE_EQ(dist, 5.0); // 3-4-5 triangle
 }
 
@@ -277,16 +337,18 @@ TEST(CTABase, GetDistance_CachesResult)
     auto p1 = makePoint(1, 0.0, 0.0, -50);
     auto p2 = makePoint(2, 10.0, 0.0, -50);
 
-    algo.processDataPoint(p1);
-    algo.processDataPoint(p2);
+    std::vector<core::DataPoint> points = {p1, p2};
+    algo.addDataPointMap(makePointMap(points), 57.0, 12.0);
+
+    auto &devicePoints = algo.m_point_map["default"];
 
     EXPECT_TRUE(algo.distance_cache.empty());
 
-    algo.getDistance(algo.m_points[0], algo.m_points[1]);
+    algo.getDistance(devicePoints[0], devicePoints[1]);
     EXPECT_EQ(algo.distance_cache.size(), 1u);
 
     // Second call should use cache
-    double dist = algo.getDistance(algo.m_points[0], algo.m_points[1]);
+    double dist = algo.getDistance(devicePoints[0], devicePoints[1]);
     EXPECT_DOUBLE_EQ(dist, 10.0);
     EXPECT_EQ(algo.distance_cache.size(), 1u); // Still just one entry
 }
@@ -297,12 +359,14 @@ TEST(CTABase, GetDistance_SymmetricKey)
     auto p1 = makePoint(1, 0.0, 0.0, -50);
     auto p2 = makePoint(2, 10.0, 0.0, -50);
 
-    algo.processDataPoint(p1);
-    algo.processDataPoint(p2);
+    std::vector<core::DataPoint> points = {p1, p2};
+    algo.addDataPointMap(makePointMap(points), 57.0, 12.0);
+
+    auto &devicePoints = algo.m_point_map["default"];
 
     // Call with different order
-    double dist1 = algo.getDistance(algo.m_points[0], algo.m_points[1]);
-    double dist2 = algo.getDistance(algo.m_points[1], algo.m_points[0]);
+    double dist1 = algo.getDistance(devicePoints[0], devicePoints[1]);
+    double dist2 = algo.getDistance(devicePoints[1], devicePoints[0]);
 
     EXPECT_DOUBLE_EQ(dist1, dist2);
     EXPECT_EQ(algo.distance_cache.size(), 1u); // Same key
@@ -315,13 +379,16 @@ TEST(CTABase, GetDistance_SymmetricKey)
 TEST(CTABase, ReorderByDistance_TooFewPoints)
 {
     TestableTriangulationBase algo;
-    algo.processDataPoint(makePoint(1, 0.0, 0.0, -50));
-    algo.processDataPoint(makePoint(2, 10.0, 0.0, -50));
+
+    std::vector<core::DataPoint> points;
+    points.push_back(makePoint(1, 0.0, 0.0, -50));
+    points.push_back(makePoint(2, 10.0, 0.0, -50));
+    algo.addDataPointMap(makePointMap(points), 57.0, 12.0);
 
     // Should not throw with < 3 points
-    algo.reorderDataPointsByDistance();
+    algo.reorderDataPointsByDistance(points);
 
-    EXPECT_EQ(algo.m_points.size(), 2u);
+    EXPECT_EQ(algo.m_point_map["default"].size(), 2u);
 }
 
 TEST(CTABase, ReorderByDistance_OptimizesPath)
@@ -330,18 +397,22 @@ TEST(CTABase, ReorderByDistance_OptimizesPath)
 
     // Add points in a suboptimal order
     // Optimal path: 1 -> 2 -> 3 -> 4 (in a line)
-    algo.processDataPoint(makePoint(1, 0.0, 0.0, -50));
-    algo.processDataPoint(makePoint(3, 20.0, 0.0, -50));
-    algo.processDataPoint(makePoint(2, 10.0, 0.0, -50));
-    algo.processDataPoint(makePoint(4, 30.0, 0.0, -50));
+    std::vector<core::DataPoint> points;
+    points.push_back(makePoint(1, 0.0, 0.0, -50));
+    points.push_back(makePoint(3, 20.0, 0.0, -50));
+    points.push_back(makePoint(2, 10.0, 0.0, -50));
+    points.push_back(makePoint(4, 30.0, 0.0, -50));
+    algo.addDataPointMap(makePointMap(points), 57.0, 12.0);
 
-    algo.reorderDataPointsByDistance();
+    auto &devicePoints = algo.m_point_map["default"];
+    algo.reorderDataPointsByDistance(devicePoints);
+
 
     // After optimization, consecutive points should be close
     double total_dist = 0.0;
-    for (size_t i = 0; i < algo.m_points.size() - 1; ++i)
+    for (size_t i = 0; i < devicePoints.size() - 1; ++i)
     {
-        total_dist += algo.getDistance(algo.m_points[i], algo.m_points[i + 1]);
+        total_dist += algo.getDistance(devicePoints[i], devicePoints[i + 1]);
     }
 
     // Optimal path length is 30m (0->10->20->30)
@@ -357,26 +428,30 @@ TEST(CTABase, CoalescePoints_MergesClosePoints)
     TestableTriangulationBase algo;
 
     // Two points within coalition distance
-    algo.processDataPoint(makePoint(1, 0.0, 0.0, -40));
-    algo.processDataPoint(makePoint(2, 0.5, 0.0, -60)); // 0.5m apart
+    std::vector<core::DataPoint> points;
+    points.push_back(makePoint(1, 0.0, 0.0, -40));
+    points.push_back(makePoint(2, 0.5, 0.0, -60)); // 0.5m apart
+    algo.addDataPointMap(makePointMap(points), 57.0, 12.0);
 
-    algo.coalescePoints(1.0); // 1m threshold
+    algo.coalescePoints(1.0, algo.m_point_map["default"]); // 1m threshold
 
-    ASSERT_EQ(algo.m_points.size(), 1u);
-    EXPECT_NEAR(algo.m_points[0].getX(), 0.25, 1e-9); // Midpoint
-    EXPECT_EQ(algo.m_points[0].rssi, -50);            // Average RSSI
+    ASSERT_EQ(algo.m_point_map["default"].size(), 1u);
+    EXPECT_NEAR(algo.m_point_map["default"][0].getX(), 0.25, 1e-9); // Midpoint
+    EXPECT_EQ(algo.m_point_map["default"][0].rssi, -50);            // Average RSSI
 }
 
 TEST(CTABase, CoalescePoints_KeepsFarPoints)
 {
     TestableTriangulationBase algo;
 
-    algo.processDataPoint(makePoint(1, 0.0, 0.0, -40));
-    algo.processDataPoint(makePoint(2, 5.0, 0.0, -60)); // 5m apart
+    std::vector<core::DataPoint> points;
+    points.push_back(makePoint(1, 0.0, 0.0, -40));
+    points.push_back(makePoint(2, 5.0, 0.0, -60)); // 5m apart
+    algo.addDataPointMap(makePointMap(points), 57.0, 12.0);
 
-    algo.coalescePoints(1.0); // 1m threshold
+    algo.coalescePoints(1.0, algo.m_point_map["default"]); // 1m threshold
 
-    EXPECT_EQ(algo.m_points.size(), 2u);
+    EXPECT_EQ(algo.m_point_map["default"].size(), 2u);
 }
 
 TEST(CTABase, CoalescePoints_ChainMerge)
@@ -384,14 +459,16 @@ TEST(CTABase, CoalescePoints_ChainMerge)
     TestableTriangulationBase algo;
 
     // Three points in a line, each close to the next
-    algo.processDataPoint(makePoint(1, 0.0, 0.0, -40));
-    algo.processDataPoint(makePoint(2, 0.5, 0.0, -50));
-    algo.processDataPoint(makePoint(3, 1.0, 0.0, -60));
+    std::vector<core::DataPoint> points;
+    points.push_back(makePoint(1, 0.0, 0.0, -40));
+    points.push_back(makePoint(2, 0.5, 0.0, -50));
+    points.push_back(makePoint(3, 1.0, 0.0, -60));
+    algo.addDataPointMap(makePointMap(points), 57.0, 12.0);
 
-    algo.coalescePoints(0.6); // Threshold slightly larger than spacing
+    algo.coalescePoints(0.6, algo.m_point_map["default"]); // Threshold slightly larger than spacing
 
     // Points 1 and 2 merge, then result may merge with 3
-    EXPECT_LT(algo.m_points.size(), 3u);
+    EXPECT_LT(algo.m_point_map["default"].size(), 3u);
 }
 
 // ====================
@@ -453,7 +530,7 @@ TEST(CTABase, GetCost_ZeroForPointOnRay)
     algo.setClusters({cluster});
 
     // Point along the ray (positive x)
-    double cost = algo.getCost(10.0, 0.0, 0);
+    double cost = algo.getCost(10.0, 0.0, 0, 0);
     EXPECT_NEAR(cost, 0.0, 0.1);
 }
 
@@ -471,7 +548,7 @@ TEST(CTABase, GetCost_HighForPointOffRay)
     algo.setClusters({cluster});
 
     // Point perpendicular to ray
-    double cost = algo.getCost(0.0, 10.0, 0);
+    double cost = algo.getCost(0.0, 10.0, 0, 0);
     EXPECT_GT(cost, 5.0);
 }
 
@@ -489,8 +566,8 @@ TEST(CTABase, GetCost_PenalizesBehindCentroid)
     algo.setClusters({cluster});
 
     // Point behind centroid (negative x)
-    double cost_behind = algo.getCost(-10.0, 0.0, 0);
-    double cost_front = algo.getCost(10.0, 0.0, 0);
+    double cost_behind = algo.getCost(-10.0, 0.0, 0, 0);
+    double cost_front = algo.getCost(10.0, 0.0, 0, 0);
 
     EXPECT_GT(cost_behind, cost_front);
 }
@@ -508,7 +585,7 @@ TEST(CTABase, GetCost_SkipsZeroGradient)
 
     algo.setClusters({cluster});
 
-    double cost = algo.getCost(10.0, 10.0, 0);
+    double cost = algo.getCost(10.0, 10.0, 0, 0);
     EXPECT_DOUBLE_EQ(cost, 0.0); // Cluster should be skipped
 }
 
@@ -532,9 +609,9 @@ TEST(CTABase, GetCost_MultipleClusters)
     algo.setClusters({c1, c2});
 
     // Point between clusters should have low cost
-    double cost_middle = algo.getCost(10.0, 0.0, 0);
+    double cost_middle = algo.getCost(10.0, 0.0, 0, 0);
     // Point far from intersection should have high cost
-    double cost_far = algo.getCost(10.0, 50.0, 0);
+    double cost_far = algo.getCost(10.0, 50.0, 0, 0);
 
     EXPECT_LT(cost_middle, cost_far);
 }
@@ -548,18 +625,20 @@ TEST(CTABase, FullPipeline)
     TestableTriangulationBase algo;
 
     // Add points forming a path
+    std::vector<core::DataPoint> points;
     for (int i = 0; i < 10; ++i)
     {
         double x = i * 5.0;
         double y = std::sin(i * 0.5) * 10.0;
         double rssi = -50.0 - i; // Decreasing RSSI
-        algo.processDataPoint(makePoint(i + 1, x, y, rssi));
+        points.push_back(makePoint(i + 1, x, y, rssi));
     }
+    algo.addDataPointMap(makePointMap(points), 57.0, 12.0);
 
-    EXPECT_EQ(algo.m_points.size(), 10u);
+    EXPECT_EQ(algo.m_total_points, 10u);
 
-    algo.reorderDataPointsByDistance();
-    algo.coalescePoints(2.0);
+    algo.reorderDataPointsByDistance(points);
+    algo.coalescePoints(2.0, algo.m_point_map["default"]);
     algo.clusterData();
 
     // Should have at least one cluster
@@ -568,6 +647,6 @@ TEST(CTABase, FullPipeline)
     algo.estimateAoAForClusters(3);
 
     // Cost function should work
-    double cost = algo.getCost(25.0, 0.0, 0);
+    double cost = algo.getCost(25.0, 0.0, 0, 0);
     EXPECT_TRUE(std::isfinite(cost));
 }

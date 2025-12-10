@@ -34,18 +34,27 @@ namespace core
 		if (params.has("extra_weight"))
 			m_extra_weight = params.get<double>("extra_weight");
 
+		if (params.has("angle_weight"))
+			m_angle_weight = params.get<double>("angle_weight");
+
 		spdlog::debug("CTA1: Parameters applied");
 	}
 
 	void ClusteredTriangulationAlgorithm1::calculatePosition(double &out_latitude, double &out_longitude, double precision, double timeout)
 	{
-		if (m_points.size() < m_cluster_min_points)
+		m_clusters.clear();
+
+		if (m_total_points < m_cluster_min_points)
 		{
 			throw std::runtime_error("ClusteredTriangulationAlgorithm1: not enough data points");
 		}
 
-		reorderDataPointsByDistance();
-		clusterData();
+		for (auto &pair : m_point_map)
+		{
+			auto &m_points = pair.second;
+			reorderDataPointsByDistance(m_points);
+			clusterData(m_points);
+		}
 		estimateAoAForClusters(m_cluster_min_points);
 
 		std::vector<std::pair<double, double>> intersections = findIntersections();
@@ -68,8 +77,8 @@ namespace core
 		DataPoint result_point;
 		result_point.setX(global_best_x);
 		result_point.setY(global_best_y);
-		result_point.zero_latitude = m_points[0].zero_latitude;
-		result_point.zero_longitude = m_points[0].zero_longitude;
+		result_point.zero_latitude = m_zero_latitude;
+		result_point.zero_longitude = m_zero_longitude;
 		result_point.computeCoordinates();
 
 		if (!result_point.validCoordinates())
@@ -81,9 +90,9 @@ namespace core
 		out_longitude = result_point.getLongitude();
 	}
 
-	void ClusteredTriangulationAlgorithm1::clusterData()
+	void ClusteredTriangulationAlgorithm1::clusterData(std::vector<DataPoint> &m_points)
 	{
-		coalescePoints(m_coalition_distance);
+		coalescePoints(m_coalition_distance, m_points);
 
 		unsigned int cluster_id = 0;
 		unsigned int current_cluster_size = 0;
@@ -108,7 +117,7 @@ namespace core
 			}
 		}
 
-		spdlog::info("ClusteredTriangulationAlgorithm1: formed {} clusters from {} data points", m_clusters.size(), m_points.size());
+		spdlog::info("ClusteredTriangulationAlgorithm1: formed {} clusters from {} data points", m_clusters.size(), m_total_points);
 
 		if (m_clusters.size() < 2)
 		{
@@ -195,7 +204,7 @@ namespace core
 			bool continue_gradient_descent = true;
 			double current_x = inter.first;
 			double current_y = inter.second;
-			double current_cost = getCost(current_x, current_y, m_extra_weight);
+			double current_cost = getCost(current_x, current_y, m_extra_weight, m_angle_weight);
 
 			std::set<std::pair<double, double>> visited_points;
 			bool explored_new_point = true;
@@ -233,7 +242,7 @@ namespace core
 						visited_points.insert({x, y});
 						explored_new_point = true;
 
-						double neighbor_cost = getCost(x, y, m_extra_weight);
+						double neighbor_cost = getCost(x, y, m_extra_weight, m_angle_weight);
 						if (neighbor_cost <= best_cost)
 						{
 							best_cost = neighbor_cost;

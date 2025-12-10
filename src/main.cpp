@@ -78,7 +78,6 @@ int main(int argc, char *argv[])
     }
     else if (cli.algorithm == "CTA1")
     {
-        // TODO: Add parameters for CTA1 aswell
         algorithm = std::make_unique<core::ClusteredTriangulationAlgorithm1>(cli.algorithm_params);
     }
     else
@@ -90,10 +89,13 @@ int main(int argc, char *argv[])
     algorithm->plottingEnabled = cli.plotting_enabled;
 
     // Load data
-    std::vector<core::DataPoint> points;
+    std::map<std::string, std::vector<core::DataPoint>> points;
+    double zero_latitude = 0.0;
+    double zero_longitude = 0.0;
+
     try
     {
-        points = core::JsonSignalParser::parseFileToVector(cli.signals_file);
+        points = core::JsonSignalParser::parseFileToVector(cli.signals_file, zero_latitude, zero_longitude);
     }
     catch (const std::exception &ex)
     {
@@ -104,11 +106,14 @@ int main(int argc, char *argv[])
     // Process points
     try
     {
-        for (auto &dp : points)
+        for (auto &dev : points)
         {
-            dp.computeCoordinates();
-            algorithm->processDataPoint(dp);
+            for (auto &dp : dev.second)
+            {
+                dp.computeCoordinates();
+            }
         }
+        algorithm->addDataPointMap(points, zero_latitude, zero_longitude);
     }
     catch (const std::exception &ex)
     {
