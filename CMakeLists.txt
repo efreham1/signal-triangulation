@@ -60,14 +60,24 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(spdlog)
 
+FetchContent_Declare(
+    httplib
+    GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
+    GIT_TAG v0.14.3
+)
+
+FetchContent_MakeAvailable(httplib)
+
 target_link_libraries(signal-triangulation
     PRIVATE
     nlohmann_json::nlohmann_json
+    httplib::httplib
     spdlog::spdlog
 )
 
 target_link_libraries(file-receiver
     PRIVATE
+    httplib::httplib
     spdlog::spdlog
 )
 

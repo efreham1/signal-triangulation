@@ -2,6 +2,8 @@
 
 #include <string>
 #include <cstdint>
+#include <memory>
+#include <httplib.h>
 
 namespace utils
 {
@@ -36,7 +38,7 @@ public:
 private:
     uint16_t port_;
     std::string output_dir_;
-    bool running_;
+    std::unique_ptr<httplib::Server> server_;
 };
 
 } // namespace utils

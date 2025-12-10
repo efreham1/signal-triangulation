@@ -4,14 +4,7 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="abbf31a3-b045-47a9-a62a-706d3ff1e24b" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Polaris/app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/Polaris/app/src/main/AndroidManifest.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Polaris/app/src/main/java/com/example/polaris/MainActivity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/Polaris/app/src/main/java/com/example/polaris/MainActivity.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Polaris/app/src/main/res/layout/activity_main.xml" beforeDir="false" afterPath="$PROJECT_DIR$/Polaris/app/src/main/res/layout/activity_main.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Polaris/app/src/main/res/values/strings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/Polaris/app/src/main/res/values/strings.xml" afterDir="false" />
-    </list>
+    <list default="true" id="abbf31a3-b045-47a9-a62a-706d3ff1e24b" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
