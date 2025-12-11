@@ -256,7 +256,7 @@ class MainActivity : AppCompatActivity() {
                     getString(R.string.rssi_updated, rssi, timeFormat.format(java.util.Date(seenTimeMs))),
                     Toast.LENGTH_SHORT
                 ).show()
-                addMeasurementMarker(avgLoc.latitude, avgLoc.longitude, seenTimeMs)
+                addMeasurementMarker(record)
             }
             measurementTargetSsid = null
         }
@@ -461,25 +461,25 @@ class MainActivity : AppCompatActivity() {
         loadMeasurementMarkersFromDb()
     }
 
-        private fun addMeasurementMarker(lat: Double, lng: Double, timestamp: Long) {
+        private fun addMeasurementMarker(measurementPoint : SignalRecord) {
         val marker = Marker(mapView).apply {
-            position = GeoPoint(lat, lng)
+            position = GeoPoint(measurementPoint.latitude, measurementPoint.longitude)
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-            title = timeFormat.format(java.util.Date(timestamp))
-            icon = createMeasurementIcon()
+            title = "${measurementPoint.rssi} dBm - ${timeFormat.format(java.util.Date(measurementPoint.timestamp))}"
+            icon = createMeasurementIcon(android.graphics.Color.RED)
         }
         measurementMarkers.add(marker)
         mapView.overlays.add(marker)
         mapView.invalidate()
     }
 
-    private fun createMeasurementIcon(): android.graphics.drawable.Drawable {
+    private fun createMeasurementIcon(color: Int = android.graphics.Color.RED): android.graphics.drawable.Drawable {
         val density = resources.displayMetrics.density
         val sizePx = (16 * density).toInt()
         
         return android.graphics.drawable.GradientDrawable().apply {
             shape = android.graphics.drawable.GradientDrawable.OVAL
-            setColor(android.graphics.Color.RED)
+            setColor(color)
             setStroke((2 * density).toInt(), android.graphics.Color.WHITE)
             setSize(sizePx, sizePx)
         }
@@ -497,7 +497,7 @@ class MainActivity : AppCompatActivity() {
             withContext(Dispatchers.Main) {
                 clearMeasurementMarkers()
                 records.forEach { record ->
-                    addMeasurementMarker(record.latitude, record.longitude, record.timestamp)
+                    addMeasurementMarker(record)
                 }
             }
         }
@@ -525,6 +525,7 @@ class MainActivity : AppCompatActivity() {
             currentLocationMarker = Marker(mapView).apply {
                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                 title = getString(R.string.your_location)
+                icon = createMeasurementIcon(android.graphics.Color.BLUE)
             }
             mapView.overlays.add(currentLocationMarker)
         }
