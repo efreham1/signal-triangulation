@@ -140,6 +140,9 @@ class MainActivity : AppCompatActivity() {
     private var autoMeasureDelayMs = 5000L // Default 5 seconds between measurements
     private lateinit var autoBtn: Button
 
+    // Location updates job
+    private var locationUpdatesJob: Job? = null
+
     private val rssiListener: (RSSIStream.ScanBatch) -> Unit = { batch ->
         handleScanBatch(batch)
     }
@@ -504,9 +507,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startLocationUpdates() {
+        // Cancel any existing job before starting a new one
+        locationUpdatesJob?.cancel()
         // Update map location every second
-        lifecycleScope.launch {
-            while (true) {
+        locationUpdatesJob = lifecycleScope.launch {
+            while (isActive) {
                 val location = LocationStream.lastKnownLocation()
                 if (location != null) {
                     withContext(Dispatchers.Main) {
@@ -609,6 +614,8 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         mapView.onPause()
+        locationUpdatesJob?.cancel()
+        locationUpdatesJob = null
         RSSIStream.removeListener(rssiListener)
         stopAutoMeasurement()
         resetMeasurementState()
