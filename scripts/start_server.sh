@@ -9,8 +9,12 @@ OUTPUT_DIR=${2:-uploads}
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-WINDOWS_SCRIPT_PATH=$(wslpath -w "$SCRIPT_DIR/setup_port_forward.ps1")
-WINDOWS_CLEANUP_PATH=$(wslpath -w "$SCRIPT_DIR/cleanup_port_forward.ps1")
+
+# Only set Windows script paths if in WSL
+if grep -qi microsoft /proc/version 2>/dev/null; then
+    WINDOWS_SCRIPT_PATH=$(wslpath -w "$SCRIPT_DIR/setup_port_forward.ps1")
+    WINDOWS_CLEANUP_PATH=$(wslpath -w "$SCRIPT_DIR/cleanup_port_forward.ps1")
+fi
 
 cleanup() {
     if grep -qi microsoft /proc/version 2>/dev/null; then
