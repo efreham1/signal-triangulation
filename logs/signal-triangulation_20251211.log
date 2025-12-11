@@ -1,0 +1,61 @@
+[2025-12-11 13:29:13.845] [file_logger] [info] Logging initialized. level=info
+[2025-12-11 13:29:13.847] [file_logger] [info] ClusteredTriangulationAlgorithm2: Device 'cb65e8a6aa0ea81a' has 181 data points
+[2025-12-11 13:29:13.858] [file_logger] [info] ClusteredTriangulationBase: optimized path. Length reduced from 309.84m to 282.18m (4 iterations)
+[2025-12-11 13:29:13.858] [file_logger] [info] ClusteredTriangulationAlgorithm2: using OpenMP with 12 threads, per-seed timeout: 5.00s
+[2025-12-11 13:29:48.869] [file_logger] [warning] ClusteredTriangulationAlgorithm2: 74 seeds timed out (using best cluster found before timeout)
+[2025-12-11 13:29:48.869] [file_logger] [info] ClusteredTriangulationAlgorithm2: added cluster with 14 points, score -3.86
+[2025-12-11 13:29:48.869] [file_logger] [info] ClusteredTriangulationAlgorithm2: added cluster with 10 points, score 1.38
+[2025-12-11 13:29:48.869] [file_logger] [info] ClusteredTriangulationAlgorithm2: added cluster with 4 points, score -0.41
+[2025-12-11 13:29:48.869] [file_logger] [info] ClusteredTriangulationAlgorithm2: added cluster with 4 points, score 0.82
+[2025-12-11 13:29:48.869] [file_logger] [info] ClusteredTriangulationAlgorithm2: === Performance Summary ===
+[2025-12-11 13:29:48.869] [file_logger] [info]   Total combinations explored: 155973838
+[2025-12-11 13:29:48.869] [file_logger] [info]   Total clustering time: 35011.05 ms
+[2025-12-11 13:29:48.869] [file_logger] [info] ClusteredTriangulationAlgorithm2: added 4 clusters from this device (4 total)
+[2025-12-11 13:29:48.869] [file_logger] [info] ClusteredTriangulationAlgorithm2: formed a total of 4 clusters from 181 data points
+[2025-12-11 13:29:48.869] [file_logger] [info] ClusteredTriangulationBase: cluster AoA estimated at 153.71502628870414 degrees (grad_x=-0.44294129147843897, grad_y=0.21877070030607149)
+[2025-12-11 13:29:48.869] [file_logger] [info] ClusteredTriangulationBase: cluster AoA estimated at -103.13815138320219 degrees (grad_x=-0.168420615185517, grad_y=-0.7215676398987189)
+[2025-12-11 13:29:48.869] [file_logger] [info] ClusteredTriangulationBase: cluster AoA estimated at 157.59615172666471 degrees (grad_x=-0.41353258651983404, grad_y=0.1704783268521548)
+[2025-12-11 13:29:48.869] [file_logger] [info] ClusteredTriangulationBase: cluster AoA estimated at 116.78214613054361 degrees (grad_x=-1.5406826929443396, grad_y=3.0523963746880005)
+[2025-12-11 13:29:48.931] [file_logger] [info] ClusteredTriangulationAlgorithm2: brute force search iteration found best point (x=-4.899999999999999, y=-24.4) with cost 1000.0095949433435
+[2025-12-11 13:29:48.972] [file_logger] [info] ClusteredTriangulationAlgorithm2: brute force search iteration found best point (x=-4.899999999999999, y=-24.4) with cost 1000.0095949433435
+[2025-12-11 13:29:48.972] [file_logger] [info] ClusteredTriangulationAlgorithm2: brute force search completed with best point (x=-4.899999999999999, y=-24.4) and cost 1000.0095949433435
+[2025-12-11 15:27:02.590] [file_logger] [info] Logging initialized. level=info
+[2025-12-11 15:27:02.592] [file_logger] [info] ClusteredTriangulationAlgorithm2: Device 'cb65e8a6aa0ea81a' has 181 data points
+[2025-12-11 15:27:02.605] [file_logger] [info] ClusteredTriangulationBase: optimized path. Length reduced from 309.84m to 282.18m (4 iterations)
+[2025-12-11 15:27:02.605] [file_logger] [info] ClusteredTriangulationAlgorithm2: using OpenMP with 12 threads, per-seed timeout: 5.00s
+[2025-12-11 15:27:37.744] [file_logger] [warning] ClusteredTriangulationAlgorithm2: 75 seeds timed out (using best cluster found before timeout)
+[2025-12-11 15:27:37.744] [file_logger] [info] ClusteredTriangulationAlgorithm2: === Performance Summary ===
+[2025-12-11 15:27:37.744] [file_logger] [info]   Total combinations explored: 11454183
+[2025-12-11 15:27:37.744] [file_logger] [info]   Total clustering time: 35138.82 ms
+[2025-12-11 15:27:37.744] [file_logger] [info] ClusteredTriangulationAlgorithm2: added 0 clusters from this device (0 total)
+[2025-12-11 15:27:37.744] [file_logger] [error] Calculation error: ClusteredTriangulationAlgorithm2: insufficient clusters formed for AoA estimation
+[2025-12-11 15:29:25.288] [file_logger] [info] Logging initialized. level=info
+[2025-12-11 15:29:25.289] [file_logger] [info] ClusteredTriangulationAlgorithm2: Device 'bad2f21127106f2a' has 70 data points
+[2025-12-11 15:29:25.290] [file_logger] [info] ClusteredTriangulationBase: optimized path. Length reduced from 461.84m to 377.09m (3 iterations)
+[2025-12-11 15:29:25.290] [file_logger] [info] ClusteredTriangulationAlgorithm2: using OpenMP with 12 threads, per-seed timeout: 5.00s
+[2025-12-11 15:29:36.039] [file_logger] [warning] ClusteredTriangulationAlgorithm2: 11 seeds timed out (using best cluster found before timeout)
+[2025-12-11 15:29:36.039] [file_logger] [info] ClusteredTriangulationAlgorithm2: === Performance Summary ===
+[2025-12-11 15:29:36.039] [file_logger] [info]   Total combinations explored: 4503159
+[2025-12-11 15:29:36.039] [file_logger] [info]   Total clustering time: 10748.34 ms
+[2025-12-11 15:29:36.039] [file_logger] [info] ClusteredTriangulationAlgorithm2: added 0 clusters from this device (0 total)
+[2025-12-11 15:29:36.039] [file_logger] [error] Calculation error: ClusteredTriangulationAlgorithm2: insufficient clusters formed for AoA estimation
+[2025-12-11 15:35:10.495] [file_logger] [info] Logging initialized. level=info
+[2025-12-11 15:35:10.495] [file_logger] [info] ClusteredTriangulationAlgorithm2: Device 'cb65e8a6aa0ea81a' has 181 data points
+[2025-12-11 15:35:10.506] [file_logger] [info] ClusteredTriangulationBase: optimized path. Length reduced from 309.84m to 282.18m (4 iterations)
+[2025-12-11 15:35:10.506] [file_logger] [info] ClusteredTriangulationAlgorithm2: using OpenMP with 12 threads, per-seed timeout: 5.00s
+[2025-12-11 15:35:45.537] [file_logger] [warning] ClusteredTriangulationAlgorithm2: 75 seeds timed out (using best cluster found before timeout)
+[2025-12-11 15:35:45.537] [file_logger] [info] ClusteredTriangulationAlgorithm2: === Performance Summary ===
+[2025-12-11 15:35:45.537] [file_logger] [info]   Total combinations explored: 11614783
+[2025-12-11 15:35:45.537] [file_logger] [info]   Total clustering time: 35031.38 ms
+[2025-12-11 15:35:45.537] [file_logger] [info] ClusteredTriangulationAlgorithm2: added 0 clusters from this device (0 total)
+[2025-12-11 15:35:45.537] [file_logger] [error] Calculation error: ClusteredTriangulationAlgorithm2: insufficient clusters formed for AoA estimation
+[2025-12-11 15:40:02.153] [file_logger] [info] Logging initialized. level=info
+[2025-12-11 15:40:02.155] [file_logger] [info] ClusteredTriangulationAlgorithm2: Device 'cb65e8a6aa0ea81a' has 181 data points
+[2025-12-11 15:40:02.169] [file_logger] [info] ClusteredTriangulationBase: optimized path. Length reduced from 309.84m to 282.18m (4 iterations)
+[2025-12-11 15:40:02.169] [file_logger] [info] ClusteredTriangulationAlgorithm2: using OpenMP with 12 threads, per-seed timeout: 5.00s
+[2025-12-11 15:40:37.178] [file_logger] [warning] ClusteredTriangulationAlgorithm2: 74 seeds timed out (using best cluster found before timeout)
+[2025-12-11 15:40:37.178] [file_logger] [info] ClusteredTriangulationAlgorithm2: === Performance Summary ===
+[2025-12-11 15:40:37.179] [file_logger] [info]   Total combinations explored: 389094138
+[2025-12-11 15:40:37.179] [file_logger] [info]   Total clustering time: 35009.20 ms
+[2025-12-11 15:40:37.179] [file_logger] [info] ClusteredTriangulationAlgorithm2: added 0 clusters from this device (0 total)
+[2025-12-11 15:40:37.179] [file_logger] [error] Calculation error: ClusteredTriangulationAlgorithm2: insufficient clusters formed for AoA estimation

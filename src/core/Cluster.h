@@ -21,6 +21,10 @@ namespace core
         bool valid;     // Whether computation succeeded
     };
         std::vector<DataPoint> points;
+        std::vector<double> x_dp_values;
+        std::vector<double> y_dp_values;
+        std::vector<double> rssi_values;
+        std::vector<int> point_idxs;
         double estimated_aoa;
         double avg_rssi;
         double centroid_x;
@@ -60,7 +64,10 @@ namespace core
          */
         double area() const;
 
+        void addPointVectorized(const DataPoint &point, int index);
+        void removePointVectorized(size_t index);
     private:
+        bool currently_vectorized = false;
         void recomputeBoundingBox(size_t new_idx);
         void computeBoundingBox();
     };

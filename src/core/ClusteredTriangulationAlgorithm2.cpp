@@ -216,14 +216,14 @@ namespace core
 			// Skip if not enough candidates
 			if (n_candidates < static_cast<int>(m_cluster_min_points) - 1)
 			{
-				seed_results[idx] = {PointCluster(), false};
+				seed_results[idx] = {best_cluster, false};
 				time_per_seed_ms[idx] = 0.0;
 				combinations_per_seed[idx] = 0;
 				continue;
 			}
 
 			PointCluster cluster;
-			cluster.addPoint(m_points[i]); // seed
+			cluster.addPointVectorized(m_points[i], i); // seed
 
 			std::vector<int> current_selection;
 			current_selection.reserve(n_candidates);
@@ -254,7 +254,7 @@ namespace core
 					stack.pop_back();
 					if (!current_selection.empty())
 					{
-						cluster.removePoint(m_points[candidate_indices[current_selection.back()]]);
+						cluster.removePointVectorized(current_selection.size() - 1);
 						current_selection.pop_back();
 					}
 					if (!stack.empty())
@@ -265,7 +265,7 @@ namespace core
 				}
 
 				current_selection.push_back(candidate_idx);
-				cluster.addPoint(m_points[candidate_indices[candidate_idx]]);
+				cluster.addPointVectorized(m_points[candidate_indices[candidate_idx]], candidate_indices[candidate_idx]);
 
 				int cluster_size = static_cast<int>(current_selection.size()) + 1;
 				if (cluster_size >= static_cast<int>(m_cluster_min_points))
@@ -284,7 +284,7 @@ namespace core
 				}
 				else
 				{
-					cluster.removePoint(m_points[candidate_indices[current_selection.back()]]);
+					cluster.removePointVectorized(current_selection.size() - 1);
 					current_selection.pop_back();
 					stack.back()++;
 				}
@@ -294,8 +294,6 @@ namespace core
 			auto seed_end_time = std::chrono::high_resolution_clock::now();
 			time_per_seed_ms[idx] = std::chrono::duration<double, std::milli>(seed_end_time - seed_start_time).count();
 			combinations_per_seed[idx] = seed_combinations;
-
-			best_cluster.setScore(best_score);
 
 			// Store result for this seed
 			seed_results[idx] = {best_cluster, found_valid};
@@ -327,6 +325,8 @@ namespace core
 					if (cluster.overlapWith(existing_cluster) > m_max_overlap)
 					{
 						has_overlap = true;
+						spdlog::info("ClusteredTriangulationAlgorithm2: rejected cluster due to overlap ({} points, score {:.2f})",
+									 cluster.size(), cluster.score);
 						break;
 					}
 				}
@@ -384,36 +384,37 @@ namespace core
 	{
 		double ratio = cluster.geometricRatio();
 		double clusterArea = cluster.area();
-		bool found_valid = false;
 
 		bool valid = (ratio >= m_min_geometric_ratio &&
 					  clusterArea >= m_min_area &&
 					  clusterArea <= m_max_area);
 
-		if (valid)
+		if (!valid)
 		{
-			found_valid = true;
-			double current_score = cluster.getAndSetScore(
-				m_ideal_geometric_ratio,
-				m_ideal_area,
-				m_min_rssi_variance,
-				m_weight_geometric_ratio,
-				m_weight_area,
-				m_weight_rssi_variance,
-				m_bottom_rssi,
-				m_weight_rssi);
-
-			if (current_score > best_score)
-			{
-				best_score = current_score;
-				best_cluster = PointCluster();
-				for (const auto &pt : cluster.points)
-				{
-					best_cluster.addPoint(pt);
-				}
-			}
+			return false;
 		}
-		return found_valid;
+		
+		double current_score = cluster.getAndSetScore(
+			m_ideal_geometric_ratio,
+			m_ideal_area,
+			m_min_rssi_variance,
+			m_weight_geometric_ratio,
+			m_weight_area,
+			m_weight_rssi_variance,
+			m_bottom_rssi,
+			m_weight_rssi);
+
+		if (current_score > best_score)
+		{
+			best_score = current_score;
+			best_cluster = PointCluster();
+			for (const auto &idx : cluster.point_idxs)
+			{
+				best_cluster.addPoint(cluster.points[idx]);
+			}
+			best_cluster.setScore(current_score);
+		}
+		return true;
 	}
 
 	void ClusteredTriangulationAlgorithm2::clusterData(std::vector<DataPoint> &m_points)
