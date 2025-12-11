@@ -1,0 +1,75 @@
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+<LinearLayout
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <!-- Status -->
+    <TextView
+        android:id="@+id/statusText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/placeholder_export"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Export to JSON -->
+    <Button
+        android:id="@+id/exportBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/export_json" />
+
+    <TextView
+        android:id="@+id/lastExportedFileText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:layout_marginBottom="12dp"
+        android:textAppearance="?android:attr/textAppearanceSmall" />
+
+    <!-- Server Connection -->
+    <EditText
+        android:id="@+id/wifiHostInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/wifi_host_hint"
+        android:text="192.168.1.238"
+        android:inputType="textUri|textNoSuggestions"
+        android:layout_marginBottom="8dp" />
+
+    <EditText
+        android:id="@+id/wifiPortInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/wifi_port_hint"
+        android:inputType="number"
+        android:text="8080"
+        android:layout_marginBottom="12dp" />
+
+    <Button
+        android:id="@+id/sendWifiBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/wifi_send"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Run Algorithm -->
+    <Button
+        android:id="@+id/showServerFilesBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Run Algorithm" />
+
+    <!-- Close -->
+    <Button
+        android:id="@+id/closeExportBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/close"
+        android:layout_marginTop="16dp" />
+
+</LinearLayout>
+</ScrollView>

@@ -4,16 +4,23 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.provider.Settings
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
 import androidx.room.Dao
 import androidx.room.Database
@@ -22,31 +29,21 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
-import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.google.gson.GsonBuilder
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.google.android.material.navigation.NavigationView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import androidx.activity.result.contract.ActivityResultContracts
-import kotlin.coroutines.cancellation.CancellationException
-import android.os.Build
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.os.VibratorManager
-import java.io.File
-import java.io.IOException
-import java.net.HttpURLConnection
-import java.net.URL
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
+import kotlin.coroutines.cancellation.CancellationException
 
 @Entity(tableName = "signal_records")
 data class SignalRecord(
@@ -59,7 +56,7 @@ data class SignalRecord(
     val deviceID: String
 )
 
-// new: persistent source position (single-row, id==0)
+// persistent source position (single-row, id==0)
 @Entity(tableName = "source_position")
 data class SourcePosition(
     @PrimaryKey val id: Int = 0,
@@ -102,26 +99,22 @@ abstract class AppDatabase : RoomDatabase() {
 class MainActivity : AppCompatActivity() {
 
     // Room
-    private lateinit var db: AppDatabase
     private lateinit var signalDao: SignalDao
     private lateinit var sourcePositionDao: SourcePositionDao
 
     // UI
     private lateinit var cleanRecordsBtn: Button
-    private lateinit var exportBtn: Button
     private lateinit var selectSsidBtn: Button
     private lateinit var takeMeasurementBtn: Button
     private lateinit var statusText: TextView
-    private lateinit var measureSourceBtn: Button
-    private lateinit var accuracyTestBtn: Button
-    private lateinit var sourceNameText: TextView
-    private lateinit var wifiHostInput: EditText
-    private lateinit var wifiPortInput: EditText
-    private lateinit var sendWifiBtn: Button
 
     private lateinit var mapView: MapView
     private var currentLocationMarker: Marker? = null
     private val measurementMarkers = mutableListOf<Marker>()
+
+    private lateinit var drawerLayout: DrawerLayout
+    private lateinit var navView: NavigationView
+    private lateinit var toolbar: Toolbar
 
     // SSID list & selection
     private val ssidList = mutableListOf<String>()
@@ -149,21 +142,17 @@ class MainActivity : AppCompatActivity() {
 
     // Location updates job
     private var locationUpdatesJob: Job? = null
+    private var hasInitiallyZoomedToLocation = false
 
     private val rssiListener: (RSSIStream.ScanBatch) -> Unit = { batch ->
         handleScanBatch(batch)
     }
 
-    // Session-only name for the source position
-    private var sessionSourceName: String? = null
-    private var isMeasuringSource = false
     private var measurementOffsetMs = 5_000L
-    private var hasInitiallyZoomedToLocation = false
 
     private val deviceID: String by lazy {
         Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID) ?: "unknown"
     }
-    private var lastExportedFile: File? = null
 
     private fun handleScanBatch(batch: RSSIStream.ScanBatch) {
         val newSsids = batch.results.mapNotNull { it.SSID.takeIf { ss -> ss.isNotBlank() } }
@@ -211,8 +200,8 @@ class MainActivity : AppCompatActivity() {
             } catch (_: TimeoutCancellationException) {
                 // Timeout - allow retry instead of getting stuck
                 withContext(Dispatchers.Main) {
+                    statusText.text = getString(R.string.status_ready)
                     if (!isAutoMeasuring) {
-                        statusText.text = getString(R.string.status_ready)
                         takeMeasurementBtn.isEnabled = true
                     }
                     Toast.makeText(this@MainActivity, getString(R.string.measurement_timeout), Toast.LENGTH_LONG).show()
@@ -236,8 +225,8 @@ class MainActivity : AppCompatActivity() {
 
             if (avgPair == null) {
                 withContext(Dispatchers.Main) {
+                    statusText.text = getString(R.string.status_measurement_failed)
                     if (!isAutoMeasuring) {
-                        statusText.text = getString(R.string.status_measurement_failed)
                         takeMeasurementBtn.isEnabled = true
                     }
                     Toast.makeText(this@MainActivity, getString(R.string.no_location), Toast.LENGTH_SHORT).show()
@@ -258,8 +247,8 @@ class MainActivity : AppCompatActivity() {
             signalDao.insert(record)
 
             withContext(Dispatchers.Main) {
+                statusText.text = getString(R.string.status_measurement_taken, avgPair.second.size)
                 if (!isAutoMeasuring) {
-                    statusText.text = getString(R.string.status_measurement_taken, avgPair.second.size)
                     takeMeasurementBtn.isEnabled = true
                 }
                 Toast.makeText(
@@ -333,12 +322,12 @@ class MainActivity : AppCompatActivity() {
                 while (remainingMs > 0 && isAutoMeasuring) {
                     val secondsLeft = (remainingMs / 1000).toInt() + if (remainingMs % 1000 > 0) 1 else 0
                     statusText.text = getString(R.string.auto_next_in, secondsLeft)
-                    if (secondsLeft <= 3) vibrate()
+                    vibrate()
                     val step = if (remainingMs >= 1000) 1000L else remainingMs
                     delay(step)
                     remainingMs -= step
                 }
-                vibrate(400L)
+                vibrate(300L)
             }
         }
     }
@@ -384,41 +373,57 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // Define the launcher to handle the result from MeasureSourceActivity
-    private val measureSourceLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == RESULT_OK) {
-            isMeasuringSource = true
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         Configuration.getInstance().load(this, getSharedPreferences("osmdroid", MODE_PRIVATE))
         Configuration.getInstance().userAgentValue = packageName
-    
+
         setContentView(R.layout.activity_main)
 
         // Room database init
-        db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "signal-db")
-            .fallbackToDestructiveMigration()
-            .build()
-        signalDao = db.signalDao()
-        sourcePositionDao = db.sourcePositionDao()
+        val app = application as PolarisApp
+        signalDao = app.database.signalDao()
+        sourcePositionDao = app.database.sourcePositionDao()
 
         // UI bindings
+
         cleanRecordsBtn = findViewById(R.id.cleanRecordsBtn)
         selectSsidBtn = findViewById(R.id.selectSsidBtn)
-        exportBtn = findViewById(R.id.exportBtn)
         takeMeasurementBtn = findViewById(R.id.takeMeasurementBtn)
         statusText = findViewById(R.id.statusText)
-        measureSourceBtn = findViewById(R.id.measureSourceBtn)
-        accuracyTestBtn = findViewById(R.id.accuracyTestBtn)
-        sourceNameText = findViewById(R.id.source_name_text)
-        wifiHostInput = findViewById(R.id.wifiHostInput)
-        wifiPortInput = findViewById(R.id.wifiPortInput)
-        sendWifiBtn = findViewById(R.id.sendWifiBtn)
-        statusText.text = getString(R.string.status_ready)
+        statusText.text = getString(R.string.status_ssid_missing)
+
+        drawerLayout = findViewById(R.id.drawer_layout)
+        navView = findViewById(R.id.nav_view)
+        toolbar = findViewById(R.id.toolbar)
+        setSupportActionBar(toolbar)
+
+        val toggle = ActionBarDrawerToggle(
+            this, drawerLayout, toolbar,
+            R.string.navigation_drawer_open,
+            R.string.navigation_drawer_close
+        )
+        drawerLayout.addDrawerListener(toggle)
+        toggle.syncState()
+
+        navView.setNavigationItemSelectedListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.nav_debug -> {
+                    val intent = Intent(this, DebugActivity::class.java)
+                    startActivity(intent)
+                    drawerLayout.closeDrawers()
+                    true
+                }
+                R.id.nav_export -> {
+                    val intent = Intent(this, ExportActivity::class.java)
+                    startActivity(intent)
+                    drawerLayout.closeDrawers()
+                    true
+                }
+                else -> false
+            }
+        }
 
         // UI actions
         selectSsidBtn.setOnClickListener { showSsidChoiceDialog() }
@@ -433,8 +438,6 @@ class MainActivity : AppCompatActivity() {
                 promptAutoMeasurementDelay()
             }
         }
-
-        exportBtn.setOnClickListener { promptFreeTextAndExport() }
 
         cleanRecordsBtn.setOnClickListener {
             AlertDialog.Builder(this)
@@ -452,18 +455,6 @@ class MainActivity : AppCompatActivity() {
                 .show()
         }
 
-        measureSourceBtn.setOnClickListener {
-            val intent = Intent(this, MeasureSourceActivity::class.java)
-            measureSourceLauncher.launch(intent)
-        }
-
-        accuracyTestBtn.setOnClickListener {
-            val intent = Intent(this, AccuracyTestActivity::class.java)
-            startActivity(intent)
-        }
-
-        sendWifiBtn.setOnClickListener { triggerWifiSend() }
-
         val missing = requiredPermissions.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }.toTypedArray()
         if (missing.isNotEmpty()) {
             ActivityCompat.requestPermissions(this, missing, locationPermissionRequestCode)
@@ -477,7 +468,7 @@ class MainActivity : AppCompatActivity() {
         loadMeasurementMarkersFromDb()
     }
 
-        private fun addMeasurementMarker(measurement: SignalRecord) {
+    private fun addMeasurementMarker(measurement: SignalRecord) {
         val marker = Marker(mapView).apply {
             position = GeoPoint(measurement.latitude, measurement.longitude)
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
@@ -577,51 +568,6 @@ class MainActivity : AppCompatActivity() {
         } else {
             ActivityCompat.requestPermissions(this, requiredPermissions, locationPermissionRequestCode)
         }
-        checkAndRefreshSource()
-    }
-
-    private fun checkAndRefreshSource() {
-        lifecycleScope.launch {
-            val pos = sourcePositionDao.get()
-
-            if (isMeasuringSource) {
-                isMeasuringSource = false
-                if (pos != null) {
-                    promptForSourceName()
-                }
-            }
-
-            updateSourceUi(pos)
-        }
-    }
-
-    private fun promptForSourceName() {
-        val input = EditText(this).apply {
-            hint = getString(R.string.enter_source_name_hint)
-        }
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.enter_source_name_title))
-            .setView(input)
-            .setPositiveButton(getString(R.string.set_name)) { _, _ ->
-                val name = input.text.toString().trim()
-                if (name.isNotEmpty()) {
-                    sessionSourceName = name
-                    lifecycleScope.launch { updateSourceUi(sourcePositionDao.get()) }
-                }
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
-    }
-
-    private suspend fun updateSourceUi(pos: SourcePosition?) {
-        withContext(Dispatchers.Main) {
-            if (pos != null) {
-                val name = sessionSourceName ?: getString(R.string.source_default_name)
-                sourceNameText.text = getString(R.string.selected_source, name)
-            } else {
-                sourceNameText.text = getString(R.string.placeholder_source)
-            }
-        }
     }
 
     override fun onPause() {
@@ -636,6 +582,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        // Only stop streams when activity is actually being destroyed
         RSSIStream.stop()
         LocationStream.stop()
     }
@@ -645,8 +592,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showSsidChoiceDialog() {
+        // Take a snapshot of the current SSID list
         var snapshotList = ssidList.toList()
 
+        // Create an ArrayAdapter that we can update (even if empty initially)
         val adapter = android.widget.ArrayAdapter(
             this,
             android.R.layout.simple_list_item_single_choice,
@@ -712,7 +661,7 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun vibrate(durationMs: Long = 200L) {
+    private fun vibrate(durationMs: Long = 100L) {
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val manager = getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
             manager.defaultVibrator
@@ -727,108 +676,6 @@ class MainActivity : AppCompatActivity() {
             } else {
                 @Suppress("DEPRECATION")
                 vibrator.vibrate(durationMs)
-            }
-        }
-    }
-
-    private fun promptFreeTextAndExport() {
-        val input = EditText(this).apply {
-            hint = getString(R.string.free_text_hint)
-        }
-
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.free_text_title))
-            .setView(input)
-            .setPositiveButton(getString(R.string.free_text_positive)) { dialog, _ ->
-                val sanitized = sanitizeFreeText(input.text?.toString().orEmpty())
-                exportDatabaseToJson(sanitized)
-                dialog.dismiss()
-            }
-            .setNegativeButton(android.R.string.cancel) { dialog, _ -> dialog.dismiss() }
-            .show()
-    }
-
-    private fun sanitizeFreeText(raw: String): String {
-        val sanitized = raw.trim().replace(Regex("[^A-Za-z0-9_-]"), "").take(50)
-        return sanitized.ifBlank {
-            "noTag_" + raw.hashCode().toUInt().toString(16)
-        }
-    }
-
-    private fun exportDatabaseToJson(freeText: String) {
-        lifecycleScope.launch {
-            val source = sourcePositionDao.get()
-            val allRecords = signalDao.getAll()
-
-            val exportObj = mapOf(
-                "source_pos" to if (source?.latitude != null && source.longitude != null) {
-                    mapOf("x" to source.latitude, "y" to source.longitude)
-                } else null,
-                "measurements" to allRecords
-            )
-
-            val gson = GsonBuilder().setPrettyPrinting().create()
-            val jsonString = gson.toJson(exportObj)
-            val timeStr = java.text.SimpleDateFormat("HH_mm_ss", java.util.Locale.getDefault()).format(java.util.Date())
-            val fileName = "${System.currentTimeMillis()}_${deviceID}_${timeStr}_${freeText}.json"
-            val file = java.io.File(getExternalFilesDir(null)?.absolutePath ?: filesDir.absolutePath, fileName)
-            file.writeText(jsonString)
-            lastExportedFile = file
-            withContext(Dispatchers.Main) {
-                Toast.makeText(this@MainActivity, getString(R.string.exported_to, file.absolutePath), Toast.LENGTH_LONG).show()
-            }
-        }
-    }
-
-    private fun triggerWifiSend() {
-        val host = wifiHostInput.text.toString().trim()
-        val portVal = wifiPortInput.text.toString().toIntOrNull()
-        when {
-            host.isEmpty() -> {
-                Toast.makeText(this, getString(R.string.wifi_host_required), Toast.LENGTH_SHORT).show()
-                return
-            }
-            portVal == null || portVal !in 1..65535 -> {
-                Toast.makeText(this, getString(R.string.wifi_port_invalid), Toast.LENGTH_SHORT).show()
-                return
-            }
-        }
-        sendLastExportedFile(host, portVal)
-    }
-
-    private fun sendLastExportedFile(host: String, port: Int) {
-        val file = lastExportedFile
-        if (file == null || !file.exists()) {
-            Toast.makeText(this, getString(R.string.wifi_send_missing_export), Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        lifecycleScope.launch {
-            statusText.text = getString(R.string.wifi_sending_status)
-            try {
-                withContext(Dispatchers.IO) {
-                    val url = URL("http://$host:$port/upload")
-                    val conn = (url.openConnection() as HttpURLConnection).apply {
-                        doOutput = true
-                        requestMethod = "POST"
-                        connectTimeout = 5000
-                        readTimeout = 5000
-                        setRequestProperty("Content-Type", "application/json")
-                        setRequestProperty("X-Filename", file.name)
-                    }
-                    file.inputStream().use { input ->
-                        conn.outputStream.use { output -> input.copyTo(output) }
-                    }
-                    val code = conn.responseCode
-                    if (code !in 200..299) throw IOException("HTTP $code")
-                    conn.disconnect()
-                }
-                statusText.text = getString(R.string.wifi_send_success)
-                Toast.makeText(this@MainActivity, getString(R.string.wifi_send_success), Toast.LENGTH_SHORT).show()
-            } catch (ex: Exception) {
-                val msg = ex.message ?: "unknown"
-                statusText.text = getString(R.string.wifi_send_error, msg)
-                Toast.makeText(this@MainActivity, getString(R.string.wifi_send_error, msg), Toast.LENGTH_LONG).show()
             }
         }
     }

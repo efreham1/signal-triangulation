@@ -49,6 +49,7 @@ namespace rest
 
         server_->Get("/files", [this](const httplib::Request &req, httplib::Response &res)
                      {
+            std::cout << "Listing files in upload directory: " << upload_dir_ << std::endl;
             nlohmann::json file_list = nlohmann::json::array();
             try {
                 for (const auto& entry : std::filesystem::directory_iterator(upload_dir_)) {
@@ -66,6 +67,7 @@ namespace rest
         // GET /run-algorithm
         server_->Get("/run-algorithm", [this](const httplib::Request &req, httplib::Response &res)
                      {
+            std::cout << "Running algorithm on uploaded files" << std::endl;
             // Get 'files' query parameter
             auto files_param = req.get_param_value("files");
             if (files_param.empty()) {
@@ -110,6 +112,7 @@ namespace rest
         std::cout << "  Polaris REST API Server" << std::endl;
         std::cout << "===========================================" << std::endl;
         std::cout << "  POST /upload" << std::endl;
+        std::cout << "  GET  /files" << std::endl;
         std::cout << "  GET  /run-algorithm" << std::endl;
         std::cout << "  Port:   " << port_ << std::endl;
         std::cout << "  Upload: " << upload_dir_ << std::endl;

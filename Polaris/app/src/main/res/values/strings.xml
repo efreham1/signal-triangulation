@@ -2,10 +2,11 @@
     <string name="app_name">Polaris</string>
     <string name="ssid_prompt">Select SSID:</string>
     <string name="placeholder_db">Database entries will appear here</string>
+    <string name="placeholder_export">Export status will appear here</string>
     <string name="exported_to">Exported to:\n%1$s</string>
     <string name="clean_records">Delete Recordings</string>
     <string name="recordings_deleted">Recordings deleted</string>
-    <string name="export_json">Export to JSON</string>
+    <string name="export_json">Export</string>
     <string name="choose_ssid">Choose SSID</string>
     <string name="refresh">Refresh</string>
 
@@ -41,7 +42,6 @@
     <string name="measure_source">Measure new source position</string>
     <string name="start_measurement">Start measurement</string>
     <string name="start_measurement_legacy">Start measurement (legacy)</string>
-    <string name="back_to_main">Back to main</string>
     <string name="ready">Ready</string>
 
     <string name="free_text_hint">Enter text here (Optional)</string>
@@ -51,6 +51,7 @@
     <string name="open_accuracy_test">Open Location Accuracy Test</string>
     <string name="take_measurement">Measure</string>
     <string name="auto_measurement">Auto</string>
+    <string name="status_ssid_missing">Select a network before measuring</string>
     <string name="status_ready">Ready for new measurement</string>
     <string name="status_no_ssid">Select a network first</string>
     <string name="status_waiting_rssi">Stand still, measuring RSSI…</string>
@@ -131,4 +132,7 @@
     <string name="map_current_location">Current Location</string>
     <string name="map_signal_source">Signal Source</string>
     <string name="your_location">You are here</string>
+
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
 </resources>

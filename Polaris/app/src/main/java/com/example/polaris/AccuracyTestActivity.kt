@@ -57,7 +57,6 @@ class AccuracyTestActivity : AppCompatActivity() {
         setContentView(R.layout.activity_accuracy_test)
 
         val info = findViewById<TextView>(R.id.body)
-        findViewById<Button>(R.id.closeBtn).setOnClickListener { finish() }
 
         val samplesTv = TextView(this).apply {
             typeface = Typeface.MONOSPACE
@@ -220,6 +219,7 @@ class AccuracyTestActivity : AppCompatActivity() {
         root.addView(triggerBtn)
         root.addView(summaryBtn)
         root.addView(samplesTv)
+        findViewById<Button>(R.id.closeBtn).setOnClickListener { finish() }
     }
 
     private fun hasLocationPerm(): Boolean {
