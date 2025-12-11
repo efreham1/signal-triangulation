@@ -1,0 +1,548 @@
+{
+  "source_pos": {
+    "x": 59.86621683139928,
+    "y": 17.705304877880913
+  },
+  "measurements": [
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 252,
+      "latitude": 59.86622624794476,
+      "longitude": 17.704978193368525,
+      "rssi": -81,
+      "ssid": "R17o",
+      "timestamp": 1764845618991
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 251,
+      "latitude": 59.86617844778541,
+      "longitude": 17.70497593780917,
+      "rssi": -78,
+      "ssid": "R17o",
+      "timestamp": 1764845607362
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 250,
+      "latitude": 59.86615916005748,
+      "longitude": 17.705001332378913,
+      "rssi": -90,
+      "ssid": "R17o",
+      "timestamp": 1764845595551
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 249,
+      "latitude": 59.8661867986397,
+      "longitude": 17.705005972698086,
+      "rssi": -81,
+      "ssid": "R17o",
+      "timestamp": 1764845583662
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 248,
+      "latitude": 59.866213367909516,
+      "longitude": 17.70499372381695,
+      "rssi": -83,
+      "ssid": "R17o",
+      "timestamp": 1764845572010
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 247,
+      "latitude": 59.866230514390416,
+      "longitude": 17.70500985471119,
+      "rssi": -82,
+      "ssid": "R17o",
+      "timestamp": 1764845560168
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 246,
+      "latitude": 59.86624829019101,
+      "longitude": 17.705047795316077,
+      "rssi": -82,
+      "ssid": "R17o",
+      "timestamp": 1764845548523
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 245,
+      "latitude": 59.86624436782065,
+      "longitude": 17.705084508396393,
+      "rssi": -69,
+      "ssid": "R17o",
+      "timestamp": 1764845536957
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 244,
+      "latitude": 59.86626868010839,
+      "longitude": 17.705055225457894,
+      "rssi": -79,
+      "ssid": "R17o",
+      "timestamp": 1764845525712
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 243,
+      "latitude": 59.866284689313474,
+      "longitude": 17.705042199067936,
+      "rssi": -91,
+      "ssid": "R17o",
+      "timestamp": 1764845514206
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 242,
+      "latitude": 59.86631020635641,
+      "longitude": 17.70518305316353,
+      "rssi": -92,
+      "ssid": "R17o",
+      "timestamp": 1764845485151
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 241,
+      "latitude": 59.866322811990685,
+      "longitude": 17.705267199768162,
+      "rssi": -96,
+      "ssid": "R17o",
+      "timestamp": 1764845457100
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 240,
+      "latitude": 59.86631074130813,
+      "longitude": 17.705280719159337,
+      "rssi": -78,
+      "ssid": "R17o",
+      "timestamp": 1764845444319
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 239,
+      "latitude": 59.866322095240015,
+      "longitude": 17.705312243531107,
+      "rssi": -76,
+      "ssid": "R17o",
+      "timestamp": 1764845433792
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 238,
+      "latitude": 59.866323489774224,
+      "longitude": 17.705353168130536,
+      "rssi": -75,
+      "ssid": "R17o",
+      "timestamp": 1764845423149
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 237,
+      "latitude": 59.86632049700704,
+      "longitude": 17.70538108037314,
+      "rssi": -72,
+      "ssid": "R17o",
+      "timestamp": 1764845412405
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 236,
+      "latitude": 59.86630870981461,
+      "longitude": 17.705420047929834,
+      "rssi": -75,
+      "ssid": "R17o",
+      "timestamp": 1764845401341
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 235,
+      "latitude": 59.86629979390078,
+      "longitude": 17.705485753800943,
+      "rssi": -66,
+      "ssid": "R17o",
+      "timestamp": 1764845390053
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 234,
+      "latitude": 59.866296308813354,
+      "longitude": 17.70553864948431,
+      "rssi": -69,
+      "ssid": "R17o",
+      "timestamp": 1764845376818
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 233,
+      "latitude": 59.8663042114437,
+      "longitude": 17.705521867874975,
+      "rssi": -72,
+      "ssid": "R17o",
+      "timestamp": 1764845365517
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 232,
+      "latitude": 59.86632984744658,
+      "longitude": 17.705486619868502,
+      "rssi": -76,
+      "ssid": "R17o",
+      "timestamp": 1764845354418
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 231,
+      "latitude": 59.866328768761385,
+      "longitude": 17.705451141047167,
+      "rssi": -77,
+      "ssid": "R17o",
+      "timestamp": 1764845342852
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 230,
+      "latitude": 59.86630054965259,
+      "longitude": 17.705416398145648,
+      "rssi": -73,
+      "ssid": "R17o",
+      "timestamp": 1764845331231
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 229,
+      "latitude": 59.866282548471865,
+      "longitude": 17.705421276214807,
+      "rssi": -82,
+      "ssid": "R17o",
+      "timestamp": 1764845319678
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 228,
+      "latitude": 59.86629007170759,
+      "longitude": 17.705463362640014,
+      "rssi": -72,
+      "ssid": "R17o",
+      "timestamp": 1764845308358
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 227,
+      "latitude": 59.866280546166514,
+      "longitude": 17.705484458256056,
+      "rssi": -76,
+      "ssid": "R17o",
+      "timestamp": 1764845296576
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 226,
+      "latitude": 59.86627532341023,
+      "longitude": 17.705451105574447,
+      "rssi": -65,
+      "ssid": "R17o",
+      "timestamp": 1764845285062
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 225,
+      "latitude": 59.86627930758884,
+      "longitude": 17.70541992493944,
+      "rssi": -72,
+      "ssid": "R17o",
+      "timestamp": 1764845273230
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 224,
+      "latitude": 59.86626833649876,
+      "longitude": 17.705393717710468,
+      "rssi": -79,
+      "ssid": "R17o",
+      "timestamp": 1764845261538
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 223,
+      "latitude": 59.86625592309913,
+      "longitude": 17.70536520915917,
+      "rssi": -54,
+      "ssid": "R17o",
+      "timestamp": 1764845249970
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 222,
+      "latitude": 59.86625514814741,
+      "longitude": 17.70540935287546,
+      "rssi": -62,
+      "ssid": "R17o",
+      "timestamp": 1764845238722
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 221,
+      "latitude": 59.86624448739118,
+      "longitude": 17.705434323022743,
+      "rssi": -60,
+      "ssid": "R17o",
+      "timestamp": 1764845227206
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 220,
+      "latitude": 59.866226303291675,
+      "longitude": 17.705416437095323,
+      "rssi": -67,
+      "ssid": "R17o",
+      "timestamp": 1764845215473
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 219,
+      "latitude": 59.866209294406616,
+      "longitude": 17.705411796972296,
+      "rssi": -69,
+      "ssid": "R17o",
+      "timestamp": 1764845203765
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 218,
+      "latitude": 59.86619124184783,
+      "longitude": 17.70543657395738,
+      "rssi": -54,
+      "ssid": "R17o",
+      "timestamp": 1764845191962
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 217,
+      "latitude": 59.86618115563963,
+      "longitude": 17.705423423608377,
+      "rssi": -68,
+      "ssid": "R17o",
+      "timestamp": 1764845180087
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 216,
+      "latitude": 59.86618801289136,
+      "longitude": 17.705345949033326,
+      "rssi": -60,
+      "ssid": "R17o",
+      "timestamp": 1764845168317
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 215,
+      "latitude": 59.86619385523483,
+      "longitude": 17.705334019166177,
+      "rssi": -63,
+      "ssid": "R17o",
+      "timestamp": 1764845156357
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 214,
+      "latitude": 59.86617989796321,
+      "longitude": 17.705367793022837,
+      "rssi": -62,
+      "ssid": "R17o",
+      "timestamp": 1764845144581
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 213,
+      "latitude": 59.86615152368071,
+      "longitude": 17.705362832424516,
+      "rssi": -73,
+      "ssid": "R17o",
+      "timestamp": 1764845132936
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 212,
+      "latitude": 59.86615239974545,
+      "longitude": 17.705338830860534,
+      "rssi": -85,
+      "ssid": "R17o",
+      "timestamp": 1764845121397
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 211,
+      "latitude": 59.866148124831184,
+      "longitude": 17.705313803458445,
+      "rssi": -79,
+      "ssid": "R17o",
+      "timestamp": 1764845109683
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 210,
+      "latitude": 59.86613366955422,
+      "longitude": 17.70531473573133,
+      "rssi": -68,
+      "ssid": "R17o",
+      "timestamp": 1764845097756
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 209,
+      "latitude": 59.86613125355217,
+      "longitude": 17.705283974298297,
+      "rssi": -76,
+      "ssid": "R17o",
+      "timestamp": 1764845086004
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 208,
+      "latitude": 59.86614617743397,
+      "longitude": 17.705212654008125,
+      "rssi": -72,
+      "ssid": "R17o",
+      "timestamp": 1764845074073
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 207,
+      "latitude": 59.8661398514488,
+      "longitude": 17.70517148651719,
+      "rssi": -75,
+      "ssid": "R17o",
+      "timestamp": 1764845062254
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 206,
+      "latitude": 59.86614328384072,
+      "longitude": 17.70520870225328,
+      "rssi": -77,
+      "ssid": "R17o",
+      "timestamp": 1764845047893
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 205,
+      "latitude": 59.86614449734794,
+      "longitude": 17.70517084412399,
+      "rssi": -71,
+      "ssid": "R17o",
+      "timestamp": 1764845035985
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 204,
+      "latitude": 59.86618487213181,
+      "longitude": 17.705156142304258,
+      "rssi": -75,
+      "ssid": "R17o",
+      "timestamp": 1764845024092
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 203,
+      "latitude": 59.86622663142667,
+      "longitude": 17.705111596089537,
+      "rssi": -77,
+      "ssid": "R17o",
+      "timestamp": 1764845012149
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 202,
+      "latitude": 59.866233719514966,
+      "longitude": 17.70505262304769,
+      "rssi": -81,
+      "ssid": "R17o",
+      "timestamp": 1764845000662
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 201,
+      "latitude": 59.866229570177595,
+      "longitude": 17.70502384482926,
+      "rssi": -76,
+      "ssid": "R17o",
+      "timestamp": 1764844988989
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 200,
+      "latitude": 59.866184083665466,
+      "longitude": 17.705026843494277,
+      "rssi": -70,
+      "ssid": "R17o",
+      "timestamp": 1764844936041
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 199,
+      "latitude": 59.866138607531056,
+      "longitude": 17.705058241734527,
+      "rssi": -96,
+      "ssid": "R17o",
+      "timestamp": 1764844924397
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 198,
+      "latitude": 59.86611573387572,
+      "longitude": 17.705089433529967,
+      "rssi": -94,
+      "ssid": "R17o",
+      "timestamp": 1764844912451
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 197,
+      "latitude": 59.86610576588154,
+      "longitude": 17.705144351061957,
+      "rssi": -76,
+      "ssid": "R17o",
+      "timestamp": 1764844900735
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 196,
+      "latitude": 59.86612120083852,
+      "longitude": 17.70508590133334,
+      "rssi": -80,
+      "ssid": "R17o",
+      "timestamp": 1764844889093
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 195,
+      "latitude": 59.866115539705255,
+      "longitude": 17.705087732262925,
+      "rssi": -80,
+      "ssid": "R17o",
+      "timestamp": 1764844877433
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 194,
+      "latitude": 59.86621931095117,
+      "longitude": 17.705143985115903,
+      "rssi": -68,
+      "ssid": "R17o",
+      "timestamp": 1764844780863
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 193,
+      "latitude": 59.86617112258446,
+      "longitude": 17.70503094972201,
+      "rssi": -79,
+      "ssid": "R17o",
+      "timestamp": 1764844752928
+    }
+  ]
+}

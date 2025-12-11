@@ -67,10 +67,11 @@ object LocationStream {
         started = false
     }
 
-    fun isStarted(): Boolean = started
+    fun lastKnownLocation(): Location? = synchronized(buffer) { 
+        buffer.firstOrNull() 
+    }
 
-    // Currently unused
-    fun latest(): Location? = synchronized(buffer) { buffer.firstOrNull() }
+    fun isStarted(): Boolean = started
 
     // Currently unused
     fun nearestByWallClock(targetTimeMs: Long, maxDeltaMs: Long = 7000L): Location? =
@@ -79,15 +80,6 @@ object LocationStream {
             val delta = abs(best.time - targetTimeMs)
             if (delta <= maxDeltaMs) best else null
         }
-
-    /**
-     * Calculates a weighted average location from samples collected in the last [durationMs].
-     * Weights are inversely proportional to the square of the accuracy (1/acc^2).
-     */
-    // Currently unused
-    fun getAveragedLocation(durationMs: Long): Location? {
-        return getAveragedLocationAndSamples(durationMs)?.first
-    }
 
     /**
      * Calculates a weighted average location from samples collected in the last [durationMs].

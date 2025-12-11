@@ -119,19 +119,11 @@
         android:layout_marginTop="6dp"
         android:text="@string/wifi_send" />
 
-    <ScrollView
+    <org.osmdroid.views.MapView
+        android:id="@+id/mapView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:layout_marginTop="8dp" >
-
-        <TextView
-            android:id="@+id/allRecordsText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/placeholder_db"
-            android:textSize="14sp"
-            android:padding="8dp"/>
-    </ScrollView>
+        android:layout_marginTop="8dp" />
 
 </LinearLayout>
