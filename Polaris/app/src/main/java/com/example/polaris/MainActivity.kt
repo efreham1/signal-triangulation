@@ -319,7 +319,7 @@ class MainActivity : AppCompatActivity() {
 
                 // Wait the configured delay before next measurement
                 var remainingMs = autoMeasureDelayMs
-                while ( remainingMs > 0 && isAutoMeasuring) {
+                while (remainingMs > 0 && isAutoMeasuring) {
                     val secondsLeft = (remainingMs / 1000).toInt() + if (remainingMs % 1000 > 0) 1 else 0
                     statusText.text = getString(R.string.auto_next_in, secondsLeft)
                     if (secondsLeft <= 3) vibrate()
@@ -461,11 +461,11 @@ class MainActivity : AppCompatActivity() {
         loadMeasurementMarkersFromDb()
     }
 
-        private fun addMeasurementMarker(measurementPoint : SignalRecord) {
+        private fun addMeasurementMarker(measurement: SignalRecord) {
         val marker = Marker(mapView).apply {
-            position = GeoPoint(measurementPoint.latitude, measurementPoint.longitude)
+            position = GeoPoint(measurement.latitude, measurement.longitude)
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-            title = "${measurementPoint.rssi} dBm - ${timeFormat.format(java.util.Date(measurementPoint.timestamp))}"
+            title = "${measurement.rssi} dBm - ${timeFormat.format(java.util.Date(measurement.timestamp))}"
             icon = createMeasurementIcon(android.graphics.Color.RED)
         }
         measurementMarkers.add(marker)
@@ -753,7 +753,7 @@ class MainActivity : AppCompatActivity() {
             val fileName = "${System.currentTimeMillis()}_${deviceID}_${timeStr}_${freeText}.json"
             val file = java.io.File(getExternalFilesDir(null)?.absolutePath ?: filesDir.absolutePath, fileName)
             file.writeText(jsonString)
-            runOnUiThread { 
+            withContext(Dispatchers.Main) {
                 Toast.makeText(this@MainActivity, getString(R.string.exported_to, file.absolutePath), Toast.LENGTH_LONG).show()
             }
         }
