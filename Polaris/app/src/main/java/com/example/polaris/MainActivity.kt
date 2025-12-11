@@ -728,7 +728,7 @@ class MainActivity : AppCompatActivity() {
             statusText.text = getString(R.string.wifi_sending_status)
             try {
                 withContext(Dispatchers.IO) {
-                    val url = URL("http://$host:$port/")
+                    val url = URL("http://$host:$port/upload")
                     val conn = (url.openConnection() as HttpURLConnection).apply {
                         doOutput = true
                         requestMethod = "POST"

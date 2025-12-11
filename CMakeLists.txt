@@ -16,9 +16,9 @@ endif()
 # Source layout: all sources live under ./src
 set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 
-# Gather sources for main triangulation app (exclude file_receiver_main.cpp)
+# Gather sources for main triangulation app (exclude main_rest_api.cpp)
 file(GLOB_RECURSE ALL_SOURCES "${SRC_DIR}/*.cpp")
-list(FILTER ALL_SOURCES EXCLUDE REGEX ".*file_receiver_main\\.cpp$")
+list(FILTER ALL_SOURCES EXCLUDE REGEX ".*main_rest_api\\.cpp$")
 set(PROJECT_SOURCES ${ALL_SOURCES})
 
 # Create main triangulation executable
@@ -29,16 +29,24 @@ target_include_directories(signal-triangulation
     ${SRC_DIR}
 )
 
-# Create file receiver executable
-add_executable(file-receiver 
-    ${SRC_DIR}/file_receiver_main.cpp
-    ${SRC_DIR}/utils/FileReceiver.cpp
+add_executable(rest-api-server
+    ${SRC_DIR}/main_rest_api.cpp
+    ${SRC_DIR}/rest/PolarisServer.cpp
+    ${SRC_DIR}/rest/AlgorithmRunner.cpp
 )
 
-target_include_directories(file-receiver
+target_include_directories(rest-api-server
     PRIVATE
     ${SRC_DIR}
 )
+
+target_link_libraries(rest-api-server
+    PRIVATE
+    nlohmann_json::nlohmann_json
+    httplib::httplib
+)
+
+install(TARGETS rest-api-server RUNTIME DESTINATION bin)
 
 include(FetchContent)
 
@@ -75,20 +83,11 @@ target_link_libraries(signal-triangulation
     spdlog::spdlog
 )
 
-target_link_libraries(file-receiver
-    PRIVATE
-    httplib::httplib
-    spdlog::spdlog
-)
-
 # Link OpenMP if found
 if(OpenMP_CXX_FOUND)
     target_link_libraries(signal-triangulation PRIVATE OpenMP::OpenMP_CXX)
     target_compile_definitions(signal-triangulation PRIVATE USE_OPENMP)
 endif()
-
-# Install target (optional)
-install(TARGETS signal-triangulation file-receiver RUNTIME DESTINATION bin)
 
 set(APP_TARGET_NAME signal-triangulation)
 

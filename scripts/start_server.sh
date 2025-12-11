@@ -35,8 +35,8 @@ else
     echo "[1/2] Not in WSL, skipping port forward"
 fi
 
-# Start the file receiver
-echo "[2/2] Starting FileReceiver on port $PORT..."
+# Start the REST API server
+echo "[2/2] Starting REST API server on port $PORT..."
 echo ""
 
-"$PROJECT_DIR/build/file-receiver" --port "$PORT" --output "$OUTPUT_DIR"
+"$PROJECT_DIR/build/rest-api-server" --port "$PORT" --output "$OUTPUT_DIR"

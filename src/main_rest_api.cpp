@@ -1,14 +1,13 @@
-#include "utils/FileReceiver.h"
+#include "rest/PolarisServer.h"
 #include <iostream>
 #include <cstdlib>
-#include <spdlog/spdlog.h>
 
 void printHelp(const char *prog_name)
 {
     std::cout << "Usage: " << prog_name << " [OPTIONS]\n"
-              << "\nTiny Wi-Fi upload receiver\n"
+              << "\nPolaris REST API server\n"
               << "\nOptions:\n"
-              << "  --port PORT       Listen port (default: 8000)\n"
+              << "  --port PORT       Listen port (default: 8080)\n"
               << "  --output DIR      Directory to save files (default: uploads)\n"
               << "  --help            Show this help message\n"
               << std::endl;
@@ -45,12 +44,8 @@ int main(int argc, char *argv[])
         }
     }
 
-    // Setup logging
-    spdlog::set_level(spdlog::level::info);
-
-    // Create and start receiver
-    utils::FileReceiver receiver(port, output_dir);
-    receiver.start();
+    rest::PolarisServer server(port, output_dir);
+    server.start();
 
     return 0;
 }
