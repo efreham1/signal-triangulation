@@ -119,4 +119,5 @@
 
     <string name="map_current_location">Current Location</string>
     <string name="map_signal_source">Signal Source</string>
+    <string name="your_location">You are here</string>
 </resources>

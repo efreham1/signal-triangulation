@@ -106,7 +106,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var cleanRecordsBtn: Button
     private lateinit var exportBtn: Button
     private lateinit var selectSsidBtn: Button
-    private lateinit var allRecordsText: TextView
     private lateinit var takeMeasurementBtn: Button
     private lateinit var statusText: TextView
     private lateinit var measureSourceBtn: Button
@@ -149,6 +148,7 @@ class MainActivity : AppCompatActivity() {
     private var sessionSourceName: String? = null
     private var isMeasuringSource = false
     private var measurementOffsetMs = 5_000L
+    private var hasInitiallyZoomedToLocation = false
 
     private val deviceID: String by lazy {
         Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID) ?: "unknown"
@@ -257,8 +257,6 @@ class MainActivity : AppCompatActivity() {
                     Toast.LENGTH_SHORT
                 ).show()
                 addMeasurementMarker(avgLoc.latitude, avgLoc.longitude, seenTimeMs)
-
-                //refreshRecordsView()
             }
             measurementTargetSsid = null
         }
@@ -379,8 +377,6 @@ class MainActivity : AppCompatActivity() {
     private val measureSourceLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
             isMeasuringSource = true
-
-            //refreshRecordsView()
         }
     }
 
@@ -435,7 +431,6 @@ class MainActivity : AppCompatActivity() {
                         // Only delete signal records, preserve source position
                         signalDao.deleteAll()
                         clearMeasurementMarkers()
-                        //refreshRecordsView()
                         Toast.makeText(this@MainActivity, getString(R.string.recordings_deleted), Toast.LENGTH_SHORT).show()
                     }
                 }
@@ -463,11 +458,7 @@ class MainActivity : AppCompatActivity() {
         mapView.setMultiTouchControls(true)
         mapView.controller.setZoom(19.0)
 
-        // Start at Faffesgatan 6, Stockholm
-        mapView.controller.setCenter(GeoPoint(59.86621683139928, 17.705304877880913))
-
         loadMeasurementMarkersFromDb()
-        //refreshRecordsView()
     }
 
         private fun addMeasurementMarker(lat: Double, lng: Double, timestamp: Long) {
@@ -533,13 +524,19 @@ class MainActivity : AppCompatActivity() {
         if (currentLocationMarker == null) {
             currentLocationMarker = Marker(mapView).apply {
                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-                title = "You are here"
+                title = getString(R.string.your_location)
             }
             mapView.overlays.add(currentLocationMarker)
         }
 
         currentLocationMarker?.position = position
-        mapView.controller.setCenter(position)
+
+        // Only re-center the map the first time
+        if (!hasInitiallyZoomedToLocation) {
+            hasInitiallyZoomedToLocation = true
+            mapView.controller.setCenter(position)
+        }
+
         mapView.invalidate()
     }
 
@@ -561,7 +558,6 @@ class MainActivity : AppCompatActivity() {
         } else {
             ActivityCompat.requestPermissions(this, requiredPermissions, locationPermissionRequestCode)
         }
-        //refreshRecordsView()
         checkAndRefreshSource()
     }
 
