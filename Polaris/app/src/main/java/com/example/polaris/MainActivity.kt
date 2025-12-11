@@ -38,6 +38,11 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
 
 @Entity(tableName = "signal_records")
 data class SignalRecord(
@@ -101,12 +106,15 @@ class MainActivity : AppCompatActivity() {
     private lateinit var cleanRecordsBtn: Button
     private lateinit var exportBtn: Button
     private lateinit var selectSsidBtn: Button
-    private lateinit var allRecordsText: TextView
     private lateinit var takeMeasurementBtn: Button
     private lateinit var statusText: TextView
     private lateinit var measureSourceBtn: Button
     private lateinit var accuracyTestBtn: Button
     private lateinit var sourceNameText: TextView
+
+    private lateinit var mapView: MapView
+    private var currentLocationMarker: Marker? = null
+    private val measurementMarkers = mutableListOf<Marker>()
 
     // SSID list & selection
     private val ssidList = mutableListOf<String>()
@@ -132,6 +140,9 @@ class MainActivity : AppCompatActivity() {
     private var autoMeasureDelayMs = 5000L // Default 5 seconds between measurements
     private lateinit var autoBtn: Button
 
+    // Location updates job
+    private var locationUpdatesJob: Job? = null
+
     private val rssiListener: (RSSIStream.ScanBatch) -> Unit = { batch ->
         handleScanBatch(batch)
     }
@@ -140,6 +151,7 @@ class MainActivity : AppCompatActivity() {
     private var sessionSourceName: String? = null
     private var isMeasuringSource = false
     private var measurementOffsetMs = 5_000L
+    private var hasInitiallyZoomedToLocation = false
 
     private val deviceID: String by lazy {
         Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID) ?: "unknown"
@@ -191,8 +203,8 @@ class MainActivity : AppCompatActivity() {
             } catch (_: TimeoutCancellationException) {
                 // Timeout - allow retry instead of getting stuck
                 withContext(Dispatchers.Main) {
-                    statusText.text = getString(R.string.status_ready)
                     if (!isAutoMeasuring) {
+                        statusText.text = getString(R.string.status_ready)
                         takeMeasurementBtn.isEnabled = true
                     }
                     Toast.makeText(this@MainActivity, getString(R.string.measurement_timeout), Toast.LENGTH_LONG).show()
@@ -216,8 +228,8 @@ class MainActivity : AppCompatActivity() {
 
             if (avgPair == null) {
                 withContext(Dispatchers.Main) {
-                    statusText.text = getString(R.string.status_measurement_failed)
                     if (!isAutoMeasuring) {
+                        statusText.text = getString(R.string.status_measurement_failed)
                         takeMeasurementBtn.isEnabled = true
                     }
                     Toast.makeText(this@MainActivity, getString(R.string.no_location), Toast.LENGTH_SHORT).show()
@@ -238,8 +250,8 @@ class MainActivity : AppCompatActivity() {
             signalDao.insert(record)
 
             withContext(Dispatchers.Main) {
-                statusText.text = getString(R.string.status_measurement_taken, avgPair.second.size)
                 if (!isAutoMeasuring) {
+                    statusText.text = getString(R.string.status_measurement_taken, avgPair.second.size)
                     takeMeasurementBtn.isEnabled = true
                 }
                 Toast.makeText(
@@ -247,7 +259,7 @@ class MainActivity : AppCompatActivity() {
                     getString(R.string.rssi_updated, rssi, timeFormat.format(java.util.Date(seenTimeMs))),
                     Toast.LENGTH_SHORT
                 ).show()
-                refreshRecordsView()
+                addMeasurementMarker(record)
             }
             measurementTargetSsid = null
         }
@@ -313,12 +325,12 @@ class MainActivity : AppCompatActivity() {
                 while (remainingMs > 0 && isAutoMeasuring) {
                     val secondsLeft = (remainingMs / 1000).toInt() + if (remainingMs % 1000 > 0) 1 else 0
                     statusText.text = getString(R.string.auto_next_in, secondsLeft)
-                    vibrate()
+                    if (secondsLeft <= 3) vibrate()
                     val step = if (remainingMs >= 1000) 1000L else remainingMs
                     delay(step)
                     remainingMs -= step
                 }
-                vibrate(300L)
+                vibrate(400L)
             }
         }
     }
@@ -368,13 +380,15 @@ class MainActivity : AppCompatActivity() {
     private val measureSourceLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
             isMeasuringSource = true
-            // Refresh UI to show the new source position immediately
-            refreshRecordsView()
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        Configuration.getInstance().load(this, getSharedPreferences("osmdroid", MODE_PRIVATE))
+        Configuration.getInstance().userAgentValue = packageName
+    
         setContentView(R.layout.activity_main)
 
         // Room database init
@@ -386,7 +400,6 @@ class MainActivity : AppCompatActivity() {
 
         // UI bindings
         cleanRecordsBtn = findViewById(R.id.cleanRecordsBtn)
-        allRecordsText = findViewById(R.id.allRecordsText)
         selectSsidBtn = findViewById(R.id.selectSsidBtn)
         exportBtn = findViewById(R.id.exportBtn)
         takeMeasurementBtn = findViewById(R.id.takeMeasurementBtn)
@@ -420,7 +433,7 @@ class MainActivity : AppCompatActivity() {
                     lifecycleScope.launch {
                         // Only delete signal records, preserve source position
                         signalDao.deleteAll()
-                        refreshRecordsView()
+                        clearMeasurementMarkers()
                         Toast.makeText(this@MainActivity, getString(R.string.recordings_deleted), Toast.LENGTH_SHORT).show()
                     }
                 }
@@ -443,11 +456,100 @@ class MainActivity : AppCompatActivity() {
             ActivityCompat.requestPermissions(this, missing, locationPermissionRequestCode)
         }
 
-        refreshRecordsView()
+        mapView = findViewById(R.id.mapView)
+        mapView.setTileSource(TileSourceFactory.MAPNIK)
+        mapView.setMultiTouchControls(true)
+        mapView.controller.setZoom(19.0)
+
+        loadMeasurementMarkersFromDb()
+    }
+
+        private fun addMeasurementMarker(measurement: SignalRecord) {
+        val marker = Marker(mapView).apply {
+            position = GeoPoint(measurement.latitude, measurement.longitude)
+            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+            title = "${measurement.rssi} dBm - ${timeFormat.format(java.util.Date(measurement.timestamp))}"
+            icon = createMeasurementIcon(android.graphics.Color.RED)
+        }
+        measurementMarkers.add(marker)
+        mapView.overlays.add(marker)
+        mapView.invalidate()
+    }
+
+    private fun createMeasurementIcon(color: Int = android.graphics.Color.RED): android.graphics.drawable.Drawable {
+        val density = resources.displayMetrics.density
+        val sizePx = (16 * density).toInt()
+        
+        return android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.OVAL
+            setColor(color)
+            setStroke((2 * density).toInt(), android.graphics.Color.WHITE)
+            setSize(sizePx, sizePx)
+        }
+    }
+
+    private fun clearMeasurementMarkers() {
+        measurementMarkers.forEach { mapView.overlays.remove(it) }
+        measurementMarkers.clear()
+        mapView.invalidate()
+    }
+
+    private fun loadMeasurementMarkersFromDb() {
+        lifecycleScope.launch {
+            val records = signalDao.getAll()
+            withContext(Dispatchers.Main) {
+                clearMeasurementMarkers()
+                records.forEach { record ->
+                    addMeasurementMarker(record)
+                }
+            }
+        }
+    }
+
+    private fun startLocationUpdates() {
+        // Cancel any existing job before starting a new one
+        locationUpdatesJob?.cancel()
+        // Update map location every second
+        locationUpdatesJob = lifecycleScope.launch {
+            while (isActive) {
+                val location = LocationStream.lastKnownLocation()
+                if (location != null) {
+                    withContext(Dispatchers.Main) {
+                        updateCurrentLocationOnMap(location.latitude, location.longitude)
+                    }
+                }
+                delay(1000)
+            }
+        }
+    }
+
+    private fun updateCurrentLocationOnMap(lat: Double, lng: Double) {
+        val position = GeoPoint(lat, lng)
+
+        if (currentLocationMarker == null) {
+            currentLocationMarker = Marker(mapView).apply {
+                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                title = getString(R.string.your_location)
+                icon = createMeasurementIcon(android.graphics.Color.BLUE)
+            }
+            mapView.overlays.add(currentLocationMarker)
+        }
+
+        currentLocationMarker?.position = position
+
+        // Only re-center the map the first time
+        if (!hasInitiallyZoomedToLocation) {
+            hasInitiallyZoomedToLocation = true
+            mapView.controller.setCenter(position)
+        }
+
+        mapView.invalidate()
     }
 
     override fun onResume() {
         super.onResume()
+        mapView.onResume()
+
         if (hasAllPermissions()) {
             // Always ensure streams are started
             if (!LocationStream.isStarted()) {
@@ -456,25 +558,26 @@ class MainActivity : AppCompatActivity() {
             RSSIStream.start(this)
             RSSIStream.addListener(rssiListener)
             RSSIStream.latest()?.let { handleScanBatch(it) }
+
+            startLocationUpdates()
+            loadMeasurementMarkersFromDb()
         } else {
             ActivityCompat.requestPermissions(this, requiredPermissions, locationPermissionRequestCode)
         }
-        refreshRecordsView()
         checkAndRefreshSource()
     }
 
     private fun checkAndRefreshSource() {
         lifecycleScope.launch {
             val pos = sourcePositionDao.get()
-            
-            // If we just came back from measuring and we have a new measurement, prompt for a name
+
             if (isMeasuringSource) {
                 isMeasuringSource = false
                 if (pos != null) {
                     promptForSourceName()
                 }
             }
-            
+
             updateSourceUi(pos)
         }
     }
@@ -490,7 +593,6 @@ class MainActivity : AppCompatActivity() {
                 val name = input.text.toString().trim()
                 if (name.isNotEmpty()) {
                     sessionSourceName = name
-                    // Refresh UI to show new name
                     lifecycleScope.launch { updateSourceUi(sourcePositionDao.get()) }
                 }
             }
@@ -511,6 +613,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
+        mapView.onPause()
+        locationUpdatesJob?.cancel()
+        locationUpdatesJob = null
         RSSIStream.removeListener(rssiListener)
         stopAutoMeasurement()
         resetMeasurementState()
@@ -518,7 +623,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // Only stop streams when activity is actually being destroyed
         RSSIStream.stop()
         LocationStream.stop()
     }
@@ -528,10 +632,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showSsidChoiceDialog() {
-        // Take a snapshot of the current SSID list
         var snapshotList = ssidList.toList()
 
-        // Create an ArrayAdapter that we can update (even if empty initially)
         val adapter = android.widget.ArrayAdapter(
             this,
             android.R.layout.simple_list_item_single_choice,
@@ -597,32 +699,7 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    @SuppressLint("SetTextI18n")
-    private fun refreshRecordsView() {
-        lifecycleScope.launch {
-            val source = sourcePositionDao.get()
-            val all = signalDao.getAll()
-            runOnUiThread {
-                val header = if (source?.latitude != null && source.longitude != null) {
-                    getString(R.string.source_position_label, source.latitude, source.longitude)
-                } else {
-                    getString(R.string.source_position_placeholder)
-                }
-
-                if (all.isEmpty()) {
-                    allRecordsText.text = header + getString(R.string.placeholder_db)
-                } else {
-                    val body = all.joinToString("\n") {
-                        // Use string resource for consistent localization/formatting
-                        getString(R.string.record_item, it.ssid, it.latitude, it.longitude, it.rssi, java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(it.timestamp)))
-                    }
-                    allRecordsText.text = header + body
-                }
-            }
-        }
-    }
-
-    private fun vibrate(durationMs: Long = 100L) {
+    private fun vibrate(durationMs: Long = 200L) {
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val manager = getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
             manager.defaultVibrator
@@ -683,7 +760,9 @@ class MainActivity : AppCompatActivity() {
             val fileName = "${System.currentTimeMillis()}_${deviceID}_${timeStr}_${freeText}.json"
             val file = java.io.File(getExternalFilesDir(null)?.absolutePath ?: filesDir.absolutePath, fileName)
             file.writeText(jsonString)
-            runOnUiThread { allRecordsText.text = getString(R.string.exported_to, file.absolutePath) }
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@MainActivity, getString(R.string.exported_to, file.absolutePath), Toast.LENGTH_LONG).show()
+            }
         }
     }
 }

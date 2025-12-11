@@ -1,7 +1,10 @@
 package com.example.polaris
 
-import org.junit.Test
-import org.junit.Assert.*
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
 
 
 /**
@@ -129,7 +132,7 @@ class UnitTest {
         val validLatitudes = listOf(-90.0, -45.0, 0.0, 45.0, 90.0)
 
         validLatitudes.forEach { lat ->
-            assertTrue("Latitude $lat should be valid", isValidLatitude(lat))
+            assertTrue(isValidLatitude(lat),"Latitude $lat should be valid")
         }
     }
 
@@ -138,7 +141,7 @@ class UnitTest {
         val invalidLatitudes = listOf(-91.0, 91.0, -180.0, 180.0)
 
         invalidLatitudes.forEach { lat ->
-            assertFalse("Latitude $lat should be invalid", isValidLatitude(lat))
+            assertFalse(isValidLatitude(lat),"Latitude $lat should be invalid")
         }
     }
 
@@ -147,7 +150,7 @@ class UnitTest {
         val validLongitudes = listOf(-180.0, -90.0, 0.0, 90.0, 180.0)
 
         validLongitudes.forEach { lon ->
-            assertTrue("Longitude $lon should be valid", isValidLongitude(lon))
+            assertTrue(isValidLongitude(lon),"Longitude $lon should be valid")
         }
     }
 
@@ -156,7 +159,7 @@ class UnitTest {
         val invalidLongitudes = listOf(-181.0, 181.0, -360.0, 360.0)
 
         invalidLongitudes.forEach { lon ->
-            assertFalse("Longitude $lon should be invalid", isValidLongitude(lon))
+            assertFalse(isValidLongitude(lon),"Longitude $lon should be invalid")
         }
     }
 
@@ -266,10 +269,10 @@ class UnitTest {
 
     @Test
     fun timeFormat_validOutput() {
-        val timeFormat = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
+        val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
         val timestamp = 1701619200000L // Some fixed timestamp
 
-        val formatted = timeFormat.format(java.util.Date(timestamp))
+        val formatted = timeFormat.format(Date(timestamp))
 
         // Should match HH:mm:ss pattern
         assertTrue(formatted.matches(Regex("\\d{2}:\\d{2}:\\d{2}")))
