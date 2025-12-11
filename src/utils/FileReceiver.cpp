@@ -13,42 +13,6 @@
 namespace utils
 {
 
-    namespace
-    {
-        std::string getLocalIPAddress()
-        {
-            std::string result = "0.0.0.0";
-            struct ifaddrs *ifAddrStruct = nullptr;
-
-            if (getifaddrs(&ifAddrStruct) == -1)
-                return result;
-
-            for (struct ifaddrs *ifa = ifAddrStruct; ifa != nullptr; ifa = ifa->ifa_next)
-            {
-                if (!ifa->ifa_addr || ifa->ifa_addr->sa_family != AF_INET)
-                    continue;
-
-                void *tmpAddrPtr = &((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
-                char addressBuffer[INET_ADDRSTRLEN];
-                inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
-
-                std::string addr(addressBuffer);
-
-                // Skip loopback
-                if (addr == "127.0.0.1")
-                    continue;
-
-                result = addr;
-                break;
-            }
-
-            if (ifAddrStruct)
-                freeifaddrs(ifAddrStruct);
-
-            return result;
-        }
-    }
-
     FileReceiver::FileReceiver(uint16_t port, const std::string &output_dir)
         : port_(port), output_dir_(output_dir)
     {
@@ -97,7 +61,7 @@ namespace utils
             res.status = 200;
             res.set_content("saved " + target_path.string() + "\n", "text/plain"); });
 
-        std::string localIP = getLocalIPAddress();
+        std::string localIP = "localhost";
 
         spdlog::info("===========================================");
         spdlog::info("  Polaris File Receiver");
