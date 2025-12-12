@@ -254,7 +254,7 @@ namespace core
 					stack.pop_back();
 					if (!current_selection.empty())
 					{
-						cluster.removePointVectorized(current_selection.size() - 1);
+						cluster.removePointVectorized(current_selection.size()); // remove last added point, -1 for zero indexing +1 for seed
 						current_selection.pop_back();
 					}
 					if (!stack.empty())
@@ -284,7 +284,7 @@ namespace core
 				}
 				else
 				{
-					cluster.removePointVectorized(current_selection.size() - 1);
+					cluster.removePointVectorized(current_selection.size()); // remove last added point, -1 for zero indexing +1 for seed
 					current_selection.pop_back();
 					stack.back()++;
 				}
