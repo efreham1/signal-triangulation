@@ -11,6 +11,10 @@ namespace core
     PointCluster::PointCluster()
         : estimated_aoa(0.0), avg_rssi(0.0), centroid_x(0.0), centroid_y(0.0), aoa_x(0.0), aoa_y(0.0), score(0.0)
     {
+        bbox = {0.0, 0.0, false};
+        furthest_idx1 = 0;
+        furthest_idx2 = 0;
+        furthest_distance = 0.0;
     }
 
     void PointCluster::addPoint(const DataPoint &point)
@@ -163,7 +167,7 @@ namespace core
 
     double PointCluster::overlapWith(const PointCluster &other) const
     {
-        size_t total_points = points.size() + other.points.size();
+        size_t total_points = size() + other.size();
         if (total_points == 0)
         {
             return 0.0;
@@ -211,30 +215,30 @@ namespace core
 
     double PointCluster::varianceRSSI() const
     {
-        if (points.size() < 2)
+        if (size() < 2)
         {
             return 0.0;
         }
 
+        double sum_sq_diff = 0.0;
         if (currently_vectorized)
         {
-            double sum_sq_diff = 0.0;
             for (const auto &rssi_val : rssi_values)
             {
                 double diff = rssi_val - avg_rssi;
                 sum_sq_diff += diff * diff;
             }
-            return sum_sq_diff / static_cast<double>(rssi_values.size() - 1);
         }
-
-        double sum_sq_diff = 0.0;
-        for (const auto &p : points)
+        else
         {
-            double diff = p.rssi - avg_rssi;
-            sum_sq_diff += diff * diff;
+            for (const auto &p : points)
+            {
+                double diff = p.rssi - avg_rssi;
+                sum_sq_diff += diff * diff;
+            }
         }
 
-        return sum_sq_diff / static_cast<double>(points.size() - 1);
+        return sum_sq_diff / static_cast<double>(size());
     }
 
     void PointCluster::setScore(double input_score)
@@ -261,20 +265,15 @@ namespace core
 
     size_t PointCluster::size() const
     {
+        if (currently_vectorized)
+        {
+            return x_dp_values.size();
+        }
         return points.size();
     }
 
     void PointCluster::recomputeBoundingBox(size_t new_idx)
     {
-
-        if (points.size() < 3)
-        {
-            furthest_distance = 0.0;
-            furthest_idx1 = 0;
-            furthest_idx2 = 0;
-            bbox.valid = false;
-            return;
-        }
 
         double sqrdist = furthest_distance*furthest_distance;
         size_t idx1 = furthest_idx1;;
@@ -327,6 +326,12 @@ namespace core
         furthest_idx2 = idx2;
 
         if (furthest_distance == 0.0)
+        {
+            bbox.valid = false;
+            return;
+        }
+
+        if (size() < 3)
         {
             bbox.valid = false;
             return;
@@ -406,14 +411,6 @@ namespace core
 
     void PointCluster::computeBoundingBox()
     {
-        if (points.size() < 3)
-        {
-            furthest_distance = 0.0;
-            furthest_idx1 = 0;
-            furthest_idx2 = 0;
-            bbox.valid = false;
-            return;
-        }
         
         double sqrdist = 0.0;
         size_t idx1 = 0;
@@ -461,6 +458,12 @@ namespace core
         furthest_idx2 = idx2;
 
         if (furthest_distance == 0.0)
+        {
+            bbox.valid = false;
+            return;
+        }
+
+        if (size() < 3)
         {
             bbox.valid = false;
             return;

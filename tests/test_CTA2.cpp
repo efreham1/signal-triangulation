@@ -169,7 +169,7 @@ TEST(CTA2, BruteForceSearch_Precision)
     double lat, lon;
     try
     {
-        algo.calculatePosition(lat, lon, 0.5, 15.0);
+        algo.calculatePosition(lat, lon, 0.5, 1.0);
         EXPECT_TRUE(std::isfinite(lat));
         EXPECT_TRUE(std::isfinite(lon));
     }
@@ -340,7 +340,7 @@ TEST(CTA2, CalculatePosition_ReturnsValidCoordinates)
     double lat, lon;
     try
     {
-        algo.calculatePosition(lat, lon, 1.0, 20.0);
+        algo.calculatePosition(lat, lon, 1.0, 1.0);
         EXPECT_TRUE(std::isfinite(lat));
         EXPECT_TRUE(std::isfinite(lon));
         EXPECT_GE(lat, -90.0);
@@ -446,7 +446,7 @@ TEST(CTA2, EdgeCase_NegativeCoordinates)
     double lat, lon;
     try
     {
-        algo.calculatePosition(lat, lon, 1.0, 15.0);
+        algo.calculatePosition(lat, lon, 1.0, 1.0);
         EXPECT_TRUE(std::isfinite(lat));
         EXPECT_TRUE(std::isfinite(lon));
     }
@@ -491,7 +491,7 @@ TEST(CTA2, EdgeCase_MultipleDevices)
     double lat, lon;
     try
     {
-        algo.calculatePosition(lat, lon, 1.0, 15.0);
+        algo.calculatePosition(lat, lon, 1.0, 1.0);
         EXPECT_TRUE(std::isfinite(lat));
         EXPECT_TRUE(std::isfinite(lon));
     }
