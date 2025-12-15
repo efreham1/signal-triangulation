@@ -29,21 +29,16 @@ target_include_directories(signal-triangulation
     ${SRC_DIR}
 )
 
-add_executable(rest-api-server
-    ${SRC_DIR}/main_rest_api.cpp
-    ${SRC_DIR}/rest/PolarisServer.cpp
-    ${SRC_DIR}/rest/AlgorithmRunner.cpp
-)
+# Gather sources for rest API server (exclude main.cpp)
+file(GLOB_RECURSE ALL_SOURCES "${SRC_DIR}/*.cpp")
+list(FILTER ALL_SOURCES EXCLUDE REGEX ".*main\\.cpp$")
+set(PROJECT_SOURCES ${ALL_SOURCES})
+
+add_executable(rest-api-server ${PROJECT_SOURCES})
 
 target_include_directories(rest-api-server
     PRIVATE
     ${SRC_DIR}
-)
-
-target_link_libraries(rest-api-server
-    PRIVATE
-    nlohmann_json::nlohmann_json
-    httplib::httplib
 )
 
 install(TARGETS rest-api-server RUNTIME DESTINATION bin)
@@ -83,10 +78,19 @@ target_link_libraries(signal-triangulation
     spdlog::spdlog
 )
 
+target_link_libraries(rest-api-server
+    PRIVATE
+    nlohmann_json::nlohmann_json
+    httplib::httplib
+    spdlog::spdlog
+)
+
 # Link OpenMP if found
 if(OpenMP_CXX_FOUND)
     target_link_libraries(signal-triangulation PRIVATE OpenMP::OpenMP_CXX)
+    target_link_libraries(rest-api-server PRIVATE OpenMP::OpenMP_CXX)
     target_compile_definitions(signal-triangulation PRIVATE USE_OPENMP)
+    target_compile_definitions(rest-api-server PRIVATE USE_OPENMP)
 endif()
 
 set(APP_TARGET_NAME signal-triangulation)

@@ -18,6 +18,9 @@ namespace rest
     {
         server_ = std::make_unique<httplib::Server>();
 
+        server_->set_read_timeout(3600, 0);  // 1 hour
+        server_->set_write_timeout(3600, 0); // 1 hour
+
         // POST /upload
         server_->Post("/upload", [this](const httplib::Request &req, httplib::Response &res)
                       {

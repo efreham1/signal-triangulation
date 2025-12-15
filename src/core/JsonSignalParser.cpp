@@ -18,6 +18,12 @@ namespace core
         nlohmann::json j;
         file >> j;
 
+        return parseJsonToVector(j, zero_latitude, zero_longitude);
+    }
+
+
+    std::map<std::string, std::vector<core::DataPoint>> JsonSignalParser::parseJsonToVector(const nlohmann::json &j, double &zero_latitude, double &zero_longitude)
+    {
         if (!j.contains("measurements") || !j["measurements"].is_array())
         {
             throw std::runtime_error("JSON does not contain a measurements array");

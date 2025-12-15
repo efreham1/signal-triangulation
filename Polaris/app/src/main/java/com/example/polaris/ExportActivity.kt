@@ -225,8 +225,8 @@ class ExportActivity : AppCompatActivity() {
                 val response = withContext(Dispatchers.IO) {
                     val conn = url.openConnection() as HttpURLConnection
                     conn.requestMethod = "GET"
-                    conn.connectTimeout = 5000
-                    conn.readTimeout = 10000
+                    conn.connectTimeout = 10000
+                    conn.readTimeout = 60000
                     val resp = conn.inputStream.bufferedReader().readText()
                     conn.disconnect()
                     resp
