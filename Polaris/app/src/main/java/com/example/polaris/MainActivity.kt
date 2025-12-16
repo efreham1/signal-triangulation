@@ -322,12 +322,12 @@ class MainActivity : AppCompatActivity() {
                 while (remainingMs > 0 && isAutoMeasuring) {
                     val secondsLeft = (remainingMs / 1000).toInt() + if (remainingMs % 1000 > 0) 1 else 0
                     statusText.text = getString(R.string.auto_next_in, secondsLeft)
-                    vibrate()
+                    if (secondsLeft <= 3) vibrate()
                     val step = if (remainingMs >= 1000) 1000L else remainingMs
                     delay(step)
                     remainingMs -= step
                 }
-                vibrate(300L)
+                vibrate(400L)
             }
         }
     }
@@ -661,7 +661,7 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun vibrate(durationMs: Long = 100L) {
+    private fun vibrate(durationMs: Long = 200L) {
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val manager = getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
             manager.defaultVibrator

@@ -133,6 +133,14 @@
     <string name="map_signal_source">Signal Source</string>
     <string name="your_location">You are here</string>
 
+    <string name="server_missing_files">No files found on server.</string>
+    <string name="server_run_algorithm">Run Algorithm</string>
+    <string name="server_running_algorithm">Running algorithm...</string>
+    <string name="server_algorithm_result">Algorithm result:\n %1$s</string>
+    <string name="server_algorithm_error">Error running algorithm: %1$s</string>
+    <string name="server_select_files">Select files to run algorithm</string>
+
+
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
 </resources>

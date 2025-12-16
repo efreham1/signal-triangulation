@@ -178,16 +178,16 @@ class ExportActivity : AppCompatActivity() {
             val files = fetchServerFiles(host, portVal)
             withContext(Dispatchers.Main) {
                 if (files.isEmpty()) {
-                    Toast.makeText(this@ExportActivity, "No files found on server.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@ExportActivity, getString(R.string.server_missing_files), Toast.LENGTH_SHORT).show()
                     return@withContext
                 }
                 val selected = BooleanArray(files.size)
                 AlertDialog.Builder(this@ExportActivity)
-                    .setTitle("Select files to run algorithm")
+                    .setTitle(getString(R.string.server_select_files))
                     .setMultiChoiceItems(files.toTypedArray(), selected) { _, which, isChecked ->
                         selected[which] = isChecked
                     }
-                    .setPositiveButton("Run Algorithm") { _, _ ->
+                    .setPositiveButton(getString(R.string.server_run_algorithm)) { _, _ ->
                         val chosenFiles = files.filterIndexed { idx, _ -> selected[idx] }
                         if (chosenFiles.isNotEmpty()) {
                             runAlgorithmOnServer(host, portVal, chosenFiles)
@@ -218,7 +218,7 @@ class ExportActivity : AppCompatActivity() {
 
     private fun runAlgorithmOnServer(host: String, port: Int, files: List<String>) {
         lifecycleScope.launch {
-            statusText.text = "Running algorithm..."
+            statusText.text = getString(R.string.server_running_algorithm)
             val encodedFilesParam = files.joinToString(",") { URLEncoder.encode(it, "UTF-8") }
             val url = URL("http://$host:$port/run-algorithm?files=$encodedFilesParam")
             try {
@@ -231,9 +231,9 @@ class ExportActivity : AppCompatActivity() {
                     conn.disconnect()
                     resp
                 }
-                statusText.text = "Algorithm result:\n$response"
+                statusText.text = getString(R.string.server_algorithm_result, response)
             } catch (ex: Exception) {
-                statusText.text = "Error running algorithm: ${ex.message}"
+                statusText.text = getString(R.string.server_algorithm_error, ex.message ?: "unknown error")
             }
         }
     }

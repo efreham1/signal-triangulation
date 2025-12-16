@@ -61,7 +61,7 @@
         android:id="@+id/showServerFilesBtn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Run Algorithm" />
+        android:text="@string/server_run_algorithm" />
 
     <!-- Close -->
     <Button
