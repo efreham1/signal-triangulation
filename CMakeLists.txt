@@ -16,18 +16,32 @@ endif()
 # Source layout: all sources live under ./src
 set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 
-# Gather sources
-file(GLOB_RECURSE PROJECT_SOURCES
-    "${SRC_DIR}/*.cpp"
-)
+# Gather sources for main triangulation app (exclude main_rest_api.cpp)
+file(GLOB_RECURSE ALL_SOURCES "${SRC_DIR}/*.cpp")
+list(FILTER ALL_SOURCES EXCLUDE REGEX ".*main_rest_api\\.cpp$")
+set(PROJECT_SOURCES ${ALL_SOURCES})
 
-# Create executable
+# Create main triangulation executable
 add_executable(signal-triangulation ${PROJECT_SOURCES})
 
 target_include_directories(signal-triangulation
     PRIVATE
     ${SRC_DIR}
 )
+
+# Gather sources for rest API server (exclude main.cpp)
+file(GLOB_RECURSE ALL_SOURCES "${SRC_DIR}/*.cpp")
+list(FILTER ALL_SOURCES EXCLUDE REGEX ".*main\\.cpp$")
+set(PROJECT_SOURCES ${ALL_SOURCES})
+
+add_executable(rest-api-server ${PROJECT_SOURCES})
+
+target_include_directories(rest-api-server
+    PRIVATE
+    ${SRC_DIR}
+)
+
+install(TARGETS rest-api-server RUNTIME DESTINATION bin)
 
 include(FetchContent)
 
@@ -49,20 +63,35 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(spdlog)
 
+FetchContent_Declare(
+    httplib
+    GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
+    GIT_TAG v0.14.3
+)
+
+FetchContent_MakeAvailable(httplib)
+
 target_link_libraries(signal-triangulation
     PRIVATE
     nlohmann_json::nlohmann_json
+    httplib::httplib
+    spdlog::spdlog
+)
+
+target_link_libraries(rest-api-server
+    PRIVATE
+    nlohmann_json::nlohmann_json
+    httplib::httplib
     spdlog::spdlog
 )
 
 # Link OpenMP if found
 if(OpenMP_CXX_FOUND)
     target_link_libraries(signal-triangulation PRIVATE OpenMP::OpenMP_CXX)
+    target_link_libraries(rest-api-server PRIVATE OpenMP::OpenMP_CXX)
     target_compile_definitions(signal-triangulation PRIVATE USE_OPENMP)
+    target_compile_definitions(rest-api-server PRIVATE USE_OPENMP)
 endif()
-
-# Install target (optional)
-install(TARGETS signal-triangulation RUNTIME DESTINATION bin)
 
 set(APP_TARGET_NAME signal-triangulation)
 

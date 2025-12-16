@@ -49,6 +49,8 @@ dependencies {
     implementation(libs.gson)
     implementation(libs.osmdroid.android)
     implementation(libs.androidx.preference.ktx)
+    implementation(libs.material.v1130)
+    implementation(libs.androidx.drawerlayout)
     testImplementation(libs.junit.jupiter.api)
     androidTestImplementation(libs.jupiter.junit.jupiter)
     testRuntimeOnly(libs.junit.jupiter.engine)

@@ -2,10 +2,11 @@
     <string name="app_name">Polaris</string>
     <string name="ssid_prompt">Select SSID:</string>
     <string name="placeholder_db">Database entries will appear here</string>
+    <string name="placeholder_export">Export status will appear here</string>
     <string name="exported_to">Exported to:\n%1$s</string>
     <string name="clean_records">Delete Recordings</string>
     <string name="recordings_deleted">Recordings deleted</string>
-    <string name="export_json">Export to JSON</string>
+    <string name="export_json">Export</string>
     <string name="choose_ssid">Choose SSID</string>
     <string name="refresh">Refresh</string>
 
@@ -41,7 +42,6 @@
     <string name="measure_source">Measure new source position</string>
     <string name="start_measurement">Start measurement</string>
     <string name="start_measurement_legacy">Start measurement (legacy)</string>
-    <string name="back_to_main">Back to main</string>
     <string name="ready">Ready</string>
 
     <string name="free_text_hint">Enter text here (Optional)</string>
@@ -51,6 +51,7 @@
     <string name="open_accuracy_test">Open Location Accuracy Test</string>
     <string name="take_measurement">Measure</string>
     <string name="auto_measurement">Auto</string>
+    <string name="status_ssid_missing">Select a network before measuring</string>
     <string name="status_ready">Ready for new measurement</string>
     <string name="status_no_ssid">Select a network first</string>
     <string name="status_waiting_rssi">Stand still, measuring RSSI…</string>
@@ -117,7 +118,29 @@
     <string name="summary_direct_suffix"> direct=%1$.2f</string>
     <string name="collecting_stream_samples_s">Collecting stream samples… %1$ds</string>
 
+    <!-- Wi-Fi transfer -->
+    <string name="wifi_transfer_title">Send over Wi-Fi (LAN)</string>
+    <string name="wifi_host_hint">Receiver IP (e.g. 192.168.1.42)</string>
+    <string name="wifi_port_hint">Port (e.g. 8080)</string>
+    <string name="wifi_send">Send last export</string>
+    <string name="wifi_send_missing_export">Export first, then send.</string>
+    <string name="wifi_send_success">Sent file over Wi-Fi.</string>
+    <string name="wifi_send_error">Wi-Fi send failed: %1$s</string>
+    <string name="wifi_host_required">Enter a host/IP.</string>
+    <string name="wifi_port_invalid">Enter a valid port.</string>
+    <string name="wifi_sending_status">Sending over Wi-Fi…</string>
     <string name="map_current_location">Current Location</string>
     <string name="map_signal_source">Signal Source</string>
     <string name="your_location">You are here</string>
+
+    <string name="server_missing_files">No files found on server.</string>
+    <string name="server_run_algorithm">Run Algorithm</string>
+    <string name="server_running_algorithm">Running algorithm...</string>
+    <string name="server_algorithm_result">Algorithm result:\n %1$s</string>
+    <string name="server_algorithm_error">Error running algorithm: %1$s</string>
+    <string name="server_select_files">Select files to run algorithm</string>
+
+
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
 </resources>
