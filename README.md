@@ -86,66 +86,56 @@ This will produce two executables in the `build/` directory:
 - `signal-triangulation` - Main triangulation application
 - `file-receiver` - HTTP file upload receiver
 
-## File Receiver Utility
+## REST API Server
 
 ### Overview
-The `file-receiver` is a lightweight HTTP server for accepting file uploads from Android devices or other clients over Wi-Fi. It replaces the need for Python dependencies and provides a simple, self-contained solution for data transfer.
+The `rest-api-server` is a lightweight HTTP server for uploading measurement files and running triangulation algorithms remotely. It provides endpoints for file upload, file listing, and algorithm execution, making it easy to integrate with the Polaris Android app or other clients over Wi-Fi.
 
 ### Usage
 
-**Start the receiver:**
+**Start the REST API server:**
 ```bash
-# Default: listen on port 8000, save to "uploads/"
-./build/file-receiver
+# Default: listen on port 8080, save uploads to "uploads/"
+./build/rest-api-server
 
 # Custom port and output directory
-./build/file-receiver --port 9000 --output recordings/
+./build/rest-api-server --port 9000 --output recordings/
 
 # Show help
-./build/file-receiver --help
+./build/rest-api-server --help
 ```
 
-**Upload files from command line:**
+**Endpoints:**
+
+- `POST /upload`  
+  Upload a JSON recording file.  
+  Use the `X-Filename` header to specify the filename.
+
+- `GET /files`  
+  List all uploaded files in the output directory.
+
+- `GET /run-algorithm?files=file1.json,file2.json,...`  
+  Run the triangulation algorithm on the specified files (comma-separated list). Returns the result as JSON.
+
+**Example: Upload a file from the command line**
 ```bash
-# Upload a JSON recording
-curl -X POST http://192.168.1.100:8000/ \
+curl -X POST http://192.168.1.100:8080/upload \
   -H "X-Filename: recording1.json" \
   -H "Content-Type: application/json" \
   --data-binary @path/to/recording.json
-
-# Upload with automatic filename
-curl -X POST http://192.168.1.100:8000/ \
-  --data-binary @recording.json
 ```
 
-**Upload from Android (using Polaris or similar):**
-```java
-// Example HTTP POST with custom filename header
-HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-conn.setRequestMethod("POST");
-conn.setRequestProperty("X-Filename", "recording_" + timestamp + ".json");
-conn.setRequestProperty("Content-Type", "application/json");
-// ... write data to output stream
+**Example: Run the algorithm on uploaded files**
+```bash
+curl "http://192.168.1.100:8080/run-algorithm?files=recording1.json,recording2.json"
 ```
 
 **Integration Tips:**
 1. Find your computer's local IP: `ifconfig` (macOS/Linux) or `ipconfig` (Windows)
-2. Ensure computer and Android device are on the same Wi-Fi network
-3. Configure firewall to allow incoming connections on chosen port
-4. Use the `X-Filename` header to specify custom filenames, otherwise defaults to `upload.bin`
-5. The receiver creates the output directory automatically if it doesn't exist
-
-### Testing
-Run the included test script to verify the file receiver works:
-```bash
-./scripts/test_file_receiver.sh
-```
-
-This script will:
-1. Start the file-receiver on port 8888
-2. Upload a test JSON file
-3. Verify the file was saved correctly
-4. Clean up temporary files
+2. Ensure computer and Android device are on the same Wi-Fi network or hotspot
+3. Configure firewall to allow incoming connections on the chosen port
+4. Use the `X-Filename` header to specify custom filenames for uploads
+5. The server creates the output directory automatically if it doesn't exist
 
 
 ## Fetching recordings from Android

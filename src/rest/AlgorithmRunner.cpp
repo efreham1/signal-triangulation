@@ -5,6 +5,7 @@
 #include "../core/JsonSignalParser.h"
 #include <memory>
 #include <map>
+#include <iomanip>
 
 namespace rest
 {

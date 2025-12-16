@@ -34,23 +34,27 @@ namespace rest
                 std::ofstream outfile(target_path, std::ios::binary);
                 if (!outfile) {
                     std::cerr << "Failed to open file for writing: " << target_path.string() << std::endl;
+                    nlohmann::json err_json;
+                    err_json["error"] = "Failed to create file";
                     res.status = 500;
-                    res.set_content("Failed to create file", "text/plain");
+                    res.set_content(err_json.dump(), "application/json");
                     return;
                 }
                 outfile.write(req.body.data(), static_cast<std::streamsize>(req.body.size()));
                 outfile.close();
             } catch (const std::exception& ex) {
                 std::cerr << "Exception while saving file: " << ex.what() << std::endl;
+                nlohmann::json err_json;
+                err_json["error"] = ex.what();
                 res.status = 500;
-                res.set_content("Internal server error", "text/plain");
+                res.set_content(err_json.dump(), "application/json");
                 return;
             }
             std::cout << "Saved file: " << target_path.string() << " (" << req.body.size() << " bytes)" << std::endl;
             res.status = 200;
             res.set_content("saved " + target_path.string() + "\n", "text/plain"); });
 
-        server_->Get("/files", [this](const httplib::Request &req, httplib::Response &res)
+        server_->Get("/files", [this](const httplib::Request &, httplib::Response &res)
                      {
             std::cout << "Listing files in upload directory: " << upload_dir_ << std::endl;
             nlohmann::json file_list = nlohmann::json::array();
@@ -63,8 +67,10 @@ namespace rest
                 res.status = 200;
                 res.set_content(file_list.dump(), "application/json");
             } catch (const std::exception& ex) {
+                nlohmann::json err_json;
+                err_json["error"] = ex.what();
                 res.status = 500;
-                res.set_content(std::string("{\"error\":\"") + ex.what() + "\"}", "application/json");
+                res.set_content(err_json.dump(), "application/json");
             } });
 
         // GET /run-algorithm
@@ -89,11 +95,36 @@ namespace rest
             filenames.push_back(files_param.substr(start));
 
             std::vector<std::string> json_inputs;
-            for (const auto& fname : filenames) {
+            for (const auto &fname : filenames)
+            {
+                // Reject dangerous filenames
+                if (fname.find("..") != std::string::npos || fname.find('/') != std::string::npos || fname.find('\\') != std::string::npos)
+                {
+                    nlohmann::json err_json;
+                    err_json["error"] = "Invalid filename: " + fname;
+                    res.status = 400;
+                    res.set_content(err_json.dump(), "application/json");
+                    return;
+                }
                 std::filesystem::path data_path = std::filesystem::path(upload_dir_) / fname;
-                if (!std::filesystem::exists(data_path)) {
+                // Ensure the resolved path is within upload_dir_
+                auto canonical_upload_dir = std::filesystem::canonical(upload_dir_);
+                std::error_code ec;
+                auto canonical_data_path = std::filesystem::weakly_canonical(data_path, ec);
+                if (ec || canonical_data_path.string().find(canonical_upload_dir.string()) != 0)
+                {
+                    nlohmann::json err_json;
+                    err_json["error"] = "Access denied for file: " + fname;
+                    res.status = 403;
+                    res.set_content(err_json.dump(), "application/json");
+                    return;
+                }
+                if (!std::filesystem::exists(data_path))
+                {
+                    nlohmann::json err_json;
+                    err_json["error"] = std::string("File not found: ") + fname;
                     res.status = 404;
-                    res.set_content("{\"error\":\"File not found: " + fname + "\"}", "application/json");
+                    res.set_content(err_json.dump(), "application/json");
                     return;
                 }
                 std::ifstream infile(data_path, std::ios::binary);
@@ -107,8 +138,10 @@ namespace rest
                 res.status = 200;
                 res.set_content(result_json, "application/json");
             } catch (const std::exception& ex) {
+                nlohmann::json err_json;
+                err_json["error"] = ex.what();
                 res.status = 500;
-                res.set_content(std::string("{\"error\":\"") + ex.what() + "\"}", "application/json");
+                res.set_content(err_json.dump(), "application/json");
             } });
 
         std::cout << "===========================================" << std::endl;

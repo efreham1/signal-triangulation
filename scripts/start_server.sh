@@ -1,5 +1,4 @@
 #!/bin/bash
-# filepath: /mnt/c/Users/Lokalt/StudioProjects/signal-triangulation/scripts/start_server.sh
 
 set -e
 
