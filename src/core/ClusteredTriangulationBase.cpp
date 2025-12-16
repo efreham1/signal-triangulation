@@ -204,7 +204,7 @@ namespace core
         }
     }
 
-    double ClusteredTriangulationBase::getCost(double x, double y, double extra_weight, double angle_weight) const
+    double ClusteredTriangulationBase::getCost(double x, double y, double cluster_score_weight, double angle_weight) const
     {
         double total_cost = 0.0;
 
@@ -249,13 +249,11 @@ namespace core
 
             double theta = std::acos(cos_theta);
 
-            double weight = extra_weight;
+            double weight = 0;
             weight += theta * angle_weight;
             
-            if (cluster.score > 0.0)
-            {
-                weight += cluster.score;
-            }
+            weight += cluster.score * cluster_score_weight;
+
             cluster_cost *= weight;
 
             total_cost += cluster_cost;

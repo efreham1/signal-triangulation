@@ -16,7 +16,7 @@ NPROC := $(shell nproc 2>/dev/null || echo 1)
 CMAKE_FLAGS := -S . -B $(BUILD_DIR)
 
 # Default target
-all: release
+all: release build-integration-tests build-unit-tests
 
 # --- Build Types ---
 

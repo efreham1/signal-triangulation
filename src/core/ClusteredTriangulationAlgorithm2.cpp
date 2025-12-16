@@ -35,7 +35,7 @@ namespace core
 			m_per_seed_timeout = params.get<double>("per_seed_timeout");
 
 		if (params.has("extra_weight"))
-			m_extra_weight = params.get<double>("extra_weight");
+			cluster_score_weight = params.get<double>("extra_weight");
 
 		if (params.has("grid_half_size"))
 			m_grid_half_size = params.get<int>("grid_half_size");
@@ -55,6 +55,9 @@ namespace core
 		if (params.has("ideal_geometric_ratio"))
 			m_ideal_geometric_ratio = params.get<double>("ideal_geometric_ratio");
 
+		if (params.has("max_geometric_ratio"))
+			m_max_geometric_ratio = params.get<double>("max_geometric_ratio");
+
 		if (params.has("min_area"))
 			m_min_area = params.get<double>("min_area");
 
@@ -67,8 +70,14 @@ namespace core
 		if (params.has("min_rssi_variance"))
 			m_min_rssi_variance = params.get<double>("min_rssi_variance");
 
+		if (params.has("max_rssi_variance"))
+			m_max_rssi_variance = params.get<double>("max_rssi_variance");
+
 		if (params.has("bottom_rssi"))
 			m_bottom_rssi = params.get<double>("bottom_rssi");
+
+		if (params.has("top_rssi"))
+			m_top_rssi = params.get<double>("top_rssi");
 
 		if (params.has("max_overlap"))
 			m_max_overlap = params.get<double>("max_overlap");
@@ -204,7 +213,7 @@ namespace core
 
 			int i = point_order[idx];
 
-			PointCluster best_cluster;
+			PointCluster best_cluster(m_points.size());
 			double best_score = -std::numeric_limits<double>::max();
 			bool found_valid = false;
 
@@ -225,7 +234,7 @@ namespace core
 				continue;
 			}
 
-			PointCluster cluster;
+			PointCluster cluster(m_points.size());
 			cluster.addPointVectorized(m_points[i], i); // seed
 
 			std::vector<int> current_selection;
@@ -257,7 +266,7 @@ namespace core
 					stack.pop_back();
 					if (!current_selection.empty())
 					{
-						cluster.removePointVectorized(current_selection.size()); // remove last added point, -1 for zero indexing +1 for seed
+						cluster.removePointVectorized(current_selection.size(), candidate_indices[current_selection.back()]); // remove last added point, -1 for zero indexing +1 for seed
 						current_selection.pop_back();
 					}
 					if (!stack.empty())
@@ -275,7 +284,7 @@ namespace core
 				{
 					seed_combinations++;
 					// Evaluate cluster (thread-local, no locking needed here)
-					if (checkCluster(cluster, best_cluster, best_score, m_points))
+					if (checkCluster(cluster, best_cluster, best_score))
 					{
 						found_valid = true;
 					}
@@ -287,7 +296,7 @@ namespace core
 				}
 				else
 				{
-					cluster.removePointVectorized(current_selection.size()); // remove last added point, -1 for zero indexing +1 for seed
+					cluster.removePointVectorized(current_selection.size(), candidate_indices[current_selection.back()]); // remove last added point, -1 for zero indexing +1 for seed
 					current_selection.pop_back();
 					stack.back()++;
 				}
@@ -301,6 +310,8 @@ namespace core
 			{
 				std::unique_lock<std::shared_mutex> lock(working_clusters_mutex);
 				working_clusters.push_back(best_cluster);
+				spdlog::info("ClusteredTriangulationAlgorithm2: Seed point {} formed a valid cluster with score {:.4f}, size {} ({} combinations explored in {:.2f} ms)",
+							 i, best_score, best_cluster.size(), seed_combinations, time_per_seed_ms[idx]);
 			}
 
 			// Update atomic counters
@@ -315,19 +326,9 @@ namespace core
 						 total_timeouts);
 		}
 
-		std::vector<PointCluster> snapshot;
+		for (auto &cluster : working_clusters)
 		{
-			std::shared_lock<std::shared_mutex> lock(working_clusters_mutex);
-			snapshot = working_clusters;
-		}
-		for (const auto &cluster : snapshot)
-		{
-			PointCluster finalized_cluster;
-			for (const auto &idx : cluster.point_idxs)
-			{
-				finalized_cluster.addPoint(m_points[idx]);
-			}
-			finalized_cluster.setScore(cluster.score);
+			PointCluster finalized_cluster = cluster.copyVectorizedToNormal(m_points);
 			m_clusters.push_back(finalized_cluster);
 		}
 		// Store metrics
@@ -368,15 +369,14 @@ namespace core
 		}
 	}
 
-	bool ClusteredTriangulationAlgorithm2::checkCluster(PointCluster &cluster, PointCluster &best_cluster, double &best_score, const std::vector<DataPoint> &points)
+	bool ClusteredTriangulationAlgorithm2::checkCluster(PointCluster &cluster, PointCluster &best_cluster, double &best_score)
 	{
 		double ratio = cluster.geometricRatio();
 		double clusterArea = cluster.area();
 
-		bool valid = (ratio >= m_min_geometric_ratio &&
-					  clusterArea >= m_min_area &&
-					  clusterArea <= m_max_area) &&
-					 (cluster.varianceRSSI() >= m_min_rssi_variance) && (cluster.size() >= m_cluster_min_points);
+		bool valid = (ratio >= m_min_geometric_ratio && ratio <= m_max_geometric_ratio) &&
+					 (clusterArea >= m_min_area && clusterArea <= m_max_area) &&
+					 (cluster.varianceRSSI() >= m_min_rssi_variance && cluster.varianceRSSI() <= m_max_rssi_variance);
 
 		if (!valid)
 		{
@@ -384,14 +384,11 @@ namespace core
 		}
 
 		double current_score = cluster.getAndSetScore(
-			m_ideal_geometric_ratio,
-			m_ideal_area,
-			m_min_rssi_variance,
-			m_weight_geometric_ratio,
-			m_weight_area,
-			m_weight_rssi_variance,
-			m_bottom_rssi,
-			m_weight_rssi);
+			m_ideal_geometric_ratio, m_min_geometric_ratio, m_max_geometric_ratio,
+			m_ideal_area, m_min_area, m_max_area,
+			m_ideal_rssi_variance, m_min_rssi_variance, m_max_rssi_variance,
+			m_weight_geometric_ratio, m_weight_area, m_weight_rssi_variance,
+			m_bottom_rssi, m_top_rssi, m_weight_rssi);
 
 		if (current_score > best_score)
 		{
@@ -407,12 +404,8 @@ namespace core
 				}
 			}
 			best_score = current_score;
-			best_cluster = PointCluster();
-			for (const auto &idx : cluster.point_idxs)
-			{
-				best_cluster.addPointVectorized(points[idx], idx);
-			}
-			best_cluster.setScore(current_score);
+			// Copy cluster using the new copyFromVectorized method
+			best_cluster = cluster.copyVectorizedToVectorized();
 		}
 		return true;
 	}
@@ -442,7 +435,7 @@ namespace core
 	{
 		global_best_x = 0.0;
 		global_best_y = 0.0;
-		double global_best_cost = getCost(global_best_x, global_best_y, m_extra_weight, m_angle_weight);
+		double global_best_cost = getCost(global_best_x, global_best_y, cluster_score_weight, m_angle_weight);
 
 		double zone_x = -precision * m_grid_half_size;
 		double zone_y = -precision * m_grid_half_size;
@@ -489,7 +482,7 @@ namespace core
 					{
 						double x = quadrant_x + ix * precision;
 						double y = quadrant_y + iy * precision;
-						double cost = getCost(x, y, m_extra_weight, m_angle_weight);
+						double cost = getCost(x, y, cluster_score_weight, m_angle_weight);
 
 						if (cost < best_cost)
 						{

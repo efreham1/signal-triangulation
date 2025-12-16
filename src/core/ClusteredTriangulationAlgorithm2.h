@@ -24,7 +24,7 @@ namespace core
         void bruteForceSearch(double &out_x, double &out_y, double precision, double timeout);
         void findBestClusters(std::vector<DataPoint> &m_points);
         void getCandidates(int i, std::vector<int> &candidate_indices, const std::vector<DataPoint> &points);
-        bool checkCluster(PointCluster &cluster, PointCluster &best_cluster, double &best_score, const std::vector<DataPoint> &points);
+        bool checkCluster(PointCluster &cluster, PointCluster &best_cluster, double &best_score);
         void logPerformanceSummary();
 
         // Performance counters
@@ -52,6 +52,7 @@ namespace core
         // Geometric ratio
         double m_min_geometric_ratio = 0.25;
         double m_ideal_geometric_ratio = 1.0;
+        double m_max_geometric_ratio = 1.0;
 
         // Area
         double m_min_area = 20.0;
@@ -59,8 +60,12 @@ namespace core
         double m_max_area = 1000.0;
 
         // RSSI
-        double m_min_rssi_variance = 10.0;
+        double m_min_rssi_variance = 5.0;
+        double m_ideal_rssi_variance = 20.0;
         double m_bottom_rssi = -90.0;
+        // Top (best) RSSI to use for interpolation (less negative is better)
+        double m_top_rssi = 0.0;
+        double m_max_rssi_variance = 100.0;
 
         // Overlap
         double m_max_overlap = 0.01;
@@ -70,7 +75,7 @@ namespace core
         double m_weight_area = 1.0;
         double m_weight_rssi_variance = 1.0;
         double m_weight_rssi = 1.0;
-        double m_extra_weight = 1.0;
+        double cluster_score_weight = 1.0;
         double m_angle_weight = 10.0;
     };
 

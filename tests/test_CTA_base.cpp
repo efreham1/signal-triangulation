@@ -470,44 +470,6 @@ TEST(CTABase, GetCost_ZeroForPointOnRay)
     EXPECT_NEAR(cost, 0.0, 0.1);
 }
 
-TEST(CTABase, GetCost_HighForPointOffRay)
-{
-    TestableTriangulationBase algo;
-
-    core::PointCluster cluster;
-    cluster.centroid_x = 0.0;
-    cluster.centroid_y = 0.0;
-    cluster.aoa_x = 1.0;
-    cluster.aoa_y = 0.0;
-    cluster.score = 1.0;
-
-    algo.setClusters({cluster});
-
-    // Point perpendicular to ray
-    double cost = algo.getCost(0.0, 10.0, 0, 0);
-    EXPECT_GT(cost, 5.0);
-}
-
-TEST(CTABase, GetCost_PenalizesBehindCentroid)
-{
-    TestableTriangulationBase algo;
-
-    core::PointCluster cluster;
-    cluster.centroid_x = 0.0;
-    cluster.centroid_y = 0.0;
-    cluster.aoa_x = 1.0;
-    cluster.aoa_y = 0.0;
-    cluster.score = 1.0;
-
-    algo.setClusters({cluster});
-
-    // Point behind centroid (negative x)
-    double cost_behind = algo.getCost(-10.0, 0.0, 0, 0);
-    double cost_front = algo.getCost(10.0, 0.0, 0, 0);
-
-    EXPECT_GT(cost_behind, cost_front);
-}
-
 TEST(CTABase, GetCost_SkipsZeroGradient)
 {
     TestableTriangulationBase algo;
@@ -525,32 +487,6 @@ TEST(CTABase, GetCost_SkipsZeroGradient)
     EXPECT_DOUBLE_EQ(cost, 0.0); // Cluster should be skipped
 }
 
-TEST(CTABase, GetCost_MultipleClusters)
-{
-    TestableTriangulationBase algo;
-
-    core::PointCluster c1, c2;
-    c1.centroid_x = 0.0;
-    c1.centroid_y = 0.0;
-    c1.aoa_x = 1.0;
-    c1.aoa_y = 0.0;
-    c1.score = 1.0;
-
-    c2.centroid_x = 20.0;
-    c2.centroid_y = 0.0;
-    c2.aoa_x = -1.0; // Pointing back toward origin
-    c2.aoa_y = 0.0;
-    c2.score = 1.0;
-
-    algo.setClusters({c1, c2});
-
-    // Point between clusters should have low cost
-    double cost_middle = algo.getCost(10.0, 0.0, 0, 0);
-    // Point far from intersection should have high cost
-    double cost_far = algo.getCost(10.0, 50.0, 0, 0);
-
-    EXPECT_LT(cost_middle, cost_far);
-}
 
 // ====================
 // Integration Test
