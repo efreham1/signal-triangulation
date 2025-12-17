@@ -35,6 +35,7 @@ add_executable(unit_tests
     test_main.cpp
     test_datapoint.cpp
     test_cluster.cpp
+    test_distance_cache.cpp
     test_CTA_base.cpp
     test_json_parser.cpp
     test_CTA1.cpp

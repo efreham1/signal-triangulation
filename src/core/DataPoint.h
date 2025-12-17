@@ -69,6 +69,9 @@ namespace core
         double getX() const;
         double getY() const;
 
+        double getXUnsafe() const { return x; }
+        double getYUnsafe() const { return y; }
+
         void setLatitude(double lat);
         void setLongitude(double lon);
 

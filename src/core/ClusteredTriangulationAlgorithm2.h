@@ -4,6 +4,7 @@
 #include "ClusteredTriangulationBase.h"
 #include "AlgorithmParameters.h"
 #include <atomic>
+#include <shared_mutex>
 
 namespace core
 {
@@ -34,6 +35,8 @@ namespace core
         std::vector<double> m_time_per_seed_ms;
         std::vector<int> m_candidates_per_seed;
         std::vector<bool> m_seed_timed_out;
+        std::vector<PointCluster> working_clusters;
+        mutable std::shared_mutex working_clusters_mutex;
 
         // Timing
         double m_per_seed_timeout = 5.0;
@@ -47,27 +50,32 @@ namespace core
         int m_max_internal_distance = 20;
 
         // Geometric ratio
-        double m_min_geometric_ratio = 0.15;
+        double m_min_geometric_ratio = 0.25;
         double m_ideal_geometric_ratio = 1.0;
+        double m_max_geometric_ratio = 1.0;
 
         // Area
-        double m_min_area = 10.0;
+        double m_min_area = 20.0;
         double m_ideal_area = 50.0;
         double m_max_area = 1000.0;
 
         // RSSI
         double m_min_rssi_variance = 5.0;
+        double m_ideal_rssi_variance = 20.0;
         double m_bottom_rssi = -90.0;
+        // Top (best) RSSI to use for interpolation (less negative is better)
+        double m_top_rssi = 0.0;
+        double m_max_rssi_variance = 100.0;
 
         // Overlap
-        double m_max_overlap = 0.05;
+        double m_max_overlap = 0.01;
 
         // Weights
         double m_weight_geometric_ratio = 1.0;
         double m_weight_area = 1.0;
         double m_weight_rssi_variance = 1.0;
         double m_weight_rssi = 1.0;
-        double m_extra_weight = 1.0;
+        double cluster_score_weight = 1.0;
         double m_angle_weight = 10.0;
     };
 

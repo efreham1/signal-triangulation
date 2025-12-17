@@ -1,4 +1,5 @@
 #include "ClusteredTriangulationAlgorithm2.h"
+#include "PointDistanceCache.hpp"
 
 #include <stdexcept>
 #include <algorithm>
@@ -7,6 +8,8 @@
 #include <set>
 #include <chrono>
 #include <random>
+#include <mutex>
+#include <shared_mutex>
 #include <spdlog/spdlog.h>
 
 #ifdef USE_OPENMP
@@ -32,7 +35,7 @@ namespace core
 			m_per_seed_timeout = params.get<double>("per_seed_timeout");
 
 		if (params.has("extra_weight"))
-			m_extra_weight = params.get<double>("extra_weight");
+			cluster_score_weight = params.get<double>("extra_weight");
 
 		if (params.has("grid_half_size"))
 			m_grid_half_size = params.get<int>("grid_half_size");
@@ -52,6 +55,9 @@ namespace core
 		if (params.has("ideal_geometric_ratio"))
 			m_ideal_geometric_ratio = params.get<double>("ideal_geometric_ratio");
 
+		if (params.has("max_geometric_ratio"))
+			m_max_geometric_ratio = params.get<double>("max_geometric_ratio");
+
 		if (params.has("min_area"))
 			m_min_area = params.get<double>("min_area");
 
@@ -64,8 +70,14 @@ namespace core
 		if (params.has("min_rssi_variance"))
 			m_min_rssi_variance = params.get<double>("min_rssi_variance");
 
+		if (params.has("max_rssi_variance"))
+			m_max_rssi_variance = params.get<double>("max_rssi_variance");
+
 		if (params.has("bottom_rssi"))
 			m_bottom_rssi = params.get<double>("bottom_rssi");
+
+		if (params.has("top_rssi"))
+			m_top_rssi = params.get<double>("top_rssi");
 
 		if (params.has("max_overlap"))
 			m_max_overlap = params.get<double>("max_overlap");
@@ -95,7 +107,7 @@ namespace core
 		for (auto &pair : m_point_map)
 		{
 			spdlog::info("ClusteredTriangulationAlgorithm2: Device '{}' has {} data points", pair.first, pair.second.size());
-			
+
 			auto &m_points = pair.second;
 
 			reorderDataPointsByDistance(m_points);
@@ -163,6 +175,11 @@ namespace core
 		m_combinations_explored = 0;
 		m_clusters_evaluated = 0;
 
+		{
+			std::unique_lock<std::shared_mutex> lock(working_clusters_mutex);
+			working_clusters.clear();
+		}
+
 		int n_points = static_cast<int>(m_points.size());
 		std::vector<int> point_order = strideOrder(n_points);
 
@@ -171,9 +188,6 @@ namespace core
 		std::vector<double> time_per_seed_ms(n_points, 0.0);
 		std::vector<int> candidates_per_seed(n_points, 0);
 		std::vector<bool> seed_timed_out(n_points, false);
-
-		// Thread-local results to avoid lock contention
-		std::vector<std::pair<PointCluster, bool>> seed_results(n_points);
 
 		// Calculate per-seed timeout (divide total timeout among seeds)
 		double per_seed_timeout = m_per_seed_timeout;
@@ -199,7 +213,7 @@ namespace core
 
 			int i = point_order[idx];
 
-			PointCluster best_cluster;
+			PointCluster best_cluster(m_points.size());
 			double best_score = -std::numeric_limits<double>::max();
 			bool found_valid = false;
 
@@ -215,14 +229,13 @@ namespace core
 			// Skip if not enough candidates
 			if (n_candidates < static_cast<int>(m_cluster_min_points) - 1)
 			{
-				seed_results[idx] = {PointCluster(), false};
 				time_per_seed_ms[idx] = 0.0;
 				combinations_per_seed[idx] = 0;
 				continue;
 			}
 
-			PointCluster cluster;
-			cluster.addPoint(m_points[i]); // seed
+			PointCluster cluster(m_points.size());
+			cluster.addPointVectorized(m_points[i], i); // seed
 
 			std::vector<int> current_selection;
 			current_selection.reserve(n_candidates);
@@ -253,7 +266,7 @@ namespace core
 					stack.pop_back();
 					if (!current_selection.empty())
 					{
-						cluster.removePoint(m_points[candidate_indices[current_selection.back()]]);
+						cluster.removePointVectorized(current_selection.size(), candidate_indices[current_selection.back()]);
 						current_selection.pop_back();
 					}
 					if (!stack.empty())
@@ -264,7 +277,7 @@ namespace core
 				}
 
 				current_selection.push_back(candidate_idx);
-				cluster.addPoint(m_points[candidate_indices[candidate_idx]]);
+				cluster.addPointVectorized(m_points[candidate_indices[candidate_idx]], candidate_indices[candidate_idx]);
 
 				int cluster_size = static_cast<int>(current_selection.size()) + 1;
 				if (cluster_size >= static_cast<int>(m_cluster_min_points))
@@ -283,7 +296,7 @@ namespace core
 				}
 				else
 				{
-					cluster.removePoint(m_points[candidate_indices[current_selection.back()]]);
+					cluster.removePointVectorized(current_selection.size(), candidate_indices[current_selection.back()]); // remove last added point, -1 for zero indexing +1 for seed
 					current_selection.pop_back();
 					stack.back()++;
 				}
@@ -293,11 +306,13 @@ namespace core
 			auto seed_end_time = std::chrono::high_resolution_clock::now();
 			time_per_seed_ms[idx] = std::chrono::duration<double, std::milli>(seed_end_time - seed_start_time).count();
 			combinations_per_seed[idx] = seed_combinations;
-
-			best_cluster.setScore(best_score);
-
-			// Store result for this seed
-			seed_results[idx] = {best_cluster, found_valid};
+			if (found_valid)
+			{
+				std::unique_lock<std::shared_mutex> lock(working_clusters_mutex);
+				working_clusters.push_back(best_cluster);
+				spdlog::info("ClusteredTriangulationAlgorithm2: Seed point {} formed a valid cluster with score {:.4f}, size {} ({} combinations explored in {:.2f} ms)",
+							 i, best_score, best_cluster.size(), seed_combinations, time_per_seed_ms[idx]);
+			}
 
 			// Update atomic counters
 			m_combinations_explored += seed_combinations;
@@ -311,36 +326,11 @@ namespace core
 						 total_timeouts);
 		}
 
-		// Sequential post-processing: merge results and check overlaps
-		// TODO: In case there is a lot of overlap, consider a more sophisticated merging strategy
-		for (int idx = 0; idx < n_points; ++idx)
+		for (auto &cluster : working_clusters)
 		{
-			const auto &[cluster, found_valid] = seed_results[idx];
-
-			if (found_valid)
-			{
-				// Check overlap with already-added clusters
-				bool has_overlap = false;
-				for (const auto &existing_cluster : m_clusters)
-				{
-					if (cluster.overlapWith(existing_cluster) > m_max_overlap)
-					{
-						has_overlap = true;
-						break;
-					}
-				}
-
-				if (!has_overlap)
-				{
-					m_clusters.push_back(cluster);
-					m_clusters_evaluated++;
-
-					spdlog::info("ClusteredTriangulationAlgorithm2: added cluster with {} points, score {:.2f}",
-								 cluster.size(), cluster.score);
-				}
-			}
+			PointCluster finalized_cluster = cluster.copyVectorizedToNormal(m_points);
+			m_clusters.push_back(finalized_cluster);
 		}
-
 		// Store metrics
 		m_combinations_per_seed = std::move(combinations_per_seed);
 		m_time_per_seed_ms = std::move(time_per_seed_ms);
@@ -370,7 +360,8 @@ namespace core
 				continue;
 			}
 
-			double distance = getDistance(points[i], points[j]);
+			double distance = core::PointDistanceCache::getInstance().getDistance(points[i], points[j]);
+
 			if (distance <= m_max_internal_distance)
 			{
 				candidate_indices.push_back(j);
@@ -382,36 +373,41 @@ namespace core
 	{
 		double ratio = cluster.geometricRatio();
 		double clusterArea = cluster.area();
-		bool found_valid = false;
 
-		bool valid = (ratio >= m_min_geometric_ratio &&
-					  clusterArea >= m_min_area &&
-					  clusterArea <= m_max_area);
+		bool valid = (ratio >= m_min_geometric_ratio && ratio <= m_max_geometric_ratio) &&
+					 (clusterArea >= m_min_area && clusterArea <= m_max_area) &&
+					 (cluster.varianceRSSI() >= m_min_rssi_variance && cluster.varianceRSSI() <= m_max_rssi_variance);
 
-		if (valid)
+		if (!valid)
 		{
-			found_valid = true;
-			double current_score = cluster.getAndSetScore(
-				m_ideal_geometric_ratio,
-				m_ideal_area,
-				m_min_rssi_variance,
-				m_weight_geometric_ratio,
-				m_weight_area,
-				m_weight_rssi_variance,
-				m_bottom_rssi,
-				m_weight_rssi);
+			return false;
+		}
 
-			if (current_score > best_score)
+		double current_score = cluster.getAndSetScore(
+			m_ideal_geometric_ratio, m_min_geometric_ratio, m_max_geometric_ratio,
+			m_ideal_area, m_min_area, m_max_area,
+			m_ideal_rssi_variance, m_min_rssi_variance, m_max_rssi_variance,
+			m_weight_geometric_ratio, m_weight_area, m_weight_rssi_variance,
+			m_bottom_rssi, m_top_rssi, m_weight_rssi);
+
+		if (current_score > best_score)
+		{
+			// check overlap with existing clusters
 			{
-				best_score = current_score;
-				best_cluster = PointCluster();
-				for (const auto &pt : cluster.points)
+				std::shared_lock<std::shared_mutex> lock(working_clusters_mutex);
+				for (const auto &existing_cluster : working_clusters)
 				{
-					best_cluster.addPoint(pt);
+					if (cluster.overlapWith(existing_cluster) > m_max_overlap)
+					{
+						return false;
+					}
 				}
 			}
+			best_score = current_score;
+			// Copy cluster using the new copyFromVectorized method
+			best_cluster = cluster.copyVectorizedToVectorized();
 		}
-		return found_valid;
+		return true;
 	}
 
 	void ClusteredTriangulationAlgorithm2::clusterData(std::vector<DataPoint> &m_points)
@@ -439,7 +435,7 @@ namespace core
 	{
 		global_best_x = 0.0;
 		global_best_y = 0.0;
-		double global_best_cost = getCost(global_best_x, global_best_y, m_extra_weight, m_angle_weight);
+		double global_best_cost = getCost(global_best_x, global_best_y, cluster_score_weight, m_angle_weight);
 
 		double zone_x = -precision * m_grid_half_size;
 		double zone_y = -precision * m_grid_half_size;
@@ -486,7 +482,7 @@ namespace core
 					{
 						double x = quadrant_x + ix * precision;
 						double y = quadrant_y + iy * precision;
-						double cost = getCost(x, y, m_extra_weight, m_angle_weight);
+						double cost = getCost(x, y, cluster_score_weight, m_angle_weight);
 
 						if (cost < best_cost)
 						{
