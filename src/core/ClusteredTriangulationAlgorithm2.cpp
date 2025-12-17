@@ -266,7 +266,7 @@ namespace core
 					stack.pop_back();
 					if (!current_selection.empty())
 					{
-						cluster.removePointVectorized(current_selection.size(), candidate_indices[current_selection.back()]); // remove last added point, -1 for zero indexing +1 for seed
+						cluster.removePointVectorized(current_selection.size(), candidate_indices[current_selection.back()]);
 						current_selection.pop_back();
 					}
 					if (!stack.empty())

@@ -87,7 +87,7 @@ namespace core
         void addPoint(const DataPoint &point);
         void removePoint(const DataPoint &point);
         double overlapWith(const PointCluster &other) const;
-        double varianceRSSI() const;
+        double varianceRSSI();
         size_t size() const;
         void setScore(double input_score);
 

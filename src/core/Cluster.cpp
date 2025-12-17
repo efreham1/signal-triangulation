@@ -8,7 +8,7 @@
 namespace core
 {
     // ==================== BitVector Implementation ====================
-    
+
     void BitVector::ensureCapacity(size_t index)
     {
         size_t word_idx = index / 64;
@@ -17,7 +17,7 @@ namespace core
             m_words.resize(word_idx + 1, 0);
         }
     }
-    
+
     void BitVector::setBit(size_t index)
     {
         ensureCapacity(index);
@@ -25,7 +25,7 @@ namespace core
         size_t bit_idx = index % 64;
         m_words[word_idx] |= (1ULL << bit_idx);
     }
-    
+
     void BitVector::clearBit(size_t index)
     {
         size_t word_idx = index / 64;
@@ -35,7 +35,7 @@ namespace core
             m_words[word_idx] &= ~(1ULL << bit_idx);
         }
     }
-    
+
     bool BitVector::getBit(size_t index) const
     {
         size_t word_idx = index / 64;
@@ -46,18 +46,18 @@ namespace core
         size_t bit_idx = index % 64;
         return (m_words[word_idx] & (1ULL << bit_idx)) != 0;
     }
-    
+
     void BitVector::clear()
     {
         m_words.clear();
     }
-    
+
     void BitVector::reserve(size_t n_points)
     {
         size_t n_words = (n_points + 63) / 64;
         m_words.resize(n_words, 0);
     }
-    
+
     size_t BitVector::popcount() const
     {
         size_t count = 0;
@@ -67,7 +67,7 @@ namespace core
         }
         return count;
     }
-    
+
     size_t BitVector::sharedCount(const BitVector &other) const
     {
         size_t count = 0;
@@ -78,7 +78,7 @@ namespace core
         }
         return count;
     }
-    
+
     std::vector<int> BitVector::getSetIndices() const
     {
         std::vector<int> indices;
@@ -94,7 +94,7 @@ namespace core
         }
         return indices;
     }
-    
+
     void BitVector::copyFrom(const BitVector &other)
     {
         m_words = other.m_words;
@@ -113,7 +113,7 @@ namespace core
     }
 
     PointCluster::PointCluster(size_t num_points)
-        : num_points(num_points) ,estimated_aoa(0.0), avg_rssi(0.0), centroid_x(0.0), centroid_y(0.0), aoa_x(0.0), aoa_y(0.0), score(0.0), rssi_variance_computed(true), rssi_variance_value(0.0)
+        : num_points(num_points), estimated_aoa(0.0), avg_rssi(0.0), centroid_x(0.0), centroid_y(0.0), aoa_x(0.0), aoa_y(0.0), score(0.0), rssi_variance_computed(true), rssi_variance_value(0.0)
     {
         bbox = {0.0, 0.0, false};
         furthest_idx1 = 0;
@@ -122,7 +122,6 @@ namespace core
         point_bits.reserve(num_points);
         vectorized = true;
     }
-
 
     void PointCluster::addPoint(const DataPoint &point)
     {
@@ -146,7 +145,7 @@ namespace core
 
         spdlog::debug("PointCluster: added point (x={}, y={}, rssi={}), new centroid (x={}, y={}), avg_rssi={}",
                       point.getXUnsafe(), point.getYUnsafe(), point.rssi, centroid_x, centroid_y, avg_rssi);
-        
+
         recomputeBoundingBox(points.size() - 1);
     }
 
@@ -168,11 +167,11 @@ namespace core
         rssi_values.push_back(static_cast<double>(point.rssi));
         point_bits.setBit(static_cast<size_t>(index));
 
-        //update average RSSI
+        // update average RSSI
         double previous_total = avg_rssi * static_cast<double>(rssi_values.size() - 1);
         avg_rssi = (previous_total + static_cast<double>(point.rssi)) / static_cast<double>(rssi_values.size());
 
-        //update centroid
+        // update centroid
         double previous_total_x = centroid_x * static_cast<double>(x_dp_values.size() - 1);
         double previous_total_y = centroid_y * static_cast<double>(y_dp_values.size() - 1);
         centroid_x = (previous_total_x + point.getXUnsafe()) / static_cast<double>(x_dp_values.size());
@@ -189,9 +188,10 @@ namespace core
         }
 
         rssi_variance_computed = false;
-        
+
         auto it = std::find_if(points.begin(), points.end(),
-                               [&point](const DataPoint &p) { return p.point_id == point.point_id; });
+                               [&point](const DataPoint &p)
+                               { return p.point_id == point.point_id; });
 
         if (it != points.end())
         {
@@ -239,7 +239,7 @@ namespace core
         {
             throw std::runtime_error("PointCluster: removePointVectorized called on empty cluster");
         }
-        
+
         if (!vectorized)
         {
             throw std::runtime_error("PointCluster: removePointVectorized called on non-vectorized cluster");
@@ -261,7 +261,7 @@ namespace core
         }
 
         rssi_variance_computed = false;
-        
+
         point_bits.clearBit(points_index);
 
         x_dp_values.erase(x_dp_values.begin() + cluster_index);
@@ -368,7 +368,7 @@ namespace core
             return static_cast<double>(shared_points) / static_cast<double>(total_points);
         }
     }
-    double PointCluster::varianceRSSI() const
+    double PointCluster::varianceRSSI()
     {
         if (rssi_variance_computed)
         {
@@ -397,7 +397,10 @@ namespace core
             }
         }
 
-        return sum_sq_diff / static_cast<double>(size());
+        rssi_variance_value = sum_sq_diff / static_cast<double>(size());
+        rssi_variance_computed = true;
+
+        return rssi_variance_value;
     }
 
     void PointCluster::setScore(double input_score)
@@ -406,21 +409,28 @@ namespace core
     }
 
     double PointCluster::getAndSetScore(double ideal_geometric_ratio, double min_geometric_ratio, double max_geometric_ratio,
-                        double ideal_area, double min_area, double max_area,
-                        double ideal_rssi_variance, double min_rssi_variance, double max_rssi_variance,
-                        double gr_weight, double area_weight, double variance_weight,
-                        double bottom_rssi_threshold, double top_rssi, double rssi_weight)
+                                        double ideal_area, double min_area, double max_area,
+                                        double ideal_rssi_variance, double min_rssi_variance, double max_rssi_variance,
+                                        double gr_weight, double area_weight, double variance_weight,
+                                        double bottom_rssi_threshold, double top_rssi, double rssi_weight)
     {
         // Triangular interpolation: 0 at min/max, 1 at ideal
-        auto triangleScore = [](double value, double min_val, double ideal, double max_val) -> double {
-            if (value < min_val || value > max_val) return 0.0;
-            if (value <= ideal) {
+        auto triangleScore = [](double value, double min_val, double ideal, double max_val) -> double
+        {
+            if (value < min_val || value > max_val)
+                return 0.0;
+            if (value <= ideal)
+            {
                 // Interpolate from min (0) to ideal (1)
-                if (ideal == min_val) return 1.0;
+                if (ideal == min_val)
+                    return 1.0;
                 return (value - min_val) / (ideal - min_val);
-            } else {
+            }
+            else
+            {
                 // Interpolate from ideal (1) to max (0)
-                if (max_val == ideal) return 1.0;
+                if (max_val == ideal)
+                    return 1.0;
                 return (max_val - value) / (max_val - ideal);
             }
         };
@@ -435,13 +445,18 @@ namespace core
         double rssi_score = 0.0;
         if (avg_rssi > bottom_rssi_threshold)
         {
-            if (top_rssi == bottom_rssi_threshold) {
+            if (top_rssi == bottom_rssi_threshold)
+            {
                 rssi_score = 1.0;
-            } else {
+            }
+            else
+            {
                 rssi_score = (avg_rssi - bottom_rssi_threshold) / (top_rssi - bottom_rssi_threshold);
             }
-            if (rssi_score > 1.0) rssi_score = 1.0;
-            if (rssi_score < 0.0) rssi_score = 0.0;
+            if (rssi_score > 1.0)
+                rssi_score = 1.0;
+            if (rssi_score < 0.0)
+                rssi_score = 0.0;
         }
 
         score = gr_weight * gr_score + area_weight * area_score + variance_weight * variance_score + rssi_weight * rssi_score;
@@ -460,7 +475,7 @@ namespace core
     void PointCluster::recomputeBoundingBox(size_t new_idx)
     {
 
-        double sqrdist = furthest_distance*furthest_distance;
+        double sqrdist = furthest_distance * furthest_distance;
         size_t idx1 = furthest_idx1;
         size_t idx2 = furthest_idx2;
 
@@ -589,7 +604,7 @@ namespace core
 
     void PointCluster::computeBoundingBox()
     {
-        
+
         double sqrdist = 0.0;
         size_t idx1 = 0;
         size_t idx2 = 0;
@@ -721,7 +736,6 @@ namespace core
         bbox.range_u = max_u - min_u;
         bbox.range_v = max_v - min_v;
         bbox.valid = true;
-
     }
 
     double PointCluster::geometricRatio() const
@@ -743,7 +757,7 @@ namespace core
 
         return bbox.range_u * bbox.range_v;
     }
-    
+
     std::vector<int> PointCluster::getPointIndices() const
     {
         if (vectorized)
@@ -762,22 +776,22 @@ namespace core
             return indices;
         }
     }
-    
+
     PointCluster PointCluster::copyVectorizedToNormal(std::vector<DataPoint> &all_points)
     {
         if (!vectorized)
         {
             throw std::runtime_error("PointCluster: copyVectorizedToNormal called on non-vectorized cluster");
         }
-        
+
         PointCluster new_cluster;
-        
+
         std::vector<int> indices = point_bits.getSetIndices();
         for (int idx : indices)
         {
             new_cluster.points.push_back(all_points[idx]);
         }
-        
+
         new_cluster.estimated_aoa = estimated_aoa;
         new_cluster.avg_rssi = avg_rssi;
         new_cluster.centroid_x = centroid_x;
@@ -786,21 +800,21 @@ namespace core
         new_cluster.aoa_y = aoa_y;
         new_cluster.computeBoundingBox();
         new_cluster.score = score;
-        if (new_cluster.furthest_distance != furthest_distance)
+        if (std::abs(new_cluster.furthest_distance - furthest_distance) > 1e-9)
         {
             throw std::runtime_error("PointCluster: copyVectorizedToNormal furthest distance mismatch: " + std::to_string(new_cluster.furthest_distance) + " != " + std::to_string(furthest_distance));
         }
 
-        return new_cluster;   
+        return new_cluster;
     }
-    
+
     PointCluster PointCluster::copyVectorizedToVectorized()
     {
         if (!vectorized)
         {
             throw std::runtime_error("PointCluster: copyVectorizedToVectorized called on non-vectorized cluster");
         }
-        
+
         PointCluster new_cluster(num_points);
         new_cluster.vectorized = true;
         new_cluster.x_dp_values = x_dp_values;
@@ -818,7 +832,7 @@ namespace core
         new_cluster.furthest_idx1 = furthest_idx1;
         new_cluster.furthest_idx2 = furthest_idx2;
         new_cluster.furthest_distance = furthest_distance;
-        
+
         return new_cluster;
     }
 

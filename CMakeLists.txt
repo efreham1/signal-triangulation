@@ -12,7 +12,7 @@ add_compile_options(-Wall -Wextra -Wpedantic -Wconversion)
 if(CMAKE_BUILD_TYPE STREQUAL "Profiling")
     add_compile_options(-pg -Ofast)
     add_link_options(-pg)
-endif()# Source layout: all sources live under ./src
+endif() # Source layout: all sources live under ./src
 set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 
 # Gather sources
