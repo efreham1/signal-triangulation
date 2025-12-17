@@ -23,7 +23,7 @@ list(FILTER TRIANGULATION_CORE_SOURCES EXCLUDE REGEX ".*/main\\.cpp$")
 # Create a library from core sources for tests to link against
 add_library(core_test_lib STATIC ${TRIANGULATION_CORE_SOURCES})
 target_include_directories(core_test_lib PUBLIC "${CMAKE_SOURCE_DIR}/src")
-target_link_libraries(core_test_lib PUBLIC spdlog::spdlog nlohmann_json::nlohmann_json)
+target_link_libraries(core_test_lib PUBLIC spdlog::spdlog nlohmann_json::nlohmann_json httplib::httplib)
 
 # Link OpenMP to core_test_lib if found
 if(OpenMP_CXX_FOUND)
