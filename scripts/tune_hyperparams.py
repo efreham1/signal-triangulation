@@ -216,56 +216,60 @@ def grid_search(
     max_tests: Optional[int],
     dry_run: bool,
     cmd_timeout: Optional[float],
+    repeat: int = 1,  # NEW
 ) -> List[Tuple[Dict[str, Any], Optional[float]]]:
-    """Exhaustive grid search over all combinations."""
+    """Exhaustive grid search over all combinations, averaging metric over `repeat` runs."""
     global _interrupted, _results
     _results = []
-    
+
     param_names = list(search_space.keys())
     all_values = [search_space[name].values for name in param_names]
     all_combinations = list(itertools.product(*all_values))
-    
+
     if max_tests and max_tests > 0:
         all_combinations = all_combinations[:max_tests]
-    
+
     total = len(all_combinations)
     print(f"Grid Search: {total} combinations to test")
     print(f"Parameters: {param_names}")
     print("(Press Ctrl+C to stop early and see results so far)")
     print()
-    
+
     for i, combo in enumerate(all_combinations):
         if _interrupted:
             print(f"\nStopped after {i} tests.")
             break
-            
+
         params = dict(zip(param_names, combo))
         cmd = build_command(base_cmd, params)
-        
+
         param_str = ", ".join(f"{k}={v}" for k, v in params.items())
         print(f"[{i+1}/{total}] {param_str}")
-        
+
         if dry_run:
             print(f"  CMD: {cmd}")
             continue
-        
-        rc, output = run_eval_cmd(cmd, cmd_timeout)
-        
-        # Check for failed files
-        if re.search(r"No output from app for file:", output):
-            print(f"  -> INVALID: Some files failed to produce output")
-            _results.append((params, None))
-            continue
-        
-        metric = extract_metric(output, metric_regex)
-        
-        if metric is not None:
-            print(f"  -> Metric: {metric:.4f}")
+
+        metrics = []
+        for rep in range(repeat):
+            rc, output = run_eval_cmd(cmd, cmd_timeout)
+            # Check for failed files
+            if re.search(r"No output from app for file:", output):
+                print(f"  -> INVALID: Some files failed to produce output (run {rep+1}/{repeat})")
+                break  # Don't average if any run fails
+            metric = extract_metric(output, metric_regex)
+            if metric is not None:
+                metrics.append(metric)
+            else:
+                print(f"  -> Metric: N/A (rc={rc}) (run {rep+1}/{repeat})")
+
+        avg_metric = sum(metrics) / len(metrics) if metrics else None
+        if avg_metric is not None:
+            print(f"  -> Average Metric: {avg_metric:.4f} (from {len(metrics)} runs)")
         else:
-            print(f"  -> Metric: N/A (rc={rc})")
-        
-        _results.append((params, metric))
-    
+            print(f"  -> Average Metric: N/A")
+        _results.append((params, avg_metric))
+
     return _results
 
 
@@ -276,55 +280,53 @@ def random_search(
     num_samples: int,
     dry_run: bool,
     cmd_timeout: Optional[float],
+    repeat: int = 1,  # NEW
 ) -> List[Tuple[Dict[str, Any], Optional[float]]]:
-    """Random sampling from search space."""
+    """Random sampling from search space, averaging metric over `repeat` runs."""
     global _interrupted, _results
     _results = []
-    
+
     param_names = list(search_space.keys())
     print(f"Random Search: {num_samples} samples")
     print(f"Parameters: {param_names}")
     print("(Press Ctrl+C to stop early and see results so far)")
     print()
-    
+
     for i in range(num_samples):
         if _interrupted:
             print(f"\nStopped after {i} tests.")
             break
-            
+
         params = {name: random.choice(search_space[name].values) for name in param_names}
         cmd = build_command(base_cmd, params)
-        
+
         param_str = ", ".join(f"{k}={v}" for k, v in params.items())
         print(f"[{i+1}/{num_samples}] {param_str}")
-        
+
         if dry_run:
             print(f"  CMD: {cmd}")
             continue
-        
-        rc, output = run_eval_cmd(cmd, cmd_timeout)
-        
-        # Check for failed files
-        if re.search(r"No output from app for file:", output):
-            print(f"  -> INVALID: Some files failed to produce output")
-            
-            failed_files = re.findall(r"No output from app for file:\s*(\S+)", output)
-            if failed_files:
-                print("Failed files:")
-                for f in failed_files:
-                    print(f"  {f}")
-            _results.append((params, None))
-            continue
-        
-        metric = extract_metric(output, metric_regex)
-        
-        if metric is not None:
-            print(f"  -> Metric: {metric:.4f}")
+
+        metrics = []
+        for rep in range(repeat):
+            rc, output = run_eval_cmd(cmd, cmd_timeout)
+            # Check for failed files
+            if re.search(r"No output from app for file:", output):
+                print(f"  -> INVALID: Some files failed to produce output (run {rep+1}/{repeat})")
+                break  # Don't average if any run fails
+            metric = extract_metric(output, metric_regex)
+            if metric is not None:
+                metrics.append(metric)
+            else:
+                print(f"  -> Metric: N/A (rc={rc}) (run {rep+1}/{repeat})")
+
+        avg_metric = sum(metrics) / len(metrics) if metrics else None
+        if avg_metric is not None:
+            print(f"  -> Average Metric: {avg_metric:.4f} (from {len(metrics)} runs)")
         else:
-            print(f"  -> Metric: N/A (rc={rc})")
-        
-        _results.append((params, metric))
-    
+            print(f"  -> Average Metric: N/A")
+        _results.append((params, avg_metric))
+
     return _results
 
 def report_results(results: List[Tuple[Dict[str, Any], Optional[float]]], minimize: bool = True):
@@ -422,6 +424,8 @@ Press Ctrl+C during execution to stop early and see results collected so far.
     p.add_argument("--cmd-timeout", type=float, default=300, help="Timeout per command (seconds)")
     p.add_argument("--maximize", action="store_true", help="Maximize metric instead of minimize")
     p.add_argument("--dry-run", action="store_true", help="Print commands without executing")
+
+    p.add_argument("--repeat", type=int, default=1, help="Repeat each test N times and average the metric")
     
     # Inline parameter definitions (override defaults)
     p.add_argument("--coalition-distance", help="Values for coalition_distance")
@@ -443,6 +447,12 @@ Press Ctrl+C during execution to stop early and see results collected so far.
     p.add_argument("--extra-weight", help="Values for extra_weight")
     p.add_argument("--per-seed-timeout", help="Values for per_seed_timeout")
     p.add_argument("--grid-half-size", help="Values for grid_half_size")
+
+    p.add_argument("--ideal-rssi-variance", help="Values for ideal_rssi_variance")
+    p.add_argument("--max-rssi-variance", help="Values for max_rssi_variance")
+    p.add_argument("--cluster-score-weight", help="Values for cluster_score_weight")
+    p.add_argument("--angle-weight", help="Values for angle_weight")
+
     
     args = p.parse_args()
     _minimize = not args.maximize
@@ -475,6 +485,10 @@ Press Ctrl+C during execution to stop early and see results collected so far.
         'extra_weight': ('extra-weight', 'float'),
         'per_seed_timeout': ('per-seed-timeout', 'float'),
         'grid_half_size': ('grid-half-size', 'int'),
+        'ideal_rssi_variance': ('ideal-rssi-variance', 'float'),
+        'max_rssi_variance': ('max-rssi-variance', 'float'),
+        'cluster_score_weight': ('cluster-score-weight', 'float'),
+        'angle_weight': ('angle-weight', 'float'),
     }
     
     for param_name, (arg_name, param_type) in param_mapping.items():
@@ -493,13 +507,13 @@ Press Ctrl+C during execution to stop early and see results collected so far.
         if args.search_mode == 'grid':
             results = grid_search(
                 search_space, args.eval_cmd, args.metric_regex,
-                args.max_tests, args.dry_run, args.cmd_timeout
+                args.max_tests, args.dry_run, args.cmd_timeout, args.repeat
             )
         else:
             num_samples = args.max_tests or 100
             results = random_search(
                 search_space, args.eval_cmd, args.metric_regex,
-                num_samples, args.dry_run, args.cmd_timeout
+                num_samples, args.dry_run, args.cmd_timeout, args.repeat
             )
     except Exception as e:
         print(f"\nError during search: {e}")
