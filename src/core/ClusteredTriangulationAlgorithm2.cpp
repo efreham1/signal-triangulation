@@ -97,6 +97,9 @@ namespace core
 		if (params.has("angle_weight"))
 			m_angle_weight = params.get<double>("angle_weight");
 
+		if (params.has("cluster_score_weight"))
+			cluster_score_weight = params.get<double>("cluster_score_weight");
+
 		spdlog::debug("CTA2: Parameters applied");
 	}
 

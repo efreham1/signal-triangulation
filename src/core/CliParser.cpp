@@ -218,6 +218,7 @@ void CliParser::printParamHelp()
               << "  --weight-rssi-variance FLOAT Weight for RSSI variance (default: 1.0)\n"
               << "  --weight-rssi FLOAT          Weight for RSSI (default: 1.0)\n"
               << "  --extra-weight FLOAT         Extra weight factor for cost function (default: 1.0)\n"
+              << "  --cluster-score-weight FLOAT Cluster score weight factor for cost function (default: 1.0)\n"
               << "  --angle-weight FLOAT         Angle weight factor for cost function (default: 10.0)\n"
               << "\n"
               << "Timing:\n"
