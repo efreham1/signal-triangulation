@@ -1,0 +1,665 @@
+{
+  "source_pos": {
+    "x": 60.35027670000001,
+    "y": 15.929943300000001
+  },
+  "measurements": [
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 524,
+      "latitude": 60.35029665028742,
+      "longitude": 15.930066660497827,
+      "rssi": -47,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766831056653
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 523,
+      "latitude": 60.350322013219504,
+      "longitude": 15.9299624200676,
+      "rssi": -71,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766831021051
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 522,
+      "latitude": 60.35030449276859,
+      "longitude": 15.930002152091367,
+      "rssi": -70,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766831006731
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 521,
+      "latitude": 60.35030317310115,
+      "longitude": 15.930023163941634,
+      "rssi": -55,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830992394
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 520,
+      "latitude": 60.35034426153845,
+      "longitude": 15.929993730769228,
+      "rssi": -74,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830978116
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 519,
+      "latitude": 60.350366299999976,
+      "longitude": 15.930081884615378,
+      "rssi": -75,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830963835
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 518,
+      "latitude": 60.35032885550767,
+      "longitude": 15.9300771823016,
+      "rssi": -66,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830949553
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 517,
+      "latitude": 60.35030554381975,
+      "longitude": 15.930010320201383,
+      "rssi": -73,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830935305
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 516,
+      "latitude": 60.35028492129796,
+      "longitude": 15.930032355456394,
+      "rssi": -48,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830921142
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 515,
+      "latitude": 60.35028374999998,
+      "longitude": 15.930054066666663,
+      "rssi": -60,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830906965
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 514,
+      "latitude": 60.35025857678805,
+      "longitude": 15.930073343344642,
+      "rssi": -69,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830892744
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 513,
+      "latitude": 60.3502196987886,
+      "longitude": 15.930060118626209,
+      "rssi": -73,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830878515
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 512,
+      "latitude": 60.3502200905317,
+      "longitude": 15.930058638029609,
+      "rssi": -74,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830864446
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 511,
+      "latitude": 60.350266478722475,
+      "longitude": 15.930049853962371,
+      "rssi": -66,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830850554
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 510,
+      "latitude": 60.350256559999984,
+      "longitude": 15.930133749999996,
+      "rssi": -72,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830836310
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 509,
+      "latitude": 60.350244525,
+      "longitude": 15.930216024999995,
+      "rssi": -80,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830822022
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 508,
+      "latitude": 60.35020769090908,
+      "longitude": 15.93019135454545,
+      "rssi": -81,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830807807
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 507,
+      "latitude": 60.350214069230745,
+      "longitude": 15.930127784615378,
+      "rssi": -75,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830793528
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 506,
+      "latitude": 60.35021618221105,
+      "longitude": 15.930060215382555,
+      "rssi": -77,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830779235
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 505,
+      "latitude": 60.35017802344647,
+      "longitude": 15.930058394297191,
+      "rssi": -78,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830765034
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 504,
+      "latitude": 60.35013007886207,
+      "longitude": 15.930005386010205,
+      "rssi": -76,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830750700
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 503,
+      "latitude": 60.350094390787405,
+      "longitude": 15.929967545365015,
+      "rssi": -73,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830736412
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 502,
+      "latitude": 60.35009179316246,
+      "longitude": 15.92989235040274,
+      "rssi": -62,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830722543
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 501,
+      "latitude": 60.35012118305675,
+      "longitude": 15.929805205705751,
+      "rssi": -81,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830708299
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 500,
+      "latitude": 60.35006421565804,
+      "longitude": 15.929809931879774,
+      "rssi": -68,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830694049
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 499,
+      "latitude": 60.350037893333315,
+      "longitude": 15.929830499999994,
+      "rssi": -63,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830679772
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 498,
+      "latitude": 60.350039345454526,
+      "longitude": 15.929899927272723,
+      "rssi": -74,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830665465
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 497,
+      "latitude": 60.350049515384576,
+      "longitude": 15.929960546153842,
+      "rssi": -75,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830651179
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 496,
+      "latitude": 60.350027854545424,
+      "longitude": 15.930029499999995,
+      "rssi": -80,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830636918
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 495,
+      "latitude": 60.35005849999998,
+      "longitude": 15.930095536363627,
+      "rssi": -79,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830622560
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 494,
+      "latitude": 60.35009637999998,
+      "longitude": 15.930089439999993,
+      "rssi": -88,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830608495
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 493,
+      "latitude": 60.35011103888087,
+      "longitude": 15.930023884555476,
+      "rssi": -78,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830594211
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 492,
+      "latitude": 60.35015083571427,
+      "longitude": 15.930010249999995,
+      "rssi": -71,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830579820
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 491,
+      "latitude": 60.350180792857124,
+      "longitude": 15.930005578571423,
+      "rssi": -72,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830565545
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 490,
+      "latitude": 60.35018102711602,
+      "longitude": 15.929939679279034,
+      "rssi": -60,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830551248
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 489,
+      "latitude": 60.35014272170269,
+      "longitude": 15.92997039394198,
+      "rssi": -76,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830536976
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 488,
+      "latitude": 60.35011605323948,
+      "longitude": 15.929946473697312,
+      "rssi": -72,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830522712
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 487,
+      "latitude": 60.35013052501878,
+      "longitude": 15.929893643674095,
+      "rssi": -64,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830508456
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 486,
+      "latitude": 60.35017824077222,
+      "longitude": 15.929886902957753,
+      "rssi": -74,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830494033
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 485,
+      "latitude": 60.35015486197315,
+      "longitude": 15.929921309033032,
+      "rssi": -61,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830479734
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 484,
+      "latitude": 60.35012856923074,
+      "longitude": 15.929875030769225,
+      "rssi": -63,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830465446
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 483,
+      "latitude": 60.35016415058812,
+      "longitude": 15.929806689052036,
+      "rssi": -78,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830451160
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 482,
+      "latitude": 60.35017935454544,
+      "longitude": 15.929796590909083,
+      "rssi": -73,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830436872
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 481,
+      "latitude": 60.350178079999985,
+      "longitude": 15.929709679999993,
+      "rssi": -82,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830422560
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 480,
+      "latitude": 60.35020979999997,
+      "longitude": 15.92978312307692,
+      "rssi": -87,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830408289
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 479,
+      "latitude": 60.35024509221222,
+      "longitude": 15.929773373672935,
+      "rssi": -72,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830393986
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 478,
+      "latitude": 60.3503326134652,
+      "longitude": 15.929743892923163,
+      "rssi": -78,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830379714
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 477,
+      "latitude": 60.35034893511031,
+      "longitude": 15.92972056177835,
+      "rssi": -79,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830365389
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 476,
+      "latitude": 60.35031475384612,
+      "longitude": 15.92972228461538,
+      "rssi": -68,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830351108
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 475,
+      "latitude": 60.35027245833331,
+      "longitude": 15.929796433333328,
+      "rssi": -57,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830336783
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 474,
+      "latitude": 60.35024749871693,
+      "longitude": 15.929740244474674,
+      "rssi": -82,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830322523
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 473,
+      "latitude": 60.350256324999975,
+      "longitude": 15.929692341666662,
+      "rssi": -59,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830308240
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 472,
+      "latitude": 60.350287945454525,
+      "longitude": 15.929755499999994,
+      "rssi": -62,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830293936
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 471,
+      "latitude": 60.35030875234227,
+      "longitude": 15.92978687585798,
+      "rssi": -77,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830279671
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 470,
+      "latitude": 60.35035588617,
+      "longitude": 15.929830303914352,
+      "rssi": -77,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830265216
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 469,
+      "latitude": 60.35038962503886,
+      "longitude": 15.929858833209003,
+      "rssi": -81,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830250938
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 468,
+      "latitude": 60.35034337795585,
+      "longitude": 15.929890459981047,
+      "rssi": -71,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830236644
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 467,
+      "latitude": 60.350322069230735,
+      "longitude": 15.929800692307687,
+      "rssi": -76,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830222384
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 466,
+      "latitude": 60.35038428881261,
+      "longitude": 15.929728497685083,
+      "rssi": -80,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830208119
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 465,
+      "latitude": 60.35040949999998,
+      "longitude": 15.929730776923071,
+      "rssi": -83,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830193841
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 464,
+      "latitude": 60.35043599033342,
+      "longitude": 15.929793324513762,
+      "rssi": -86,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830179576
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 463,
+      "latitude": 60.35045549183985,
+      "longitude": 15.929823306702199,
+      "rssi": -82,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830165403
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 462,
+      "latitude": 60.35046922499998,
+      "longitude": 15.92990924166666,
+      "rssi": -89,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830151174
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 461,
+      "latitude": 60.35044791069011,
+      "longitude": 15.929999964258847,
+      "rssi": -78,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830136924
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 460,
+      "latitude": 60.35045249785016,
+      "longitude": 15.930072897240981,
+      "rssi": -73,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830122632
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 459,
+      "latitude": 60.35043189810582,
+      "longitude": 15.930171982997742,
+      "rssi": -76,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830108357
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 458,
+      "latitude": 60.35040595369145,
+      "longitude": 15.93012353055396,
+      "rssi": -74,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830094093
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 457,
+      "latitude": 60.350380812789254,
+      "longitude": 15.930101740854512,
+      "rssi": -67,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830079713
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 456,
+      "latitude": 60.35037627692305,
+      "longitude": 15.930040369230763,
+      "rssi": -69,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830065466
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 455,
+      "latitude": 60.35039616997664,
+      "longitude": 15.929948472337815,
+      "rssi": -82,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830051193
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 454,
+      "latitude": 60.3503706034617,
+      "longitude": 15.929944413555244,
+      "rssi": -72,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830036921
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 453,
+      "latitude": 60.35034712990191,
+      "longitude": 15.929871735103559,
+      "rssi": -83,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830025431
+    },
+    {
+      "deviceID": "bad2f21127106f2a",
+      "id": 452,
+      "latitude": 60.35036028128347,
+      "longitude": 15.929959000996309,
+      "rssi": -69,
+      "ssid": "Forslund_5G",
+      "timestamp": 1766830010309
+    }
+  ]
+}

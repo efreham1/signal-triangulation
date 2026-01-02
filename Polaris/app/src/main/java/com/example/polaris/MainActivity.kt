@@ -468,7 +468,7 @@ class MainActivity : AppCompatActivity() {
         loadMeasurementMarkersFromDb()
     }
 
-    private fun addMeasurementMarker(measurement: SignalRecord) {
+    fun addMeasurementMarker(measurement: SignalRecord) {
         val marker = Marker(mapView).apply {
             position = GeoPoint(measurement.latitude, measurement.longitude)
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
@@ -480,7 +480,7 @@ class MainActivity : AppCompatActivity() {
         mapView.invalidate()
     }
 
-    private fun createMeasurementIcon(color: Int = android.graphics.Color.RED): android.graphics.drawable.Drawable {
+    fun createMeasurementIcon(color: Int = android.graphics.Color.RED): android.graphics.drawable.Drawable {
         val density = resources.displayMetrics.density
         val sizePx = (16 * density).toInt()
         
