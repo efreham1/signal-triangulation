@@ -34,9 +34,6 @@ namespace core
 		if (params.has("per_seed_timeout"))
 			m_per_seed_timeout = params.get<double>("per_seed_timeout");
 
-		if (params.has("extra_weight"))
-			cluster_score_weight = params.get<double>("extra_weight");
-
 		if (params.has("grid_half_size"))
 			m_grid_half_size = params.get<int>("grid_half_size");
 
@@ -73,6 +70,9 @@ namespace core
 		if (params.has("max_rssi_variance"))
 			m_max_rssi_variance = params.get<double>("max_rssi_variance");
 
+		if (params.has("ideal_rssi_variance"))
+			m_ideal_rssi_variance = params.get<double>("ideal_rssi_variance");
+
 		if (params.has("bottom_rssi"))
 			m_bottom_rssi = params.get<double>("bottom_rssi");
 
@@ -98,7 +98,7 @@ namespace core
 			m_angle_weight = params.get<double>("angle_weight");
 
 		if (params.has("cluster_score_weight"))
-			cluster_score_weight = params.get<double>("cluster_score_weight");
+			m_cluster_score_weight = params.get<double>("cluster_score_weight");
 
 		spdlog::debug("CTA2: Parameters applied");
 	}
@@ -438,7 +438,7 @@ namespace core
 	{
 		global_best_x = 0.0;
 		global_best_y = 0.0;
-		double global_best_cost = getCost(global_best_x, global_best_y, cluster_score_weight, m_angle_weight);
+		double global_best_cost = getCost(global_best_x, global_best_y, m_cluster_score_weight, m_angle_weight);
 
 		double zone_x = -precision * m_grid_half_size;
 		double zone_y = -precision * m_grid_half_size;
@@ -485,7 +485,7 @@ namespace core
 					{
 						double x = quadrant_x + ix * precision;
 						double y = quadrant_y + iy * precision;
-						double cost = getCost(x, y, cluster_score_weight, m_angle_weight);
+						double cost = getCost(x, y, m_cluster_score_weight, m_angle_weight);
 
 						if (cost < best_cost)
 						{

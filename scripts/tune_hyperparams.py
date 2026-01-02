@@ -250,18 +250,24 @@ def grid_search(
             print(f"  CMD: {cmd}")
             continue
 
+        has_failed = False
         metrics = []
         for rep in range(repeat):
             rc, output = run_eval_cmd(cmd, cmd_timeout)
             # Check for failed files
             if re.search(r"No output from app for file:", output):
                 print(f"  -> INVALID: Some files failed to produce output (run {rep+1}/{repeat})")
+                has_failed = True
                 break  # Don't average if any run fails
             metric = extract_metric(output, metric_regex)
             if metric is not None:
                 metrics.append(metric)
             else:
                 print(f"  -> Metric: N/A (rc={rc}) (run {rep+1}/{repeat})")
+
+        if has_failed:
+            _results.append((params, None))
+            continue
 
         avg_metric = sum(metrics) / len(metrics) if metrics else None
         if avg_metric is not None:
@@ -307,18 +313,24 @@ def random_search(
             print(f"  CMD: {cmd}")
             continue
 
+        has_failed = False
         metrics = []
         for rep in range(repeat):
             rc, output = run_eval_cmd(cmd, cmd_timeout)
             # Check for failed files
             if re.search(r"No output from app for file:", output):
                 print(f"  -> INVALID: Some files failed to produce output (run {rep+1}/{repeat})")
+                has_failed = True
                 break  # Don't average if any run fails
             metric = extract_metric(output, metric_regex)
             if metric is not None:
                 metrics.append(metric)
             else:
                 print(f"  -> Metric: N/A (rc={rc}) (run {rep+1}/{repeat})")
+
+        if has_failed:
+            _results.append((params, None))
+            continue
 
         avg_metric = sum(metrics) / len(metrics) if metrics else None
         if avg_metric is not None:
