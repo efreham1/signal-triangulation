@@ -17,6 +17,9 @@ class DebugActivity : AppCompatActivity() {
     private lateinit var sourceNameText: TextView
     private lateinit var sourcePositionDao: SourcePositionDao
 
+    private val prefsName = "debug_prefs"
+    private val keySourceName = "source_name"
+
     private val measureSourceLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -36,6 +39,13 @@ class DebugActivity : AppCompatActivity() {
 
         sourcePositionDao = (application as PolarisApp).database.sourcePositionDao()
         sourceNameText = findViewById(R.id.source_name_text)
+
+        sessionSourceName = getSharedPreferences(prefsName, MODE_PRIVATE).getString(keySourceName, null)
+
+        lifecycleScope.launch {
+            val pos = sourcePositionDao.get()
+            updateSourceUi(pos)
+        }
 
         findViewById<Button>(R.id.sourceLocationBtn).setOnClickListener {
             measureSourceLauncher.launch(Intent(this, MeasureSourceActivity::class.java))
@@ -59,6 +69,11 @@ class DebugActivity : AppCompatActivity() {
                 val name = input.text.toString().trim()
                 if (name.isNotEmpty()) {
                     sessionSourceName = name
+
+                    // Save to preferences
+                    getSharedPreferences(prefsName, MODE_PRIVATE).edit()
+                        .putString(keySourceName, name)
+                        .apply()
                     // Refresh UI to show new name
                     lifecycleScope.launch {
                         val pos = sourcePositionDao.get()

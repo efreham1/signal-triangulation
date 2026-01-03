@@ -84,12 +84,18 @@ class ExportActivity : AppCompatActivity() {
     private var lastExportedFile: File? = null
     private val deviceID: String by lazy { android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ANDROID_ID) ?: "unknown" }
 
-    private var serverHost: String = "192.168.1.238"
+    private val prefsName = "export_prefs"
+    private val keyServerHost = "server_host"
+    private val keyServerPort = "server_port"
+
+    private var serverHost: String = ""
     private var serverPort: Int = 8080
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_export)
+
+        loadServerConfig()
 
         val app = application as PolarisApp
         signalDao = app.database.signalDao()
@@ -120,6 +126,15 @@ class ExportActivity : AppCompatActivity() {
         }
     }
 
+    private fun ensureServerConfigured(): Boolean {
+        if (serverHost.isEmpty() || serverPort !in 1..65535) {
+            showServerConfigDialog()
+            Toast.makeText(this, "Please configure the server first.", Toast.LENGTH_SHORT).show()
+            return false
+        }
+        return true
+    }
+
     private fun showServerConfigDialog() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_server_config, null)
         val hostInput = dialogView.findViewById<EditText>(R.id.dialogHostInput)
@@ -136,12 +151,27 @@ class ExportActivity : AppCompatActivity() {
                 if (host.isNotEmpty() && portVal != null && portVal in 1..65535) {
                     serverHost = host
                     serverPort = portVal
+                    saveServerConfig()
                 } else {
                     Toast.makeText(this, "Invalid host or port", Toast.LENGTH_SHORT).show()
                 }
             }
             .setNegativeButton("Cancel", null)
             .show()
+    }
+
+    private fun saveServerConfig() {
+        val prefs = getSharedPreferences(prefsName, MODE_PRIVATE)
+        prefs.edit()
+            .putString(keyServerHost, serverHost)
+            .putInt(keyServerPort, serverPort)
+            .apply()
+    }
+
+    private fun loadServerConfig() {
+        val prefs = getSharedPreferences(prefsName, MODE_PRIVATE)
+        serverHost = prefs.getString(keyServerHost, "") ?: ""
+        serverPort = prefs.getInt(keyServerPort, 8080)
     }
 
     private fun promptFreeTextAndExport() {
@@ -194,18 +224,9 @@ class ExportActivity : AppCompatActivity() {
     }
 
     private fun triggerWifiSend() {
+        if (!ensureServerConfigured()) return
         val host = serverHost
         val portVal = serverPort
-        when {
-            host.isEmpty() -> {
-                Toast.makeText(this, getString(R.string.wifi_host_required), Toast.LENGTH_SHORT).show()
-                return
-            }
-            portVal !in 1..65535 -> {
-                Toast.makeText(this, getString(R.string.wifi_port_invalid), Toast.LENGTH_SHORT).show()
-                return
-            }
-        }
         sendLastExportedFile(host, portVal)
     }
 
@@ -247,12 +268,9 @@ class ExportActivity : AppCompatActivity() {
     }
 
     private fun showServerFilesDialog() {
+        if (!ensureServerConfigured()) return
         val host = serverHost
         val portVal = serverPort
-        if (host.isEmpty() || portVal !in 1..65535) {
-            Toast.makeText(this, getString(R.string.wifi_host_required), Toast.LENGTH_SHORT).show()
-            return
-        }
 
         lifecycleScope.launch {
             val files = fetchServerFiles(host, portVal)
