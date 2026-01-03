@@ -47,6 +47,7 @@
     <string name="free_text_hint">Enter text here (Optional)</string>
     <string name="free_text_title">Add free text:</string>
     <string name="free_text_positive">Add</string>
+    <string name="invalid_host_or_port">Invalid host or port</string>
 
     <string name="open_accuracy_test">Open Location Accuracy Test</string>
     <string name="take_measurement">Measure</string>
@@ -133,6 +134,8 @@
     <string name="map_signal_source">Signal Source</string>
     <string name="your_location">You are here</string>
     <string name="server_configure">Server Configuration</string>
+    <string name="server_config">Server Config</string>
+    <string name="server_configure_prompt">Please configure the server first.</string>
 
     <string name="server_missing_files">No files found on server.</string>
     <string name="server_run_algorithm">Run Algorithm</string>

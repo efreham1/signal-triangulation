@@ -129,7 +129,7 @@ class ExportActivity : AppCompatActivity() {
     private fun ensureServerConfigured(): Boolean {
         if (serverHost.isEmpty() || serverPort !in 1..65535) {
             showServerConfigDialog()
-            Toast.makeText(this, "Please configure the server first.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.server_configure_prompt), Toast.LENGTH_SHORT).show()
             return false
         }
         return true
@@ -143,7 +143,7 @@ class ExportActivity : AppCompatActivity() {
         portInput.setText(serverPort.toString())
 
         AlertDialog.Builder(this)
-            .setTitle("Server Config")
+            .setTitle(getString(R.string.server_config))
             .setView(dialogView)
             .setPositiveButton("OK") { _, _ ->
                 val host = hostInput.text.toString().trim()
@@ -153,7 +153,7 @@ class ExportActivity : AppCompatActivity() {
                     serverPort = portVal
                     saveServerConfig()
                 } else {
-                    Toast.makeText(this, "Invalid host or port", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.invalid_host_or_port), Toast.LENGTH_SHORT).show()
                 }
             }
             .setNegativeButton("Cancel", null)
