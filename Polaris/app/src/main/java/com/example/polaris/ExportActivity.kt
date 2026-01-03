@@ -1,5 +1,6 @@
 package com.example.polaris
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
@@ -18,11 +19,63 @@ import java.net.HttpURLConnection
 import java.net.URL
 import com.google.gson.GsonBuilder
 import java.net.URLEncoder
+import android.app.Dialog
+import androidx.fragment.app.DialogFragment
+import org.osmdroid.config.Configuration
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
+import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 
+class EstimateMapDialogFragment(
+    private val latitude: Double,
+    private val longitude: Double
+) : DialogFragment() {
+
+    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+        val ctx = requireContext()
+        Configuration.getInstance().load(ctx, ctx.getSharedPreferences("osmdroid", 0))
+        val view = requireActivity().layoutInflater.inflate(R.layout.dialog_estimate_map, null)
+        val mapView = view.findViewById<MapView>(R.id.estimateMapView)
+        mapView.setTileSource(org.osmdroid.tileprovider.tilesource.TileSourceFactory.MAPNIK)
+        mapView.setMultiTouchControls(true)
+        val point = GeoPoint(latitude, longitude)
+        mapView.controller.setZoom(20.0)
+        mapView.controller.setCenter(point)
+
+        val marker = Marker(mapView).apply {
+            position = GeoPoint(latitude, longitude)
+            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+            title = getString(R.string.estimated_position)
+            icon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_marker_drop)
+        }
+        mapView.overlays.add(marker)
+
+        return AlertDialog.Builder(ctx)
+            .setTitle(getString(R.string.estimated_position))
+            .setView(view)
+            .setPositiveButton(getString(R.string.close), null)
+            .create()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        view?.findViewById<MapView>(R.id.estimateMapView)?.onResume()
+    }
+    override fun onPause() {
+        view?.findViewById<MapView>(R.id.estimateMapView)?.onPause()
+        super.onPause()
+    }
+    override fun onDestroyView() {
+        view?.findViewById<MapView>(R.id.estimateMapView)?.onDetach()
+        super.onDestroyView()
+    }
+}
+
+@SuppressLint("HardwareIds")
 class ExportActivity : AppCompatActivity() {
     private lateinit var exportBtn: Button
-    private lateinit var wifiHostInput: EditText
-    private lateinit var wifiPortInput: EditText
     private lateinit var statusText: TextView
     private lateinit var closeExportBtn: Button
     private lateinit var sendWifiBtn: Button
@@ -32,17 +85,27 @@ class ExportActivity : AppCompatActivity() {
     private var lastExportedFile: File? = null
     private val deviceID: String by lazy { android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ANDROID_ID) ?: "unknown" }
 
+    private val prefsName = "export_prefs"
+    private val keyServerHost = "server_host"
+    private val keyServerPort = "server_port"
+
+    private var serverHost: String = ""
+    private var serverPort: Int = 8080
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_export)
+
+        loadServerConfig()
 
         val app = application as PolarisApp
         signalDao = app.database.signalDao()
         sourcePositionDao = app.database.sourcePositionDao()
 
+        val serverConfigBtn = findViewById<Button>(R.id.serverConfigBtn)
+        serverConfigBtn.setOnClickListener { showServerConfigDialog() }
+
         exportBtn = findViewById(R.id.exportBtn)
-        wifiHostInput = findViewById(R.id.wifiHostInput)
-        wifiPortInput = findViewById(R.id.wifiPortInput)
         statusText = findViewById(R.id.statusText)
         closeExportBtn = findViewById(R.id.closeExportBtn)
         sendWifiBtn = findViewById(R.id.sendWifiBtn)
@@ -64,6 +127,54 @@ class ExportActivity : AppCompatActivity() {
         }
     }
 
+    private fun ensureServerConfigured(): Boolean {
+        if (serverHost.isEmpty() || serverPort !in 1..65535) {
+            showServerConfigDialog()
+            Toast.makeText(this, getString(R.string.server_configure_prompt), Toast.LENGTH_SHORT).show()
+            return false
+        }
+        return true
+    }
+
+    private fun showServerConfigDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_server_config, null)
+        val hostInput = dialogView.findViewById<EditText>(R.id.dialogHostInput)
+        val portInput = dialogView.findViewById<EditText>(R.id.dialogPortInput)
+        hostInput.setText(serverHost)
+        portInput.setText(serverPort.toString())
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.server_config))
+            .setView(dialogView)
+            .setPositiveButton(getString(R.string.ok)) { _, _ ->
+                val host = hostInput.text.toString().trim()
+                val portVal = portInput.text.toString().toIntOrNull()
+                if (host.isNotEmpty() && portVal != null && portVal in 1..65535) {
+                    serverHost = host
+                    serverPort = portVal
+                    saveServerConfig()
+                } else {
+                    Toast.makeText(this, getString(R.string.invalid_host_or_port), Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .show()
+    }
+
+    private fun saveServerConfig() {
+        val prefs = getSharedPreferences(prefsName, MODE_PRIVATE)
+        prefs.edit {
+            putString(keyServerHost, serverHost)
+                .putInt(keyServerPort, serverPort)
+        }
+    }
+
+    private fun loadServerConfig() {
+        val prefs = getSharedPreferences(prefsName, MODE_PRIVATE)
+        serverHost = prefs.getString(keyServerHost, "") ?: ""
+        serverPort = prefs.getInt(keyServerPort, 8080)
+    }
+
     private fun promptFreeTextAndExport() {
         val input = EditText(this).apply {
             hint = getString(R.string.free_text_hint)
@@ -77,7 +188,7 @@ class ExportActivity : AppCompatActivity() {
                 exportDatabaseToJson(sanitized)
                 dialog.dismiss()
             }
-            .setNegativeButton(android.R.string.cancel) { dialog, _ -> dialog.dismiss() }
+            .setNegativeButton(getString(R.string.cancel)) { dialog, _ -> dialog.dismiss() }
             .show()
     }
 
@@ -114,18 +225,9 @@ class ExportActivity : AppCompatActivity() {
     }
 
     private fun triggerWifiSend() {
-        val host = wifiHostInput.text.toString().trim()
-        val portVal = wifiPortInput.text.toString().toIntOrNull()
-        when {
-            host.isEmpty() -> {
-                Toast.makeText(this, getString(R.string.wifi_host_required), Toast.LENGTH_SHORT).show()
-                return
-            }
-            portVal == null || portVal !in 1..65535 -> {
-                Toast.makeText(this, getString(R.string.wifi_port_invalid), Toast.LENGTH_SHORT).show()
-                return
-            }
-        }
+        if (!ensureServerConfigured()) return
+        val host = serverHost
+        val portVal = serverPort
         sendLastExportedFile(host, portVal)
     }
 
@@ -166,13 +268,24 @@ class ExportActivity : AppCompatActivity() {
         }
     }
 
+    private fun formatFileDisplayName(fileName: String): String {
+        // Example: 1767439085877_bad2f21127106f2a_12_18_05_test.json
+        val parts = fileName.removeSuffix(".json").split("_")
+        if (parts.size < 6) return fileName
+
+        val deviceIdInFile = parts[1]
+        val timeStr = "${parts[2]}:${parts[3]}:${parts[4]}"
+        val tag = parts.subList(5, parts.size).joinToString("_")
+        val isThisDevice = deviceIdInFile == deviceID
+
+        val deviceLabel = if (isThisDevice) "this device" else "other device"
+        return "$tag - $timeStr ($deviceLabel)"
+    }
+
     private fun showServerFilesDialog() {
-        val host = wifiHostInput.text.toString().trim()
-        val portVal = wifiPortInput.text.toString().toIntOrNull()
-        if (host.isEmpty() || portVal == null || portVal !in 1..65535) {
-            Toast.makeText(this, getString(R.string.wifi_host_required), Toast.LENGTH_SHORT).show()
-            return
-        }
+        if (!ensureServerConfigured()) return
+        val host = serverHost
+        val portVal = serverPort
 
         lifecycleScope.launch {
             val files = fetchServerFiles(host, portVal)
@@ -182,9 +295,10 @@ class ExportActivity : AppCompatActivity() {
                     return@withContext
                 }
                 val selected = BooleanArray(files.size)
+                val displayNames = files.map { formatFileDisplayName(it) }.toTypedArray()
                 AlertDialog.Builder(this@ExportActivity)
                     .setTitle(getString(R.string.server_select_files))
-                    .setMultiChoiceItems(files.toTypedArray(), selected) { _, which, isChecked ->
+                    .setMultiChoiceItems(displayNames, selected) { _, which, isChecked ->
                         selected[which] = isChecked
                     }
                     .setPositiveButton(getString(R.string.server_run_algorithm)) { _, _ ->
@@ -193,7 +307,7 @@ class ExportActivity : AppCompatActivity() {
                             runAlgorithmOnServer(host, portVal, chosenFiles)
                         }
                     }
-                    .setNegativeButton(android.R.string.cancel, null)
+                    .setNegativeButton(getString(R.string.cancel), null)
                     .show()
             }
         }
@@ -232,6 +346,11 @@ class ExportActivity : AppCompatActivity() {
                     resp
                 }
                 statusText.text = getString(R.string.server_algorithm_result, response)
+                val resultObj = org.json.JSONObject(response)
+                val estLat = resultObj.getDouble("latitude")
+                val estLon = resultObj.getDouble("longitude")
+
+                EstimateMapDialogFragment(estLat, estLon).show(supportFragmentManager, "estimateMapDialog")
             } catch (ex: Exception) {
                 statusText.text = getString(R.string.server_algorithm_error, ex.message ?: "unknown error")
             }
