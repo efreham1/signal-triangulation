@@ -144,6 +144,7 @@
     <string name="server_algorithm_error">Error running algorithm: %1$s</string>
     <string name="server_select_files">Select files to run algorithm</string>
     <string name="ok">OK</string>
+    <string name="estimated_position">Estimated Position</string>
 
 
     <string name="navigation_drawer_open">Open navigation drawer</string>

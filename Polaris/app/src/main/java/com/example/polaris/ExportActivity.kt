@@ -46,15 +46,15 @@ class EstimateMapDialogFragment(
         val marker = Marker(mapView).apply {
             position = GeoPoint(latitude, longitude)
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-            title = "Estimated Position"
+            title = getString(R.string.estimated_position)
             icon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_marker_drop)
         }
         mapView.overlays.add(marker)
 
         return AlertDialog.Builder(ctx)
-            .setTitle("Estimated Position")
+            .setTitle(getString(R.string.estimated_position))
             .setView(view)
-            .setPositiveButton("Close", null)
+            .setPositiveButton(getString(R.string.close), null)
             .create()
     }
 
