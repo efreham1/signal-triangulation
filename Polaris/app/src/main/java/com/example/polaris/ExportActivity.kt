@@ -26,6 +26,7 @@ import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 
 class EstimateMapDialogFragment(
     private val latitude: Double,
@@ -102,7 +103,7 @@ class ExportActivity : AppCompatActivity() {
         sourcePositionDao = app.database.sourcePositionDao()
 
         val serverConfigBtn = findViewById<Button>(R.id.serverConfigBtn)
-    serverConfigBtn.setOnClickListener { showServerConfigDialog() }
+        serverConfigBtn.setOnClickListener { showServerConfigDialog() }
 
         exportBtn = findViewById(R.id.exportBtn)
         statusText = findViewById(R.id.statusText)
@@ -156,16 +157,16 @@ class ExportActivity : AppCompatActivity() {
                     Toast.makeText(this, getString(R.string.invalid_host_or_port), Toast.LENGTH_SHORT).show()
                 }
             }
-            .setNegativeButton(getString(R.string.confirm_delete_negative), null)
+            .setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
 
     private fun saveServerConfig() {
         val prefs = getSharedPreferences(prefsName, MODE_PRIVATE)
-        prefs.edit()
-            .putString(keyServerHost, serverHost)
-            .putInt(keyServerPort, serverPort)
-            .apply()
+        prefs.edit {
+            putString(keyServerHost, serverHost)
+                .putInt(keyServerPort, serverPort)
+        }
     }
 
     private fun loadServerConfig() {
@@ -187,7 +188,7 @@ class ExportActivity : AppCompatActivity() {
                 exportDatabaseToJson(sanitized)
                 dialog.dismiss()
             }
-            .setNegativeButton(getString(R.string.confirm_delete_negative)) { dialog, _ -> dialog.dismiss() }
+            .setNegativeButton(getString(R.string.cancel)) { dialog, _ -> dialog.dismiss() }
             .show()
     }
 
@@ -306,7 +307,7 @@ class ExportActivity : AppCompatActivity() {
                             runAlgorithmOnServer(host, portVal, chosenFiles)
                         }
                     }
-                    .setNegativeButton(getString(R.string.confirm_delete_negative), null)
+                    .setNegativeButton(getString(R.string.cancel), null)
                     .show()
             }
         }

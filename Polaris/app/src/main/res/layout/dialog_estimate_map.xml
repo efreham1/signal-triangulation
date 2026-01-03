@@ -4,5 +4,6 @@
     <org.osmdroid.views.MapView
         android:id="@+id/estimateMapView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent"
+        android:contentDescription="@string/estimate_dialog_desc"/>
 </FrameLayout>

@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import android.widget.TextView
+import androidx.core.content.edit
 
 class DebugActivity : AppCompatActivity() {
     private var sessionSourceName: String? = null
@@ -71,9 +72,9 @@ class DebugActivity : AppCompatActivity() {
                     sessionSourceName = name
 
                     // Save to preferences
-                    getSharedPreferences(prefsName, MODE_PRIVATE).edit()
-                        .putString(keySourceName, name)
-                        .apply()
+                    getSharedPreferences(prefsName, MODE_PRIVATE).edit {
+                        putString(keySourceName, name)
+                    }
                     // Refresh UI to show new name
                     lifecycleScope.launch {
                         val pos = sourcePositionDao.get()
