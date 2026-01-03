@@ -267,6 +267,20 @@ class ExportActivity : AppCompatActivity() {
         }
     }
 
+    private fun formatFileDisplayName(fileName: String): String {
+        // Example: 1767439085877_bad2f21127106f2a_12_18_05_test.json
+        val parts = fileName.removeSuffix(".json").split("_")
+        if (parts.size < 6) return fileName
+
+        val deviceIdInFile = parts[1]
+        val timeStr = "${parts[2]}:${parts[3]}:${parts[4]}"
+        val tag = parts.subList(5, parts.size).joinToString("_")
+        val isThisDevice = deviceIdInFile == deviceID
+
+        val deviceLabel = if (isThisDevice) "this device" else "other device"
+        return "$tag - $timeStr ($deviceLabel)"
+    }
+
     private fun showServerFilesDialog() {
         if (!ensureServerConfigured()) return
         val host = serverHost
@@ -280,9 +294,10 @@ class ExportActivity : AppCompatActivity() {
                     return@withContext
                 }
                 val selected = BooleanArray(files.size)
+                val displayNames = files.map { formatFileDisplayName(it) }.toTypedArray()
                 AlertDialog.Builder(this@ExportActivity)
                     .setTitle(getString(R.string.server_select_files))
-                    .setMultiChoiceItems(files.toTypedArray(), selected) { _, which, isChecked ->
+                    .setMultiChoiceItems(displayNames, selected) { _, which, isChecked ->
                         selected[which] = isChecked
                     }
                     .setPositiveButton(getString(R.string.server_run_algorithm)) { _, _ ->
@@ -291,7 +306,7 @@ class ExportActivity : AppCompatActivity() {
                             runAlgorithmOnServer(host, portVal, chosenFiles)
                         }
                     }
-                    .setNegativeButton(android.R.string.cancel, null)
+                    .setNegativeButton(getString(R.string.confirm_delete_negative), null)
                     .show()
             }
         }
