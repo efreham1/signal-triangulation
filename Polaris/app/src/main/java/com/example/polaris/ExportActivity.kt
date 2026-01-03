@@ -145,7 +145,7 @@ class ExportActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.server_config))
             .setView(dialogView)
-            .setPositiveButton("OK") { _, _ ->
+            .setPositiveButton(getString(R.string.ok)) { _, _ ->
                 val host = hostInput.text.toString().trim()
                 val portVal = portInput.text.toString().toIntOrNull()
                 if (host.isNotEmpty() && portVal != null && portVal in 1..65535) {
@@ -156,7 +156,7 @@ class ExportActivity : AppCompatActivity() {
                     Toast.makeText(this, getString(R.string.invalid_host_or_port), Toast.LENGTH_SHORT).show()
                 }
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(getString(R.string.confirm_delete_negative), null)
             .show()
     }
 
@@ -187,7 +187,7 @@ class ExportActivity : AppCompatActivity() {
                 exportDatabaseToJson(sanitized)
                 dialog.dismiss()
             }
-            .setNegativeButton(android.R.string.cancel) { dialog, _ -> dialog.dismiss() }
+            .setNegativeButton(getString(R.string.confirm_delete_negative)) { dialog, _ -> dialog.dismiss() }
             .show()
     }
 
