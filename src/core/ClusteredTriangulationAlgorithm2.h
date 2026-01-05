@@ -75,7 +75,7 @@ namespace core
         double m_weight_area = 1.0;
         double m_weight_rssi_variance = 1.0;
         double m_weight_rssi = 1.0;
-        double cluster_score_weight = 1.0;
+        double m_cluster_score_weight = 1.0;
         double m_angle_weight = 10.0;
     };
 
