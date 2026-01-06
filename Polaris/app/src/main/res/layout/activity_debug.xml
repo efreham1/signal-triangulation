@@ -24,6 +24,13 @@
         android:layout_marginTop="8dp" />
 
     <Button
+        android:id="@+id/loadMeasurementsBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/import_measurements"
+        android:layout_marginTop="8dp" />
+
+    <Button
         android:id="@+id/closeDebugBtn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

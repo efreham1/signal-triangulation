@@ -145,9 +145,13 @@
     <string name="server_select_files">Select files to run algorithm</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
+    <string name="yes">Yes</string>
     <string name="estimated_position">Estimated Position</string>
     <string name="estimate_dialog_desc">Map showing the estimated position of the signal source</string>
-
+    <string name="import_measurements">Import Measurements</string>
+    <string name="measurements_imported">Measurements imported successfully (%1$d records)</string>
+    <string name="measurements_import_failed">Failed to import measurements: %1$s</string>
+    <string name="import_measurements_warning">Importing measurements will overwrite current data. Continue?</string>
 
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
