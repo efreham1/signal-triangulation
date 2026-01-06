@@ -8,4 +8,18 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="marker_red">#FFFF0000</color>
+    
+    <!-- App Theme Colors -->
+    <color name="primary_dark_bg">#050511</color>
+    <color name="navbar_bg">#0A0A23</color>
+    <color name="secondary_blue">#4FC3F7</color>
+    <color name="accent_purple">#6200EE</color>
+    <color name="text_white">#FFFFFF</color>
+    <color name="card_bg">#1A1A2E</color>
+
+    <!-- Legacy / Specific usages (mapped to theme colors) -->
+    <color name="start_background">@color/primary_dark_bg</color>
+    <color name="polaris_text">@color/text_white</color>
+    <color name="start_button_bg">@color/secondary_blue</color>
+    <color name="start_button_text">@color/text_white</color>
 </resources>

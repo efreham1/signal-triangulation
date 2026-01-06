@@ -14,13 +14,11 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
 import androidx.room.Dao
 import androidx.room.Database
@@ -30,7 +28,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.RoomDatabase
-import com.google.android.material.navigation.NavigationView
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
@@ -112,8 +110,7 @@ class MainActivity : AppCompatActivity() {
     private var currentLocationMarker: Marker? = null
     private val measurementMarkers = mutableListOf<Marker>()
 
-    private lateinit var drawerLayout: DrawerLayout
-    private lateinit var navView: NavigationView
+    private lateinit var bottomNav: BottomNavigationView
     private lateinit var toolbar: Toolbar
 
     // SSID list & selection
@@ -394,32 +391,23 @@ class MainActivity : AppCompatActivity() {
         statusText = findViewById(R.id.statusText)
         statusText.text = getString(R.string.status_ssid_missing)
 
-        drawerLayout = findViewById(R.id.drawer_layout)
-        navView = findViewById(R.id.nav_view)
+        bottomNav = findViewById(R.id.bottom_navigation)
         toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
 
-        val toggle = ActionBarDrawerToggle(
-            this, drawerLayout, toolbar,
-            R.string.navigation_drawer_open,
-            R.string.navigation_drawer_close
-        )
-        drawerLayout.addDrawerListener(toggle)
-        toggle.syncState()
-
-        navView.setNavigationItemSelectedListener { menuItem ->
-            when (menuItem.itemId) {
-                R.id.nav_debug -> {
-                    val intent = Intent(this, DebugActivity::class.java)
-                    startActivity(intent)
-                    drawerLayout.closeDrawers()
+        bottomNav.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.navigation_home -> {
+                    // Already in home
                     true
                 }
-                R.id.nav_export -> {
-                    val intent = Intent(this, ExportActivity::class.java)
-                    startActivity(intent)
-                    drawerLayout.closeDrawers()
-                    true
+                R.id.navigation_debug -> {
+                    startActivity(Intent(this, DebugActivity::class.java))
+                    false // Don't highlight since we're leaving the activity
+                }
+                R.id.navigation_export -> {
+                    startActivity(Intent(this, ExportActivity::class.java))
+                    false
                 }
                 else -> false
             }
@@ -553,6 +541,9 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         mapView.onResume()
+        
+        // Ensure "Home" is selected when we return to MainActivity
+        bottomNav.selectedItemId = R.id.navigation_home
 
         if (hasAllPermissions()) {
             // Always ensure streams are started

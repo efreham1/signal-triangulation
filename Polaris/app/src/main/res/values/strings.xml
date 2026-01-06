@@ -157,4 +157,14 @@
 
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
+    
+    <!-- Start Activity -->
+    <string name="start_title">POLARIS</string>
+    <string name="start_subtitle">Signal Source Locator</string>
+    <string name="get_started">GET STARTED</string>
+
+    <!-- Navigation -->
+    <string name="title_home">Home</string>
+    <string name="title_debug">Debug</string>
+    <string name="title_export">Export</string>
 </resources>

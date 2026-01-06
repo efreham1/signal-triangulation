@@ -4,15 +4,16 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
-import androidx.appcompat.app.AppCompatActivity
 import android.widget.EditText
+import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.edit
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.bottomnavigation.BottomNavigationView
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.Dispatchers
-import android.widget.TextView
-import androidx.core.content.edit
 
 class DebugActivity : AppCompatActivity() {
     private var sessionSourceName: String? = null
@@ -21,6 +22,8 @@ class DebugActivity : AppCompatActivity() {
 
     private val prefsName = "debug_prefs"
     private val keySourceName = "source_name"
+
+    private lateinit var bottomNav: BottomNavigationView
 
     private val measureSourceLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
@@ -60,6 +63,27 @@ class DebugActivity : AppCompatActivity() {
         }
         findViewById<Button>(R.id.closeDebugBtn).setOnClickListener {
             finish()
+        }
+
+        bottomNav = findViewById(R.id.bottom_navigation)
+        bottomNav.selectedItemId = R.id.navigation_debug
+        bottomNav.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.navigation_home -> {
+                    startActivity(Intent(this, MainActivity::class.java))
+                    finish() // Close debug activity
+                    false
+                }
+                R.id.navigation_debug -> {
+                    true
+                }
+                R.id.navigation_export -> {
+                    startActivity(Intent(this, ExportActivity::class.java))
+                    finish() // Close debug activity and open export
+                    false
+                }
+                else -> false
+            }
         }
     }
 
@@ -201,5 +225,10 @@ class DebugActivity : AppCompatActivity() {
                 sourceNameText.text = getString(R.string.placeholder_source)
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        bottomNav.selectedItemId = R.id.navigation_debug
     }
 }
