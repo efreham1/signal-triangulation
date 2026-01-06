@@ -403,10 +403,14 @@ class MainActivity : AppCompatActivity() {
                 }
                 R.id.navigation_debug -> {
                     startActivity(Intent(this, DebugActivity::class.java))
-                    false // Don't highlight since we're leaving the activity
+                    overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                    finish() 
+                    false 
                 }
                 R.id.navigation_export -> {
                     startActivity(Intent(this, ExportActivity::class.java))
+                    overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+                    finish()
                     false
                 }
                 else -> false
@@ -589,7 +593,7 @@ class MainActivity : AppCompatActivity() {
         // Create an ArrayAdapter that we can update (even if empty initially)
         val adapter = android.widget.ArrayAdapter(
             this,
-            android.R.layout.simple_list_item_single_choice,
+            R.layout.item_wifi_choice, // Use custom layout here
             snapshotList.toMutableList()
         )
 

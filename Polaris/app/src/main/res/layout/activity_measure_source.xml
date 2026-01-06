@@ -3,7 +3,8 @@
     android:orientation="vertical"
     android:padding="16dp"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_app_gradient">
 
     <TextView
         android:id="@+id/measureTitle"
@@ -11,33 +12,40 @@
         android:layout_height="wrap_content"
         android:text="@string/measure_source" 
         android:textSize="18sp"
+        android:textColor="@color/text_white"
         android:paddingBottom="8dp"/>
 
     <Button
         android:id="@+id/startMeasureBtn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/start_measurement" />
+        android:text="@string/start_measurement"
+        android:backgroundTint="@color/secondary_blue"
+        android:textColor="@color/text_white" />
 
     <Button
         android:id="@+id/cancelMeasureBtn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/close"
-        android:layout_marginTop="8dp" />
+        android:layout_marginTop="8dp"
+        android:backgroundTint="@color/secondary_blue"
+        android:textColor="@color/text_white" />
 
     <TextView
         android:id="@+id/measureProgress"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/ready"
-        android:layout_marginTop="12dp" />
+        android:layout_marginTop="12dp"
+        android:textColor="@color/text_white" />
 
     <TextView
         android:id="@+id/measureResult"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text=""
-        android:layout_marginTop="12dp" />
+        android:layout_marginTop="12dp"
+        android:textColor="@color/text_white" />
 
 </LinearLayout>

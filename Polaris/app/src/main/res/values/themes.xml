@@ -17,10 +17,21 @@
         <item name="android:textColor">@color/text_white</item>
         <item name="android:windowBackground">@color/primary_dark_bg</item>
         <item name="android:statusBarColor">@color/primary_dark_bg</item>
+        
+        <!-- Dialog overrides -->
+        <item name="android:dialogTheme">@style/PolarisDialog</item>
+        <item name="alertDialogTheme">@style/PolarisDialog</item>
     </style>
     
     <style name="PolarisButton" parent="Widget.AppCompat.Button">
         <item name="android:backgroundTint">@color/secondary_blue</item>
         <item name="android:textColor">@color/text_white</item>
+    </style>
+
+    <style name="PolarisDialog" parent="Theme.AppCompat.Light.Dialog.Alert">
+        <!-- Ensure dialog background is light or dark as preferred, but text is black -->
+        <item name="android:textColor">@color/black</item>
+        <item name="android:textColorPrimary">@color/black</item>
+        <item name="android:textColorSecondary">@color/black</item>
     </style>
 </resources>

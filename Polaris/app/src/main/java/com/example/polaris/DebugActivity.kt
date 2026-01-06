@@ -71,14 +71,16 @@ class DebugActivity : AppCompatActivity() {
             when (item.itemId) {
                 R.id.navigation_home -> {
                     startActivity(Intent(this, MainActivity::class.java))
-                    finish() // Close debug activity
-                    false
+                    overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+                    finish() 
+                    false 
                 }
                 R.id.navigation_debug -> {
                     true
                 }
                 R.id.navigation_export -> {
                     startActivity(Intent(this, ExportActivity::class.java))
+                    overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
                     finish() // Close debug activity and open export
                     false
                 }
