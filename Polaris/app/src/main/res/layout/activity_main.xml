@@ -12,10 +12,8 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-
-
         android:elevation="4dp"
-        android:background="@drawable/bg_toolbar_rounded"
+        android:background="@color/primary_dark_bg"
         app:title="Polaris"
         app:titleCentered="true"
         app:titleTextColor="@color/text_white"
