@@ -11,7 +11,7 @@ Project Polaris estimates the location of a signal source (e.g., a radio transmi
 - **Cluster-based triangulation algorithms** (CTA1 and CTA2)
 - **REST API server** for remote signal processing
 - **Android app (Polaris)** for collecting GPS-tagged signal measurements
-- **Real-time visualization** of results via Python plotting scripts
+- **Visualization** of results via Python plotting scripts
 - **Comprehensive test suite** with unit and integration tests
 
 ## Project Structure
