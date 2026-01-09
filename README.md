@@ -118,7 +118,7 @@ cmake --build . -j$(nproc)
 ./build/signal-triangulation -p Recordings/FootballField2.json
 
 # Use CTA1 algorithm
-./build/signal-triangulation -a CTA1 Recordings/Urban1.json
+./build/signal-triangulation -a CTA1 Recordings/MergedUrban.json
 ```
 
 ### With Visualization
