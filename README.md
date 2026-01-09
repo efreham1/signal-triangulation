@@ -31,7 +31,6 @@ Project Polaris estimates the location of a signal source (e.g., a radio transmi
 ├── plotting/               # Python visualization scripts
 ├── tests/                  # Unit and integration tests
 ├── Recordings/             # Sample signal recording files (JSON)
-├── algorithmDesigns/       # Algorithm design documentation
 └── scripts/                # Utility scripts
 ```
 
