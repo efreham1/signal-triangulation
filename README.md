@@ -187,7 +187,7 @@ The system implements cluster-based Angle-of-Arrival (AoA) triangulation:
 
 ## Input Data Format
 
-Signal data is provided in JSON format, here follows an example of a single measurement point:
+Signal data is provided in JSON format. The following is an example of a single measurement point:
 
 ```json
 {
