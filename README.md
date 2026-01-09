@@ -1,160 +1,207 @@
-# Signal Triangulation
+# Project Polaris
+
+A signal source localization system using cluster-based Angle-of-Arrival (AoA) triangulation algorithms. The project consists of a C++ triangulation engine, a REST API server, and an Android companion app for data collection.
 
 ## Overview
-This repository contains:
-- Polaris: an Android data collection app for capturing Wi‑Fi signal measurements alongside GPS fixes.
-- A C++ triangulation stack (src/) for parsing incoming measurements, filtering/clusterizing them, and estimating transmitter positions.
-- A lightweight file receiver utility for accepting uploaded recordings over HTTP.
-- Utility scripts and a Makefile wrapper for building and fetching recordings from devices.
 
-## Repository Structure
+Project Polaris estimates the location of a signal source (e.g., a radio transmitter) from a set of GPS-tagged signal strength measurements. The core algorithm partitions measurements into spatial clusters, estimates the angle of arrival (AoA) for each cluster using gradient-based methods, and then optimizes a global cost function to find the most likely source location.
+
+## Features
+
+- **Cluster-based triangulation algorithms** (CTA1 and CTA2)
+- **REST API server** for remote signal processing
+- **Android app (Polaris)** for collecting GPS-tagged signal measurements
+- **Visualization** of results via Python plotting scripts
+- **Comprehensive test suite** with unit and integration tests
+
+## Project Structure
+
 ```
-signal-triangulation/
-├── Polaris/                 # Android app (data collector)
-├── src/                     # C++ triangulation stack
-│   ├── core/
-│   │   ├── DataPoint.*                 # Measurement model and helpers
-│   │   ├── JsonSignalParser.*          # JSON → DataPoint parsing
-│   │   ├── TriangulationService.*      # Orchestrates end‑to‑end pipeline
-│   │   ├── ClusteredTriangulationAlgorithm.*  # Clustering + triangulation
-│   ├── utils/
-│   │   ├── FileReceiver.*              # HTTP file upload receiver
-│   └── tools/
-│       ├── plane_test.*                # Geometry/solver test harness
-├── scripts/               # Helper scripts (ADB install, file transfer, naming)
-├── Makefile               # Wrapper for CMake build, ADB install, file transfer
-└── build/                 # CMake build output (generated)
-    ├── signal-triangulation    # Main triangulation executable
-    └── file-receiver           # HTTP file upload receiver
+├── src/                    # C++ source code
+│   ├── core/               # Core algorithm implementation
+│   │   ├── ClusteredTriangulationAlgorithm1.cpp/h
+│   │   ├── ClusteredTriangulationAlgorithm2.cpp/h
+│   │   ├── Cluster.cpp/h
+│   │   ├── DataPoint.cpp/h
+│   │   └── JsonSignalParser.cpp/h
+│   ├── rest/               # REST API server
+│   ├── main.cpp            # CLI application entry point
+│   └── main_rest_api.cpp   # REST server entry point
+├── Polaris/                # Android companion app (Kotlin)
+├── plotting/               # Python visualization scripts
+├── tests/                  # Unit and integration tests
+├── Recordings/             # Sample signal recording files (JSON)
+└── scripts/                # Utility scripts
 ```
 
-## Algorithm (src/)
-High‑level pipeline implemented in `src/core` and surfaced via `TriangulationService`:
+## Requirements
 
-- Input representation (DataPoint)
-  - Encapsulates a single measurement record (signal strength and associated position/metadata).
-  - Used throughout parsing, filtering, and solving.
+### Build Dependencies
 
-- Parsing (JsonSignalParser)
-  - Converts JSON input from clients into `DataPoint` instances.
-  - See `JsonSignalParser.h` for the accepted schema and fields.
+- CMake 3.14+
+- C++17 compatible compiler (GCC, Clang, MSVC)
+- OpenMP (optional, for parallel processing)
 
-- Orchestration (TriangulationService)
-  - Coordinates parsing, de‑duplication, optional filtering, clustering, and position solving per transmitter/source.
-  - Exposes a simple interface to feed measurements and request position estimates.
+The following dependencies are automatically fetched via CMake's FetchContent:
+- [nlohmann/json](https://github.com/nlohmann/json) v3.11.2
+- [spdlog](https://github.com/gabime/spdlog) v1.14.1
+- [cpp-httplib](https://github.com/yhirose/cpp-httplib) v0.14.3
+- [GoogleTest](https://github.com/google/googletest) (for testing)
 
-- Clustering + triangulation (ClusteredTriangulationAlgorithm)
-  - Groups consistent measurements (e.g., spatial/temporal coherence) to suppress outliers before solving.
-  - Performs multilateration/triangulation in 2D using the clustered set.
-  - Typical approach:
-    - Convert signal levels to range weights (or relative constraints) via a path‑loss model when calibrated, otherwise weight by signal quality.
-    - Solve the position using a least‑squares style estimator with basic robustness to outliers.
-  - Returns an estimated position and basic fit/error metrics. See header comments for tunable parameters and outputs.
+### Android App
 
-- Tools (tools/plane_test)
-  - Lightweight test harness used to exercise geometry/solver routines with synthetic inputs.
+- Android Studio
+- Gradle
+- Android SDK
 
-Note: Exact JSON schema, clustering parameters, and solver details are documented in the respective headers (`*.h`) and may evolve.
+### Plotting (Optional)
 
-## Android app: Polaris
-- Purpose: collect Wi‑Fi and GPS samples while moving around a transmitter.
-- Implements a database with support for exporting recordings to a JSON file.
+- Python 3.x
+- matplotlib
+- numpy
+- pandas
 
-Required permissions:
-- ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION, ACCESS_WIFI_STATE.
+## Building
 
-Build/Run:
-- Android Studio: open `Polaris/` and run on a device.
-- CLI: from `Polaris/`, run `./gradlew assembleDebug`.
+### Quick Start
 
-## Building the C++ stack
-Using the top‑level Makefile (Linux/macOS):
 ```bash
-make            # configure + build with CMake
-make test       # run ctest (if tests are defined)
-make clean      # remove build artifacts
+# Build release version
+make
+
+# Build debug version
+make debug
+
+# Build with profiling support
+make profiling
+
+# Clean build directory
+make clean
+
+# Full rebuild
+make rebuild
 ```
 
-Or manually:
+### Manual CMake Build
+
 ```bash
-mkdir -p build && cd build
-cmake ..
-cmake --build . -j"$(nproc 2>/dev/null || echo 1)"
+mkdir build && cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
+cmake --build . -j$(nproc)
 ```
 
-This will produce two executables in the `build/` directory:
-- `signal-triangulation` - Main triangulation application
-- `file-receiver` - HTTP file upload receiver
+## Usage
 
-## REST API Server
+### Command Line Interface
 
-### Overview
-The `rest-api-server` is a lightweight HTTP server for uploading measurement files and running triangulation algorithms remotely. It provides endpoints for file upload, file listing, and algorithm execution, making it easy to integrate with the Polaris Android app or other clients over Wi-Fi.
-
-### Usage
-
-**Start the REST API server:**
 ```bash
-# Default: listen on port 8080, save uploads to "uploads/"
+./build/signal-triangulation [options] <signals_file.json>
+```
+
+#### Options
+
+| Option | Description |
+|--------|-------------|
+| `-h, --help` | Show help message |
+| `--param-help` | Show algorithm parameter help |
+| `-a, --algorithm <name>` | Algorithm to use: `CTA1` or `CTA2` (default: CTA2) |
+| `-p, --plot` | Enable plotting output |
+| `--log-level <level>` | Set log level (trace, debug, info, warn, error) |
+
+### Example
+
+```bash
+# Run triangulation on a recording file
+./build/signal-triangulation Recordings/HalfMoon1.json
+
+# Run with plotting enabled
+./build/signal-triangulation -p Recordings/FootballField2.json
+
+# Use CTA1 algorithm
+./build/signal-triangulation -a CTA1 Recordings/MergedUrban.json
+```
+
+### With Visualization
+
+Pipe the output to the plotting script for visualization:
+
+```bash
+./build/signal-triangulation -p Recordings/HalfMoon1.json | python3 plotting/plot_from_stdin.py
+```
+
+### REST API Server
+
+```bash
 ./build/rest-api-server
-
-# Custom port and output directory
-./build/rest-api-server --port 9000 --output recordings/
-
-# Show help
-./build/rest-api-server --help
 ```
 
-**Endpoints:**
+The server accepts signal data via HTTP and returns triangulation results.
 
-- `POST /upload`  
-  Upload a JSON recording file.  
-  Use the `X-Filename` header to specify the filename.
+## Testing
 
-- `GET /files`  
-  List all uploaded files in the output directory.
-
-- `GET /run-algorithm?files=file1.json,file2.json,...`  
-  Run the triangulation algorithm on the specified files (comma-separated list). Returns the result as JSON.
-
-**Example: Upload a file from the command line**
 ```bash
-curl -X POST http://192.168.1.100:8080/upload \
-  -H "X-Filename: recording1.json" \
-  -H "Content-Type: application/json" \
-  --data-binary @path/to/recording.json
+# Run all tests
+make test
+
+# Run unit tests only
+make test-unit
+
+# Run integration tests only
+make test-integration
+
+# Run a specific test
+make test-one TEST=test_triangulation
 ```
 
-**Example: Run the algorithm on uploaded files**
+## Android App (Polaris)
+
+The Polaris Android app collects GPS-tagged signal strength measurements that can be processed by the triangulation engine.
+
+### Building the App
+
 ```bash
-curl "http://192.168.1.100:8080/run-algorithm?files=recording1.json,recording2.json"
+cd Polaris
+./gradlew assembleDebug
 ```
 
-**Integration Tips:**
-1. Find your computer's local IP: `ifconfig` (macOS/Linux) or `ipconfig` (Windows)
-2. Ensure computer and Android device are on the same Wi-Fi network or hotspot
-3. Configure firewall to allow incoming connections on the chosen port
-4. Use the `X-Filename` header to specify custom filenames for uploads
-5. The server creates the output directory automatically if it doesn't exist
+### Fetching Recordings from Device (optional)
 
-
-## Fetching recordings from Android
 ```bash
+# Install ADB if needed
+make install-adb
+
+# Transfer recordings from connected Android device
 make fetch_recordings
 ```
-Troubleshooting:
-- Ensure scripts run with bash and are executable:
-  ```bash
-  chmod +x scripts/*.sh
-  head -n1 scripts/*.sh   # should be: #!/usr/bin/env bash
-  ```
-- Verify device visibility:
-  ```bash
-  adb devices
-  ```
 
-## Contributing
-- Open an issue or PR with a concise description and reproducible steps.
+## Algorithm Overview
 
-## License
-See LICENSE for details.
+The system implements cluster-based Angle-of-Arrival (AoA) triangulation:
+
+1. **Clustering**: Partition GPS-tagged signal measurements into spatial clusters
+2. **AoA Estimation**: Fit a local plane to each cluster's signal strength field; the gradient indicates the direction toward the source
+3. **Vector Creation**: Convert each cluster into a weighted direction vector
+4. **Optimization**: Minimize a cost function based on perpendicular distances from candidate locations to cluster rays
+5. **Outlier Rejection**: Identify and exclude anomalous clusters for robustness
+
+## Input Data Format
+
+Signal data is provided in JSON format. The following is an example of a single measurement point:
+
+```json
+{
+  "measurements": [
+    {
+      "deviceID": "cb32e7f6ba0ea81a", //unique identifier for the recording device
+      "id": 101,
+      "latitude": 59.86614995555554,
+      "longitude": 17.70517585555555,
+      "rssi": -73,
+      "ssid": "wifi-hotspot",
+      "timestamp": 1764845637110 //timestamp in UNIX time format
+    }
+  ]
+}
+```
+
+Sample recordings are provided in the `Recordings/` and `oldRecordings/` directories.
