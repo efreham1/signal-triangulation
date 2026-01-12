@@ -24,7 +24,7 @@
         android:networkSecurityConfig="@xml/security_config"
         android:usesCleartextTraffic="true">
         <activity
-            android:name=".MainActivity"
+            android:name=".StartActivity"
             android:screenOrientation="portrait"
             android:exported="true">
             <intent-filter>
@@ -32,6 +32,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".MainActivity"
+            android:screenOrientation="portrait"
+            android:exported="false" />
         <activity
             android:name=".MeasureSourceActivity"
             android:screenOrientation="portrait"

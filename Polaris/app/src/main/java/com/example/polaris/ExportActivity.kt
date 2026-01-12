@@ -1,6 +1,7 @@
 package com.example.polaris
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
@@ -9,6 +10,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
@@ -79,6 +81,7 @@ class ExportActivity : AppCompatActivity() {
     private lateinit var statusText: TextView
     private lateinit var closeExportBtn: Button
     private lateinit var sendWifiBtn: Button
+    private lateinit var bottomNav: BottomNavigationView
 
     private lateinit var signalDao: SignalDao
     private lateinit var sourcePositionDao: SourcePositionDao
@@ -124,6 +127,29 @@ class ExportActivity : AppCompatActivity() {
 
         findViewById<Button>(R.id.showServerFilesBtn).setOnClickListener {
             showServerFilesDialog()
+        }
+
+        bottomNav = findViewById(R.id.bottom_navigation)
+        bottomNav.selectedItemId = R.id.navigation_export
+        bottomNav.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.navigation_home -> {
+                    startActivity(Intent(this, MainActivity::class.java))
+                    overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                    finish() // Close export activity
+                    false
+                }
+                R.id.navigation_debug -> {
+                    startActivity(Intent(this, DebugActivity::class.java))
+                    overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                    finish() // Close export activity and open debug
+                    false
+                }
+                R.id.navigation_export -> {
+                    true
+                }
+                else -> false
+            }
         }
     }
 
@@ -355,5 +381,10 @@ class ExportActivity : AppCompatActivity() {
                 statusText.text = getString(R.string.server_algorithm_error, ex.message ?: "unknown error")
             }
         }
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        bottomNav.selectedItemId = R.id.navigation_export
     }
 }
