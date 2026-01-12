@@ -47,36 +47,36 @@ namespace core
         // Clustering
         double m_coalition_distance = 2.0;
         unsigned int m_cluster_min_points = 3;
-        int m_max_internal_distance = 20;
+        int m_max_internal_distance = 30;
 
         // Geometric ratio
-        double m_min_geometric_ratio = 0.25;
+        double m_min_geometric_ratio = 0.2;
         double m_ideal_geometric_ratio = 1.0;
         double m_max_geometric_ratio = 1.0;
 
         // Area
-        double m_min_area = 20.0;
-        double m_ideal_area = 50.0;
-        double m_max_area = 1000.0;
+        double m_min_area = 50.0;
+        double m_ideal_area = 100.0;
+        double m_max_area = 500.0;
 
         // RSSI
-        double m_min_rssi_variance = 5.0;
-        double m_ideal_rssi_variance = 20.0;
+        double m_min_rssi_variance = 1.0;
+        double m_ideal_rssi_variance = 10.0;
         double m_bottom_rssi = -90.0;
         // Top (best) RSSI to use for interpolation (less negative is better)
         double m_top_rssi = 0.0;
         double m_max_rssi_variance = 100.0;
 
         // Overlap
-        double m_max_overlap = 0.01;
+        double m_max_overlap = 0.1;
 
         // Weights
-        double m_weight_geometric_ratio = 1.0;
-        double m_weight_area = 1.0;
-        double m_weight_rssi_variance = 1.0;
-        double m_weight_rssi = 1.0;
+        double m_weight_geometric_ratio = 2.0;
+        double m_weight_area = 0.5;
+        double m_weight_rssi_variance = 2.0;
+        double m_weight_rssi = 0.0;
         double m_cluster_score_weight = 1.0;
-        double m_angle_weight = 10.0;
+        double m_angle_weight = 0.5;
     };
 
 } // namespace core
